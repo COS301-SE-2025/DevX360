@@ -90,8 +90,14 @@ async function joinTeam() {
 }
 
 async function searchTeam() {
-  const name = document.getElementById("search-team-name").value;
+  const name = document.getElementById("search-team-name").value.trim();
   const token = getToken();
+  const container = document.getElementById("search-result-container");
+
+  if (!name) {
+    container.innerHTML = "<p>Please enter a team name to search.</p>";
+    return;
+  }
 
   const res = await fetch(`http://localhost:5000/api/teams/${name}`, {
     headers: {
@@ -99,24 +105,47 @@ async function searchTeam() {
     },
   });
 
-  const infoEl = document.getElementById("team-info");
   const data = await res.json();
 
   if (!res.ok) {
-    infoEl.innerHTML = `<p>${data.message}</p>`;
+    container.innerHTML = `<p style="color: red;">${data.message}</p>`;
     return;
   }
 
   const team = data.team;
-  infoEl.innerHTML = `
-    <h4>${team.name}</h4>
-    <p><strong>Creator:</strong> ${team.creator.name}</p>
-    <p><strong>Members:</strong></p>
-    <ul>
-      ${team.members.map((m) => `<li>${m.name} (${m.email})</li>`).join("")}
-    </ul>
+
+  container.innerHTML = `
+    <div class="team-block">
+      <h3>${team.name}</h3>
+      <p><strong>Creator:</strong> ${team.creator.name}</p>
+      <button onclick="promptJoinTeam('${team.name}')" class="btn btn-secondary">Join Team</button>
+    </div>
   `;
 }
+function promptJoinTeam(teamName) {
+  const password = prompt(`Enter password to join "${teamName}"`);
+  if (password) joinTeam(teamName, password);
+}
+
+async function joinTeam(name, password) {
+  const token = getToken();
+
+  const res = await fetch("http://localhost:5000/api/teams/join", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name, password }),
+  });
+
+  const data = await res.json();
+  alert(data.message);
+}
+document.getElementById("toggle-create-form").addEventListener("click", () => {
+  const form = document.getElementById("create-form");
+  form.style.display = form.style.display === "none" ? "block" : "none";
+});
 
 function getToken() {
   const session = localStorage.getItem("userSession");

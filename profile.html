@@ -72,8 +72,27 @@
             </div>
           </div>
         </header>
-        <div style="display: flex; gap: 2rem; align-items: flex-start">
-          <div class="profile-content" style="flex: 1">
+        <div
+          style="
+            display: flex;
+            gap: 15rem;
+            align-items: flex-start;
+            width: 100%;
+            justify-content: center;
+          "
+        >
+          <div
+            class="profile-content full-width-profile"
+            style="
+              flex: 2;
+              width: 100%;
+              max-width: 1200px;
+              background: var(--bg-container);
+              border-radius: 12px;
+              padding: 2rem;
+              box-shadow: var(--shadow);
+            "
+          >
             <div class="profile-avatar-container">
               <div class="profile-avatar">
                 <img src="" alt="Profile Picture" id="profile-avatar-image" />
@@ -120,7 +139,7 @@
           <div
             class="teams-box"
             style="
-              width: 240px;
+              width: 260px;
               background: var(--bg-container);
               padding: 1rem 1.5rem;
               border-radius: 12px;
@@ -128,10 +147,8 @@
             "
           >
             <h2 style="margin-bottom: 1rem">Your Teams</h2>
-            <ul style="list-style: none; padding: 0; margin: 0">
-              <li style="margin-bottom: 0.5rem"><a href="#">Team Alpha</a></li>
-              <li style="margin-bottom: 0.5rem"><a href="#">Team Beta</a></li>
-              <li style="margin-bottom: 0.5rem"><a href="#">Team Gamma</a></li>
+            <ul id="user-teams" style="list-style: none; padding: 0; margin: 0">
+              <li>Loading...</li>
             </ul>
           </div>
         </div>

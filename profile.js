@@ -22,6 +22,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const user = data.user;
+    const teamsList = user.teams || [];
+    const teamListEl = document.getElementById("user-teams");
+
+    teamListEl.innerHTML = teamsList.length
+      ? teamsList
+          .map(
+            (t) =>
+              `<li style="margin-bottom: 0.5rem"><a href="#">${t.name}</a></li>`
+          )
+          .join("")
+      : "<li>No teams yet.</li>";
 
     document.getElementById("profile-name").textContent = user.name;
     document.getElementById("profile-email").textContent = user.email;

@@ -254,7 +254,7 @@
 .profile-details {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
@@ -275,24 +275,33 @@
   border-bottom: 1px solid var(--border);
 }
 
-.team-form-block {
-  margin-bottom: 2rem;
+.team-block {
+  background: var(--bg-container);
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
 }
 
-.team-form-block input {
+.team-block h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--primary);
+}
+
+.team-block p {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--text-light);
+}
+
+.team-input {
   display: block;
   margin-bottom: 1rem;
   padding: 0.6rem;
   width: 100%;
-  max-width: 320px;
+  max-width: 400px;
   border: 1px solid var(--border);
   border-radius: 6px;
-}
-
-.team-form-block button {
-  margin-top: 0.25rem;
-  padding: 0.6rem 1.2rem;
-  min-width: 100px;
 }
 
 /* Responsive Design */

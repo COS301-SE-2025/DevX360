@@ -290,6 +290,8 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const teams = await Team.find({ members: user._id }).select("name");
+
     res.json({
       user: {
         id: user._id,
@@ -300,6 +302,7 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
         isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
+        teams, // <-- Include teams here
       },
     });
   } catch (error) {
