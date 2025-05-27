@@ -80,6 +80,15 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+const teamSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true, trim: true },
+  password: { type: String, required: true },
+  creator: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+});
+
+const Team = mongoose.model("Team", teamSchema);
+
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -365,6 +374,63 @@ app.post(
     }
   }
 );
+
+app.post("/api/teams", authenticateToken, async (req, res) => {
+  const { name, password } = req.body;
+
+  if (!name || !password) {
+    return res.status(400).json({ message: "Team name and password required" });
+  }
+
+  const existingTeam = await Team.findOne({ name });
+  if (existingTeam) {
+    return res.status(400).json({ message: "Team already exists" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const team = new Team({
+    name,
+    password: hashedPassword,
+    creator: req.user.userId,
+    members: [req.user.userId],
+  });
+
+  await team.save();
+  res.status(201).json({ message: "Team created", teamId: team._id });
+});
+
+app.post("/api/teams/join", authenticateToken, async (req, res) => {
+  const { name, password } = req.body;
+
+  const team = await Team.findOne({ name });
+  if (!team) {
+    return res.status(404).json({ message: "Team not found" });
+  }
+
+  const valid = await bcrypt.compare(password, team.password);
+  if (!valid) {
+    return res.status(401).json({ message: "Incorrect password" });
+  }
+
+  if (!team.members.includes(req.user.userId)) {
+    team.members.push(req.user.userId);
+    await team.save();
+  }
+
+  res.json({ message: "Joined team", teamId: team._id });
+});
+
+app.get("/api/teams/:name", authenticateToken, async (req, res) => {
+  const team = await Team.findOne({ name: req.params.name })
+    .populate("creator", "name")
+    .populate("members", "name email");
+  if (!team) {
+    return res.status(404).json({ message: "Team not found" });
+  }
+
+  res.json({ team });
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
