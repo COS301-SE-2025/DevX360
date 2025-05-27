@@ -53,7 +53,7 @@
 <summary><strong>Sibusiso Mngomezulu</strong> - Backend Specialist</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-![Sibusiso] 
+![Sibusiso]  
 **Key Skills**: Python, Node.js, API Development   
 **About Me**: "Determined software engineer and first-time founder with full-stack expertise. Specializing in backend systems and viewing challenges as opportunities for growth."  
 [LinkedIn Profile](http://www.linkedin.com/in/sibusiso-mngomezulu-)
@@ -65,7 +65,7 @@
 <summary><strong>Kelsey Hamann</strong> - Backend/API Support</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-![Kelsey] 
+![Kelsey]  
 **Key Skills**: Python, Distributed Systems  
 **About Me**: "Third-year CS student focused on ethical tech solutions. Passionate about building systems that improve real-world experiences through practical engineering."  
 [LinkedIn Profile](https://www.linkedin.com/in/kelsey-d-hamann)
@@ -77,7 +77,7 @@
 <summary><strong>David Musa-Alsien</strong> - Frontend Lead</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-![David]
+![David]  
 **Key Skills**: React, D3.js, UI/UX Design   
 **About Me**: "Final-year student specializing in frontend development. Creating accessible web applications with strong focus on user-centered design principles."  
 [LinkedIn Profile](https://www.linkedin.com/in/d-m-a-381700356)
@@ -89,7 +89,7 @@
 <summary><strong>Owethu Dlamini</strong> - Frontend Support</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-![Owethu]
+![Owethu]  
 **Key Skills**: JavaScript, Testing Frameworks  
 **About Me**: "Software engineer passionate about cybersecurity and collaborative problem-solving. Committed to building secure, impactful systems."  
 [LinkedIn Profile](https://www.linkedin.com/in/opsdlamini)
