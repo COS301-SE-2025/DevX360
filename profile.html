@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile | DevX360</title>
+    <script>
+      (() => {
+        const theme = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <script src="profile.js" defer></script>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="logo-container">
+          <div class="logo">DevX360</div>
+          <div class="tagline">Engineering Intelligence Platform</div>
+        </div>
+        <nav class="main-nav">
+          <a href="dashboard.html" class="nav-item">Overview</a>
+          <a href="#" class="nav-item active">Profile</a>
+        </nav>
+        <div class="sidebar-footer">
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle theme"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+          <button id="logout-btn" class="btn btn-logout">Logout</button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="main-header">
+          <h1>Your Profile</h1>
+          <div class="user-profile">
+            <div class="user-info">
+              <span class="user-name" id="header-user-name">Loading...</span>
+              <span class="user-role" id="header-user-role">Loading...</span>
+            </div>
+            <div class="user-avatar" id="user-avatar">
+              <img src="" alt="User Avatar" id="avatar-image" />
+            </div>
+          </div>
+        </header>
+        <div style="display: flex; gap: 2rem; align-items: flex-start">
+          <div class="profile-content" style="flex: 1">
+            <div class="profile-avatar-container">
+              <div class="profile-avatar">
+                <img src="" alt="Profile Picture" id="profile-avatar-image" />
+              </div>
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                style="display: none"
+              />
+              <button id="change-avatar-btn" class="btn btn-secondary">
+                Change Photo
+              </button>
+              <button id="edit-profile-btn" class="btn btn-secondary">
+                Edit Profile
+              </button>
+            </div>
+
+            <div class="profile-details">
+              <div class="detail-group">
+                <label>Full Name</label>
+                <div class="detail-value" id="profile-name">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Email</label>
+                <div class="detail-value" id="profile-email">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Role</label>
+                <div class="detail-value" id="profile-role">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Member Since</label>
+                <div class="detail-value" id="profile-created">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Last Login</label>
+                <div class="detail-value" id="profile-last-login">
+                  Loading...
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="teams-box"
+            style="
+              width: 240px;
+              background: var(--bg-container);
+              padding: 1rem 1.5rem;
+              border-radius: 12px;
+              box-shadow: var(--shadow);
+            "
+          >
+            <h2 style="margin-bottom: 1rem">Your Teams</h2>
+            <ul style="list-style: none; padding: 0; margin: 0">
+              <li style="margin-bottom: 0.5rem"><a href="#">Team Alpha</a></li>
+              <li style="margin-bottom: 0.5rem"><a href="#">Team Beta</a></li>
+              <li style="margin-bottom: 0.5rem"><a href="#">Team Gamma</a></li>
+            </ul>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

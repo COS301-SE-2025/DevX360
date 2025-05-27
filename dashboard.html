@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | DevX360</title>
+    <script>
+      (() => {
+        const theme = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <script src="dashboard.js" defer></script>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="logo-container">
+          <div class="logo">DevX360</div>
+          <div class="tagline">Engineering Intelligence Platform</div>
+        </div>
+
+        <nav class="main-nav">
+          <a href="#" class="nav-item active" data-section="overview">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a href="#" class="nav-item" data-section="metrics">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span>DORA Metrics</span>
+          </a>
+          <a href="#" class="nav-item" data-section="team">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Team</span>
+          </a>
+          <a href="profile.html" class="nav-item" data-section="profile">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Profile</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle theme"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+          <button id="logout-btn" class="btn btn-logout">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <header class="main-header">
+          <h1 id="dashboard-title">Overview</h1>
+          <div class="user-profile">
+            <div class="user-info">
+              <span class="user-name" id="header-user-name">Loading...</span>
+              <span class="user-role" id="header-user-role">Loading...</span>
+            </div>
+            <div class="user-avatar" id="user-avatar">
+              <img src="" alt="User Avatar" id="avatar-image" />
+            </div>
+          </div>
+        </header>
+
+        <!-- Dashboard Sections -->
+        <section id="overview-section" class="dashboard-section active">
+          <div class="welcome-card">
+            <h2>Welcome to DevX360</h2>
+            <p>
+              Your engineering intelligence platform that helps you measure and
+              improve your team's performance using DORA metrics and AI-driven
+              insights.
+            </p>
+          </div>
+
+          <div class="about-card">
+            <h3>About DevX360</h3>
+            <p>
+              DevX360 is a comprehensive platform designed to help engineering
+              teams measure, understand, and improve their performance. We
+              provide:
+            </p>
+            <ul>
+              <li>Real-time DORA metrics tracking</li>
+              <li>AI-powered performance insights</li>
+              <li>Team and individual analytics</li>
+              <li>Automated reporting</li>
+              <li>Integration with GitHub and other development tools</li>
+            </ul>
+            <p>
+              Our mission is to help engineering teams deliver better software
+              faster while maintaining high quality standards.
+            </p>
+          </div>
+
+          <div class="quick-stats">
+            <div class="stat-card">
+              <h4>Deployment Frequency</h4>
+              <div class="stat-value" id="deployment-freq">--</div>
+              <div class="stat-trend up">+12% from last week</div>
+            </div>
+            <div class="stat-card">
+              <h4>Lead Time</h4>
+              <div class="stat-value" id="lead-time">--</div>
+              <div class="stat-trend down">-8% from last week</div>
+            </div>
+            <div class="stat-card">
+              <h4>Change Fail Rate</h4>
+              <div class="stat-value" id="fail-rate">--</div>
+              <div class="stat-trend up">+3% from last week</div>
+            </div>
+            <div class="stat-card">
+              <h4>MTTR</h4>
+              <div class="stat-value" id="mttr">--</div>
+              <div class="stat-trend down">-15% from last week</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="metrics-section" class="dashboard-section">
+          <h2>DORA Metrics</h2>
+          <p>Your team's performance metrics will appear here.</p>
+          <!-- Metrics content will be loaded dynamically -->
+        </section>
+
+        <section id="team-section" class="dashboard-section">
+          <h2>Team Overview</h2>
+          <p>Team information and collaboration tools will appear here.</p>
+          <!-- Team content will be loaded dynamically -->
+        </section>
+
+        <section id="profile-section" class="dashboard-section">
+          <div class="profile-header">
+            <h2>Your Profile</h2>
+            <button id="edit-profile-btn" class="btn btn-secondary">
+              Edit Profile
+            </button>
+          </div>
+
+          <div class="profile-content">
+            <div class="profile-avatar-container">
+              <div class="profile-avatar">
+                <img src="" alt="Profile Picture" id="profile-avatar-image" />
+              </div>
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                style="display: none"
+              />
+              <button id="change-avatar-btn" class="btn btn-secondary">
+                Change Photo
+              </button>
+            </div>
+
+            <div class="profile-details">
+              <div class="detail-group">
+                <label>Full Name</label>
+                <div class="detail-value" id="profile-name">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Email</label>
+                <div class="detail-value" id="profile-email">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Role</label>
+                <div class="detail-value" id="profile-role">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Member Since</label>
+                <div class="detail-value" id="profile-created">Loading...</div>
+              </div>
+              <div class="detail-group">
+                <label>Last Login</label>
+                <div class="detail-value" id="profile-last-login">
+                  Loading...
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
