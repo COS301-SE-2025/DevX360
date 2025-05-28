@@ -5,8 +5,7 @@
 **DevX360** is an AI-powered DevOps analytics platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates tracking, analysis, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance.
 
 ---
-SRS Document Link:
-https://github.com/COS301-SE-2025/DevX360/Documentation/SRS.pdf
+**SRS Document in "Documentation Folder"**
 
 ## 🔑 Key Features
 
