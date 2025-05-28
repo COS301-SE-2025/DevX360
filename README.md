@@ -6,7 +6,7 @@
 
 ---
 SRS Document Link:
-https://github.com/COS301-SE-2025/DevX360/SRS.pdf
+https://github.com/COS301-SE-2025/DevX360/Documentation/SRS.pdf
 
 ## 🔑 Key Features
 
