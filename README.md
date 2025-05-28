@@ -41,12 +41,14 @@
 <summary><strong>Sipho Sehlapelo</strong> - Flexible Lead</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-<td>
+<td style="vertical-align: top; width:auto; border: 0; padding: 10px;">
 <img src="https://github.com/COS301-SE-2025/DevX360/blob/main/README Pictures/sipho.jpg?raw=true" width="200" height="200" style="display: block; margin: 0 auto;">
 </td>
+<td style="vertical-align: top; width:auto; border: 0; padding: 10px;">
 **Key Skills**: Python, JavaScript, Full-Stack Development   
 **About Me**: "Third-year Computer Science student passionate about AI and entrepreneurship. Building tech solutions that create real-world impact through my AI agency and student-focused platforms."  
 [LinkedIn Profile](http://www.linkedin.com/in/sipho-sehlapelo-769155356)
+</td>
 
 </div>
 </details>
