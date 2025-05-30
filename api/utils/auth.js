@@ -1,7 +1,7 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 //unit tested
 async function hashPassword(password) {
@@ -15,7 +15,11 @@ async function comparePassword(plainPassword, hashedPassword) {
 }
 
 //unit tested
-function generateToken(payload, secret = JWT_SECRET, options = { expiresIn: '7d' }) {
+function generateToken(
+  payload,
+  secret = JWT_SECRET,
+  options = { expiresIn: "7d" }
+) {
   return jwt.sign(payload, secret, options);
 }
 

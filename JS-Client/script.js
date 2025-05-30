@@ -1,14 +1,13 @@
 // API Configuration
 const API_BASE_URL = "http://localhost:5000"; // Change in production
 
-// Tab switching function - FIXED
+// Tab switching function
 function switchTab(tab) {
   console.log("Switching to tab:", tab);
 
   const tabs = document.querySelectorAll(".auth-tab");
   const forms = document.querySelectorAll(".auth-form");
 
-  // Remove active class from all tabs and forms
   tabs.forEach((t) => t.classList.remove("active"));
   forms.forEach((f) => f.classList.remove("active"));
 
@@ -30,11 +29,9 @@ function initThemeToggle() {
       const newTheme = currentTheme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", newTheme);
 
-      // Store theme preference in memory (not localStorage for artifacts)
       window.themePreference = newTheme;
     });
 
-    // Set default theme
     const defaultTheme = window.themePreference || "light";
     document.documentElement.setAttribute("data-theme", defaultTheme);
   }
@@ -47,9 +44,8 @@ async function handleLogin(email, password) {
 
     const response = await fetch(`${API_BASE_URL}/api/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
 
@@ -60,22 +56,8 @@ async function handleLogin(email, password) {
       throw new Error(data.message || "Login failed");
     }
 
-    // Store token and user info in memory for demo purposes
-    localStorage.setItem(
-      "userSession",
-      JSON.stringify({
-        token: data.token,
-        userId: data.userId,
-        role: data.role,
-        user: data.user,
-      })
-    );
-
     console.log("Login successful!");
-    window.location.href = "dashboard.html";
-
-    // In a real app, you would redirect to dashboard
-    // window.location.href = 'dashboard.html';
+    window.location.href = "../UI/dashboard.html";
   } catch (error) {
     console.error("Login error:", error);
     alert(`Login failed: ${error.message}`);
@@ -93,9 +75,8 @@ async function handleSignUp(name, role, email, password, inviteCode = "") {
 
     const response = await fetch(`${API_BASE_URL}/api/register`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(requestBody),
     });
 
@@ -106,46 +87,13 @@ async function handleSignUp(name, role, email, password, inviteCode = "") {
       throw new Error(data.message || "Registration failed");
     }
 
-    // Store user session
-    window.userSession = {
-      token: data.token,
-      userId: data.userId,
-      role: data.role,
-      user: data.user,
-    };
-
     alert(`Registration successful! Welcome, ${data.user.name}!`);
     console.log("Registration successful, user logged in automatically");
-
-    // Clear the form
     document.getElementById("register-form").reset();
+    window.location.href = "../UI/dashboard.html";
   } catch (error) {
     console.error("Registration error:", error);
     alert(`Registration failed: ${error.message}`);
-  }
-}
-
-// Session Management
-function checkAuth() {
-  const hasSession = window.userSession && window.userSession.token;
-  const currentPage = window.location.pathname;
-
-  console.log(
-    "Checking auth. Has session:",
-    !!hasSession,
-    "Current page:",
-    currentPage
-  );
-
-  if (
-    hasSession &&
-    (currentPage.includes("index.html") || currentPage === "/")
-  ) {
-    console.log("User already logged in");
-    // In a real app: window.location.href = 'dashboard.html';
-  } else if (!hasSession && currentPage.includes("dashboard.html")) {
-    console.log("User not logged in, would redirect to login");
-    // In a real app: window.location.href = 'index.html';
   }
 }
 
@@ -158,7 +106,6 @@ function resetInactivityTimer() {
     console.log("User inactive, logging out");
     window.userSession = null;
     alert("You have been logged out due to inactivity.");
-    // In a real app: window.location.href = 'index.html';
   }, 30 * 60 * 1000); // 30 minutes
 }
 
@@ -167,7 +114,6 @@ function logout() {
   window.userSession = null;
   console.log("User logged out");
   alert("You have been logged out successfully.");
-  // In a real app: window.location.href = 'index.html';
 }
 
 // Show/hide invite code field
@@ -181,57 +127,8 @@ function toggleInviteField() {
 // Initialize
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOM loaded, initializing...");
-
-  checkAuth();
   resetInactivityTimer();
   initThemeToggle();
-
-  // Event listeners for user activity
-  ["mousemove", "mousedown", "touchstart", "click", "keypress"].forEach(
-    (event) => {
-      window.addEventListener(event, resetInactivityTimer);
-    }
-  );
-
-  // Tab click handlers - FIXED
-  const signinTab = document.querySelector(".auth-tab:first-child");
-  const signupTab = document.querySelector(".auth-tab:last-child");
-
-  if (signinTab) {
-    signinTab.addEventListener("click", (e) => {
-      e.preventDefault();
-      switchTab("signin");
-    });
-  }
-
-  if (signupTab) {
-    signupTab.addEventListener("click", (e) => {
-      e.preventDefault();
-      switchTab("signup");
-    });
-  }
-
-  // Also handle the footer links
-  const signupLink = document.querySelector(
-    '.auth-footer a[onclick*="signup"]'
-  );
-  const signinLink = document.querySelector(
-    '.auth-footer a[onclick*="signin"]'
-  );
-
-  if (signupLink) {
-    signupLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      switchTab("signup");
-    });
-  }
-
-  if (signinLink) {
-    signinLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      switchTab("signin");
-    });
-  }
 
   // Form submission handlers
   const loginForm = document.getElementById("login-form");
@@ -320,10 +217,10 @@ document.addEventListener("DOMContentLoaded", function () {
   fetch(`${API_BASE_URL}/api/health`)
     .then((response) => response.json())
     .then((data) => {
-      console.log("✅ Server connection successful:", data);
+      console.log("Server connection successful:", data);
     })
     .catch((error) => {
-      console.error("❌ Server connection failed:", error);
+      console.error("Server connection failed:", error);
       console.log("Make sure your server is running on http://localhost:5000");
     });
 });

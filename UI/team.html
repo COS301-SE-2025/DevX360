@@ -12,11 +12,10 @@
     </script>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="dashboard.css" />
-    <script src="team.js" defer></script>
+    <script src="../JS-Client/team.js" defer></script>
   </head>
   <body>
     <div class="dashboard-container">
-      <!-- Sidebar -->
       <aside class="sidebar">
         <div class="logo-container">
           <div class="logo">DevX360</div>
@@ -59,8 +58,6 @@
           <button id="logout-btn" class="btn btn-logout">Logout</button>
         </div>
       </aside>
-
-      <!-- Main -->
       <main class="main-content">
         <header class="main-header">
           <h1>Team Management</h1>
@@ -74,8 +71,6 @@
             </div>
           </div>
         </header>
-
-        <!-- Team UI -->
         <section class="dashboard-section active">
           <div
             style="
@@ -87,7 +82,6 @@
               gap: 1rem;
             "
           >
-            <!-- Search bar and button -->
             <div style="display: flex; flex-grow: 1; gap: 0.5rem; width: 100%">
               <input
                 id="search-team-name"
@@ -112,7 +106,6 @@
               </button>
             </div>
 
-            <!-- Create Team button -->
             <button
               id="toggle-create-form"
               class="btn btn-primary"
@@ -122,7 +115,6 @@
             </button>
           </div>
 
-          <!-- Hidden team creation form -->
           <div id="create-form" style="display: none; margin-bottom: 2rem">
             <input
               type="text"
@@ -141,7 +133,6 @@
             </button>
           </div>
 
-          <!-- Search result -->
           <div id="search-result-container"></div>
         </section>
       </main>

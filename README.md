@@ -5,34 +5,35 @@
 **DevX360** is an AI-powered DevOps analytics platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates tracking, analysis, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance.
 
 ---
+
 **SRS Document in "Documentation Folder"**
 
 ## 🔑 Key Features
 
-- **AI-Driven Insights**:  
+- **AI-Driven Insights**:
   - Identify performance bottlenecks via Ollama (local LLM) code analysis.
   - Predictive alerts to prevent workflow degradation.
-- **Real-Time Dashboard**:  
+- **Real-Time Dashboard**:
   - Interactive visualization of team/individual metrics (React + D3.js).
   - Trend analysis and customizable benchmarks.
-- **Automated Integrations**:  
+- **Automated Integrations**:
   - GitHub/GitLab/Jira API integrations for seamless data collection.
   - Apache Airflow for scheduled metric calculations.
-- **Reporting**:  
+- **Reporting**:
   - Generate PDF/CSV reports and Slack alerts for metric deviations.
 
 ---
 
 ## 🛠 Technologies Used
 
-| Component              | Technology/Framework      | Justification                           |
-|------------------------|---------------------------|-----------------------------------------|
-| **Frontend**           | React + D3.js             | Interactive dashboards & visualization  |
-| **Backend**            | Node.js (Express)         | High-throughput API handling            |
-| **AI Analysis**        | Ollama (Local LLM)        | Offline, cost-free code analysis        |
-| **Data Processing**    | Apache Airflow            | Reliable metric scheduling              |
-| **Database**           | Supabase (PostgreSQL)     | Real-time capabilities & free tier      |
-| **Hosting**            | Vercel                    | Zero-cost deployment                    |
+| Component           | Technology/Framework | Justification                          |
+| ------------------- | -------------------- | -------------------------------------- |
+| **Frontend**        | React + D3.js        | Interactive dashboards & visualization |
+| **Backend**         | Node.js (Express)    | High-throughput API handling           |
+| **AI Analysis**     | Ollama (Local LLM)   | Offline, cost-free code analysis       |
+| **Data Processing** | Apache Airflow       | Reliable metric scheduling             |
+| **Database**        | MongoDB Atlas        | Flexible multi-format data storage     |
+| **Hosting**         | Vercel               | Zero-cost deployment                   |
 
 ---
 
@@ -75,7 +76,7 @@
 <summary><strong>David Musa-Alsien</strong> - Frontend Lead</summary>
 <div style="display: flex; gap: 20px; margin-top: 10px;">
 
-**Key Skills**: React, D3.js, UI/UX Design   
+**Key Skills**: React, D3.js, UI/UX Design  
 **About Me**: "Final-year student specializing in frontend development. Creating accessible web applications with strong focus on user-centered design principles."  
 [LinkedIn Profile](https://www.linkedin.com/in/d-m-a-381700356)
 

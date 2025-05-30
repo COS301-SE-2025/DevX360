@@ -1,19 +1,14 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const userSession = JSON.parse(localStorage.getItem("userSession"));
-  const token = userSession?.token;
-
-  if (!token) {
-    alert("You are not logged in!");
-    window.location.href = "index.html";
-    return;
-  }
-
   try {
     const res = await fetch("http://localhost:5000/api/profile", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
     });
+
+    if (!res.ok) {
+      alert("You are not logged in!");
+      window.location.href = "../UI/index.html";
+      return;
+    }
 
     const data = await res.json();
     const user = data.user;
@@ -22,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("header-user-role").textContent = user.role;
 
     const avatarUrl = user.avatar
-      ? `http://localhost:5000${user.avatar}`
+      ? `http://localhost:5000/uploads/${user.avatar}`
       : "default-avatar.png";
     document.getElementById("avatar-image").src = avatarUrl;
   } catch (error) {
@@ -32,9 +27,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initThemeToggle();
 
-  document.getElementById("logout-btn").addEventListener("click", () => {
-    localStorage.removeItem("userSession");
-    window.location.href = "index.html";
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    await fetch("http://localhost:5000/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    window.location.href = "../UI/index.html";
   });
 });
 
@@ -56,13 +54,12 @@ function initThemeToggle() {
 async function createTeam() {
   const name = document.getElementById("create-team-name").value;
   const password = document.getElementById("create-team-password").value;
-  const token = getToken();
 
   const res = await fetch("http://localhost:5000/api/teams", {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ name, password }),
   });
@@ -74,13 +71,12 @@ async function createTeam() {
 async function joinTeam() {
   const name = document.getElementById("join-team-name").value;
   const password = document.getElementById("join-team-password").value;
-  const token = getToken();
 
   const res = await fetch("http://localhost:5000/api/teams/join", {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ name, password }),
   });
@@ -91,7 +87,7 @@ async function joinTeam() {
 
 async function searchTeam() {
   const name = document.getElementById("search-team-name").value.trim();
-  const token = getToken();
+
   const container = document.getElementById("search-result-container");
 
   if (!name) {
@@ -100,9 +96,7 @@ async function searchTeam() {
   }
 
   const res = await fetch(`http://localhost:5000/api/teams/${name}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
 
   const data = await res.json();
@@ -128,13 +122,11 @@ function promptJoinTeam(teamName) {
 }
 
 async function joinTeam(name, password) {
-  const token = getToken();
-
   const res = await fetch("http://localhost:5000/api/teams/join", {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ name, password }),
   });
@@ -142,12 +134,8 @@ async function joinTeam(name, password) {
   const data = await res.json();
   alert(data.message);
 }
+
 document.getElementById("toggle-create-form").addEventListener("click", () => {
   const form = document.getElementById("create-form");
   form.style.display = form.style.display === "none" ? "block" : "none";
 });
-
-function getToken() {
-  const session = localStorage.getItem("userSession");
-  return session ? JSON.parse(session).token : null;
-}

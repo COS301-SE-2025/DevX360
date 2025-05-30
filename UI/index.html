@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome | DevX360</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="../JS-Client/script.js" defer></script>
+  </head>
+  <body>
+    <div class="graphic-side">
+      <div class="graphic-content">
+        <h1>Welcome to DevX360</h1>
+        <p>
+          Streamline your team's workflow with our intuitive task management
+          system. Collaborate, track progress, and achieve more together.
+        </p>
+      </div>
+    </div>
+
+    <div class="auth-side">
+      <div class="auth-container">
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          aria-label="Toggle theme"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <div class="logo">DevX360</div>
+        <div class="tagline">Manage your team's workflow efficiently</div>
+
+        <div class="auth-tabs">
+          <div class="auth-tab active" onclick="switchTab('signin')">
+            Sign In
+          </div>
+          <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
+        </div>
+
+        <div id="signin-form" class="auth-form active">
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input
+                type="email"
+                id="login-email"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input
+                type="password"
+                id="login-password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div class="form-group remember-forgot">
+              <div class="remember-me">
+                <input type="checkbox" id="remember-me" />
+                <label for="remember-me">Remember me</label>
+              </div>
+              <a href="#" class="forgot-password">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Sign In</button>
+
+            <div class="mfa-prompt" id="mfa-prompt">
+              <p>
+                For added security, please check your email for the verification
+                code.
+              </p>
+              <div class="form-group">
+                <input
+                  type="text"
+                  id="mfa-code"
+                  placeholder="Enter 6-digit code"
+                />
+              </div>
+              <button type="button" class="btn btn-primary">Verify</button>
+            </div>
+          </form>
+
+          <div class="divider">or continue with</div>
+
+          <div class="social-logins">
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                class="social-icon"
+                alt="Google"
+              />
+            </div>
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/microsoft/microsoft-original.svg"
+                class="social-icon"
+                alt="Microsoft"
+              />
+            </div>
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
+                class="social-icon"
+                alt="GitHub"
+              />
+            </div>
+          </div>
+
+          <div class="auth-footer">
+            Don't have an account?
+            <a href="#" onclick="switchTab('signup')">Sign up</a>
+          </div>
+        </div>
+
+        <div id="signup-form" class="auth-form">
+          <form id="register-form">
+            <div class="form-group">
+              <label for="register-name">Full Name</label>
+              <input
+                type="text"
+                id="register-name"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="register-role">Role</label>
+              <input
+                type="text"
+                id="register-role"
+                placeholder="Developer"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input
+                type="email"
+                id="register-email"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="register-password">Password</label>
+              <input
+                type="password"
+                id="register-password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="register-confirm">Confirm Password</label>
+              <input
+                type="password"
+                id="register-confirm"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div class="form-group invite-field" id="invite-field">
+              <label for="invite-code">Invite Code (optional)</label>
+              <input
+                type="text"
+                id="invite-code"
+                placeholder="Enter invite code if you have one"
+              />
+            </div>
+
+            <div class="form-group terms">
+              <input type="checkbox" id="terms" required />
+              <label for="terms"
+                >I agree to the <a href="#">Terms</a> and
+                <a href="#">Privacy Policy</a></label
+              >
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Create Account
+            </button>
+          </form>
+
+          <div class="divider">or sign up with</div>
+
+          <div class="social-logins">
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                class="social-icon"
+                alt="Google"
+              />
+            </div>
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/microsoft/microsoft-original.svg"
+                class="social-icon"
+                alt="Microsoft"
+              />
+            </div>
+            <div class="social-btn">
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
+                class="social-icon"
+                alt="GitHub"
+              />
+            </div>
+          </div>
+
+          <div class="auth-footer">
+            Already have an account?
+            <a href="#" onclick="switchTab('signin')">Sign in</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

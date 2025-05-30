@@ -16,8 +16,15 @@ class Database {
     const MONGODB_URI = process.env.MONGODB_URI;
 
     if (!MONGODB_URI) {
-      console.error("❌ MONGODB_URI is not set in environment variables.");
-      process.exit(1);
+      if (process.env.NODE_ENV === "test") {
+        console.warn(
+          "MONGODB_URI not set — skipping DB connection in test mode."
+        );
+        return;
+      } else {
+        console.error("MONGODB_URI is not set.");
+        process.exit(1);
+      }
     }
 
     mongoose
@@ -26,10 +33,10 @@ class Database {
         useUnifiedTopology: true,
       })
       .then(() => {
-        console.log("✅ MongoDB connected successfully");
+        console.log("MongoDB connected successfully");
       })
       .catch((err) => {
-        console.error("❌ MongoDB connection error:", err);
+        console.error("MongoDB connection error:", err);
         process.exit(1);
       });
   }
