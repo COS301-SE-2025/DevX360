@@ -189,6 +189,56 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
   }
 });
 
+app.put('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const updates = {};
+    
+    if (!name && !email && !password) {
+      return res.status(400).json({ message: "At least one field (name, email, or password) is required" });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (name) {
+      updates.name = name.trim();
+    }
+    
+    if (email) {
+      const emailExists = await User.findOne({ email: email.trim().toLowerCase() });
+      if (emailExists && emailExists._id.toString() !== req.user.userId) {
+        return res.status(400).json({ message: "Email already in use by another account" });
+      }
+      updates.email = email.trim().toLowerCase();
+    }
+    
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      updates.password = await hashPassword(password);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json({ 
+      message: "Profile updated successfully",
+      user: updatedUser 
+    });
+
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Error updating profile" });
+  }
+});
+
 app.get("/api/users", authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== "admin")
