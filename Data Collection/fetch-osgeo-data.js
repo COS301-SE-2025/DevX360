@@ -55,13 +55,13 @@ async function fetchRepositoryMetrics(owner, repo) {
     });
     await delay(1000);
 
-    // Get issues with labels for better MTTR calculation
+    // Get issues with labels for better MTTR and CFR calculation
     const { data: issues } = await octokit.rest.issues.listForRepo({
       owner,
       repo,
       state: 'closed',
       per_page: 100,
-      labels: 'bug'
+      labels: 'bug,incident'
     });
     await delay(1000);
 
@@ -162,20 +162,18 @@ function calculateMTTR(issues) {
 function calculateChangeFailureRate(releases, issues) {
   if (!releases || releases.length === 0) return 'No releases found';
 
-  // Count releases that were followed by bug fixes
-  const releaseDates = releases.map(r => new Date(r.created_at));
-  const bugFixes = issues.filter(issue => {
-    const issueDate = new Date(issue.closed_at);
-    // Check if bug was fixed within 7 days of a release
-    return releaseDates.some(releaseDate => 
-      Math.abs(issueDate - releaseDate) <= 7 * 24 * 60 * 60 * 1000
-    );
-  });
+  // Only count issues labeled as 'bug' or 'incident'
+  const failureIssues = issues.filter(issue =>
+    issue.labels &&
+    issue.labels.some(label =>
+      ['bug', 'incident'].includes(label.name.toLowerCase())
+    )
+  );
 
   return {
-    total_releases: releases.length,
-    releases_with_bugs: bugFixes.length,
-    failure_rate: ((bugFixes.length / releases.length) * 100).toFixed(2) + '%'
+    total_deployments: releases.length,
+    bug_or_incident_fixes: failureIssues.length,
+    failure_rate: ((failureIssues.length / releases.length) * 100).toFixed(2) + '%'
   };
 }
 
