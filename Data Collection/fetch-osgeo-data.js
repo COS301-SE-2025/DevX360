@@ -88,45 +88,49 @@ async function fetchRepositoryMetrics(owner, repo) {
 }
 
 function calculateDeploymentFrequency(releases, tags) {
-  const allDeployments = [
-    ...releases.map(r => new Date(r.created_at)),
-    ...tags
-      .map(t => {
-        // Safely check for commit and author date
-        if (t.commit && t.commit.commit && t.commit.commit.author && t.commit.commit.author.date) {
-          return new Date(t.commit.commit.author.date);
-        }
-        return null;
-      })
-      .filter(date => date !== null)
-  ].sort((a, b) => a - b);
+  // Filter out draft and pre-release releases to count only actual deployments
+  const deployments = releases
+    .filter(r => !r.draft && !r.prerelease)
+    .map(r => new Date(r.created_at))
+    .sort((a, b) => a - b);
 
-  if (allDeployments.length === 0) return 'No deployments found';
-  if (allDeployments.length === 1) return {
-    total_deployments: 1,
-    time_span_days: 0,
-    frequency_per_day: 'N/A (single deployment)'
-  };
-  
-  const timeSpan = allDeployments[allDeployments.length - 1] - allDeployments[0];
+  if (deployments.length === 0) {
+    return {
+      total_deployments: 0,
+      frequency_per_day: 0,
+      time_span_days: 0
+    };
+  }
+
+  if (deployments.length === 1) {
+    return {
+      total_deployments: 1,
+      time_span_days: 0,
+      frequency_per_day: 'N/A (single deployment)'
+    };
+  }
+
+  const timeSpan = deployments[deployments.length - 1] - deployments[0];
   const days = timeSpan / (1000 * 60 * 60 * 24);
-  
+
   return {
-    total_deployments: allDeployments.length,
+    total_deployments: deployments.length,
     time_span_days: Math.round(days),
-    frequency_per_day: (allDeployments.length / days).toFixed(2)
+    frequency_per_day: (deployments.length / (days || 1)).toFixed(2) // Avoid division by zero
   };
 }
 
 function calculateLeadTime(pullRequests, commits) {
-  if (!pullRequests || pullRequests.length === 0) return 'No pull requests found';
+  // Only calculate lead time for merged PRs
+  const mergedPRs = pullRequests.filter(pr => pr.merged_at);
 
-  const leadTimes = pullRequests.map(pr => {
+  if (mergedPRs.length === 0) return 'No merged pull requests found';
+
+  const leadTimes = mergedPRs.map(pr => {
     const created = new Date(pr.created_at);
     const merged = new Date(pr.merged_at);
-    if (!merged) return null;
     return (merged - created) / (1000 * 60 * 60 * 24); // Convert to days
-  }).filter(time => time !== null);
+  });
 
   if (leadTimes.length === 0) return 'No valid lead times found';
 
@@ -139,7 +143,13 @@ function calculateLeadTime(pullRequests, commits) {
 }
 
 function calculateMTTR(issues) {
-  if (!issues || issues.length === 0) return 'No bug issues found';
+  if (!issues || issues.length === 0) {
+    return {
+      average_days: 0,
+      total_incidents_analyzed: 0,
+      details: 'No bug/incident issues found'
+    };
+  }
 
   const resolutionTimes = issues
     .filter(issue => issue.closed_at && issue.created_at)
