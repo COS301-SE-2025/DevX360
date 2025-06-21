@@ -1,4 +1,4 @@
-# Team Management API
+# DOSKS API
 
 ## Overview
 
