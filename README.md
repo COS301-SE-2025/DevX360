@@ -248,12 +248,4 @@ JWT_SECRET=your_jwt_secret
 
 ---
 
-## Contributing
 
-Contributions are welcome! Please open an issue or PR.
-
----
-
-## License
-
-MIT License — feel free to use, modify, and build upon this system.
