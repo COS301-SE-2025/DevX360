@@ -9,7 +9,8 @@ const mongoose = require("mongoose");
 const { fetchRepoCodeFiles } = require('../services/codeFetcher');
 const { interpretCodeLocally } = require('../services/codeInterpreter');
 const { analyzeWithMistral } = require('../services/aiReviewer');
-const { parseGitHubUrl } = require('../feature/data-ingestion/repository-info-service');
+const { parseGitHubUrl } = require('../Data Collection/repository-info-service');
+const { analyzeRepository } = require("../services/metricsService");
 const RepoMetrics = require("./models/RepoMetrics");
 //INTEGRATION WITH DATA INGESTION
 const {
@@ -291,8 +292,8 @@ app.post(
 
 app.post("/api/teams", authenticateToken, async (req, res) => {
   try {
-    const { name, password } = req.body;
-    if (!name || !password)
+    const { name, password, repoURL } = req.body;
+    if (!name || !password || !repoURL)
       return res.status(400).json({ message: "Missing fields" });
 
     const exists = await Team.findOne({ name });
@@ -304,9 +305,23 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       password: hashed,
       creator: req.user.userId,
       members: [req.user.userId],
+      repoURL
     });
 
     await team.save();
+
+    const { owner, repo } = parseGitHubUrl(repoURL);
+    const { metrics } = await analyzeRepository(repoURL);
+
+    await RepoMetrics.create({
+      teamId: team._id,
+      repoURL,
+      owner,
+      repo,
+      metrics,
+      lastUpdated: new Date()
+    });
+
     res.status(201).json({ message: "Team created", team });
   } catch (error) {
     res.status(500).json({ message: "Team creation error" });
