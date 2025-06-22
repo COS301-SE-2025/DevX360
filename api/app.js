@@ -7,7 +7,7 @@ const multer = require("multer");
 const mongoose = require("mongoose");
 //INTEGRATION WITH DATA INGESTION
 const { fetchRepoCodeFiles } = require('../services/codeFetcher');
-const { interpretCodeLocally } = require('../services/codeInterpreter');
+const { interpretCodeLocally } = require('../services/codeInterpretor');
 const { analyzeWithMistral } = require('../services/aiReviewer');
 const { parseGitHubUrl } = require('../Data Collection/repository-info-service');
 const { analyzeRepository } = require("../services/metricsService");
