@@ -349,11 +349,24 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
 });
 
 app.get("/api/teams/:name", authenticateToken, async (req, res) => {
-  const team = await Team.findOne({ name: req.params.name })
-    .populate("creator", "name")
-    .populate("members", "name email");
-  if (!team) return res.status(404).json({ message: "Team not found" });
-  res.json({ team });
+  try {
+    const team = await Team.findOne({ name: req.params.name })
+      .populate("creator", "name")
+      .populate("members", "name email");
+
+    if (!team) return res.status(404).json({ message: "Team not found" });
+
+    const metrics = await RepoMetrics.findOne({ teamId: team._id });
+
+    res.json({
+      team,
+      doraMetrics: metrics?.metrics || null,
+      lastUpdated: metrics?.lastUpdated || null
+    });
+  } catch (err) {
+    console.error("Error retrieving team info:", err);
+    res.status(500).json({ message: "Failed to retrieve team info" });
+  }
 });
 
 //AI INTERGATION
