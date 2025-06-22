@@ -5,6 +5,13 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
 const mongoose = require("mongoose");
+//INTEGRATION WITH DATA INGESTION
+const { fetchRepoCodeFiles } = require('../services/codeFetcher');
+const { interpretCodeLocally } = require('../services/codeInterpreter');
+const { analyzeWithMistral } = require('../services/aiReviewer');
+const { parseGitHubUrl } = require('../feature/data-ingestion/repository-info-service');
+const RepoMetrics = require("./models/RepoMetrics");
+//INTEGRATION WITH DATA INGESTION
 const {
   hashPassword,
   comparePassword,
@@ -332,6 +339,29 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
     .populate("members", "name email");
   if (!team) return res.status(404).json({ message: "Team not found" });
   res.json({ team });
+});
+
+//AI INTERGATION
+app.post("/api/ai-review", authenticateToken, async (req, res) => {
+  try {
+    const { teamId } = req.body;
+    if (!teamId) return res.status(400).json({ message: "teamId is required" });
+
+    const metricsEntry = await RepoMetrics.findOne({ teamId });
+    if (!metricsEntry) return res.status(404).json({ message: "Metrics not found" });
+
+    const { repoUrl, metrics } = metricsEntry;
+    const { owner, repo } = parseGitHubUrl(repoUrl);
+
+    const codeFiles = await fetchRepoCodeFiles(owner, repo);
+    const interpreted = await interpretCodeLocally(codeFiles);
+    const feedback = await analyzeWithMistral(interpreted, metrics);
+
+    res.json({ aiFeedback: feedback });
+  } catch (err) {
+    console.error("AI Review Error:", err);
+    res.status(500).json({ message: "AI review failed" });
+  }
 });
 
 //Error handling
