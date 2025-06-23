@@ -1,26 +1,22 @@
 import { Octokit } from 'octokit';
 
-const tokens = [
-  process.env.GITHUB_TOKEN_1,
-  process.env.GITHUB_TOKEN_2,
-];
-
-let index = 0;
-
 function getNextOctokit() {
-  const token = tokens[index];
-  index = (index + 1) % tokens.length;
+  const token = process.env.GITHUB_TOKEN;
+  
+  if (!token) {
+    throw new Error('GITHUB_TOKEN environment variable is not set');
+  }
 
   return new Octokit({
     auth: token,
     request: { timeout: 30000 },
     throttle: {
       onRateLimit: (retryAfter, options) => {
-        console.log(`Rate limit hit for token ${index}, waiting ${retryAfter}s...`);
+        console.log(`Rate limit hit, waiting ${retryAfter}s...`);
         return true;
       },
       onSecondaryRateLimit: (retryAfter, options) => {
-        console.log(`Secondary rate limit for token ${index}, waiting ${retryAfter}s...`);
+        console.log(`Secondary rate limit, waiting ${retryAfter}s...`);
         return true;
       }
     }
