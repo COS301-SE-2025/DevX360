@@ -413,6 +413,35 @@ function createMockDORAMetrics() {
   };
 }
 
+// Add this function to filter out unwanted file types
+function shouldSkipFile(filename) {
+  const skipExtensions = [
+    '.test.js', '.spec.js', '.test.ts', '.spec.ts',  // Test files
+    '.md', '.txt', '.yml', '.yaml',                  // Documentation/config
+    '.lock', '.log', '.tmp',                         // Generated files
+    '.min.js', '.bundle.js',                         // Minified/bundled files
+    '.d.ts'                                          // TypeScript declaration files
+  ];
+  
+  const skipPatterns = [
+    /test\//, /tests\//, /__tests__\//,              // Test directories
+    /node_modules\//, /dist\//, /build\//,           // Build directories
+    /\.git\//, /\.github\//                          // Git/GitHub files
+  ];
+  
+  // Check file extension
+  const hasSkipExtension = skipExtensions.some(ext => 
+    filename.toLowerCase().endsWith(ext)
+  );
+  
+  // Check directory patterns
+  const matchesSkipPattern = skipPatterns.some(pattern => 
+    pattern.test(filename)
+  );
+  
+  return hasSkipExtension || matchesSkipPattern;
+}
+
 export {
   getDORAMetrics,
   getDORAMetricsBatch,
