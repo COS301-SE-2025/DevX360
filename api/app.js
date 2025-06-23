@@ -204,9 +204,10 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
     const userObj = user.toObject();
     userObj.teams = teams;
     if (user.avatar) {
-      userObj.avatar = ⁠ /uploads/${user.avatar} ⁠;
+      userObj.avatar = `/uploads/${user.avatar}`;
     }
     res.json({ user: userObj });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
