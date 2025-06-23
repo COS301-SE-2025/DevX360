@@ -1,4 +1,5 @@
-import fetch from "node-fetch";
+// Use native fetch if available, otherwise fallback to node-fetch
+typeof fetch === 'function' ? null : global.fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 // Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
