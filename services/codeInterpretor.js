@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
 // Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -215,7 +215,7 @@ function createInterpretationSummary(interpretations) {
   return summary;
 }
 
-module.exports = { 
+export { 
   interpretCodeLocally,
   interpretSpecificLanguages,
   getLanguageFromExtension,

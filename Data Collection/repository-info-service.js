@@ -1,4 +1,4 @@
-const { Octokit } = require('octokit');
+import { Octokit } from 'octokit';
 
 /**
  * Repository Information Service
@@ -309,7 +309,7 @@ function createMockRepositoryResponse() {
   };
 }
 
-module.exports = {
+export {
   getRepositoryInfo,
   parseGitHubUrl,
   fetchTopContributors,

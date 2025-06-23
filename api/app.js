@@ -1,32 +1,35 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const cors = require("cors");
-const rateLimit = require("express-rate-limit");
-const multer = require("multer");
-const mongoose = require("mongoose");
-//INTEGRATION WITH DATA INGESTION
-const { fetchRepoCodeFiles } = require('../services/codeFetcher');
-const { interpretCodeLocally } = require('../services/codeInterpretor');
-const { analyzeWithMistral } = require('../services/aiReviewer');
-const { parseGitHubUrl } = require('../Data Collection/repository-info-service');
-const { analyzeRepository } = require("../services/metricsService");
-const RepoMetrics = require("./models/RepoMetrics");
-//INTEGRATION WITH DATA INGESTION
-const {
-  hashPassword,
-  comparePassword,
-  generateToken,
-} = require("./utils/auth");
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+import multer from "multer";
+import mongoose from "mongoose";
+import { fetchRepoCodeFiles } from '../services/codeFetcher.js';
+import { interpretCodeLocally } from '../services/codeInterpretor.js';
+import { analyzeWithMistral } from '../services/aiReviewer.js';
+import { parseGitHubUrl } from '../Data Collection/repository-info-service.js';
+import { analyzeRepository } from "../services/metricsService.js";
+import RepoMetrics from "./models/RepoMetrics.js";
+import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
+import cookieParser from "cookie-parser";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Create __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const upload = multer({ dest: "uploads/" });
-const path = require("path");
-const fs = require("fs");
 const app = express();
-const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
-require("dotenv").config();
-require("./db");
+// Load environment variables
+import 'dotenv/config';
+
+// Database connection
+import "./db.js";
 
 // Middleware
 const allowedOrigins = ["http://localhost:5500"];
@@ -54,8 +57,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-const User = require("./models/User");
-const Team = require("./models/Team");
+// Import models
+import User from "./models/User.js";
+import Team from "./models/Team.js";
 
 // JWT auth middleware
 const authenticateToken = (req, res, next) => {
@@ -292,8 +296,8 @@ app.post(
 
 app.post("/api/teams", authenticateToken, async (req, res) => {
   try {
-    const { name, password, repoURL } = req.body;
-    if (!name || !password || !repoURL)
+    const { name, password, repoUrl } = req.body;
+    if (!name || !password || !repoUrl)
       return res.status(400).json({ message: "Missing fields" });
 
     const exists = await Team.findOne({ name });
@@ -305,26 +309,77 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       password: hashed,
       creator: req.user.userId,
       members: [req.user.userId],
-      repoURL
+      repoUrl
     });
 
     await team.save();
 
-    const { owner, repo } = parseGitHubUrl(repoURL);
-    const { metrics } = await analyzeRepository(repoURL);
+    let owner, repo;
+    try {
+      ({ owner, repo } = parseGitHubUrl(repoUrl));
+    } catch (parseError) {
+      return res.status(400).json({
+        message: "Invalid GitHub URL",
+        details: parseError.message,
+        example: "Valid format: https://github.com/username/repository"
+      });
+    }
+
+    let metrics;
+    try {
+      const analysis = await analyzeRepository(repoUrl);
+      metrics = analysis.metrics;
+    } catch (analysisError) {
+      console.error("Repository analysis failed:", analysisError);
+      return res.status(500).json({
+        message: "Repository analysis failed",
+        error: analysisError.message,
+        suggestion: "Check repository accessibility or try again later"
+      });
+    }
 
     await RepoMetrics.create({
       teamId: team._id,
-      repoURL,
+      repoUrl,
       owner,
       repo,
       metrics,
       lastUpdated: new Date()
     });
 
-    res.status(201).json({ message: "Team created", team });
+    res.status(201).json({ 
+      message: "Team created successfully",
+      team: {
+        id: team._id,
+        name: team.name,
+        repoUrl: team.repoUrl
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Team creation error" });
+    console.error("Team creation error:", error);
+    
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: "Validation error",
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      return res.status(400).json({
+        message: "Database error",
+        details: "Duplicate key violation",
+        field: Object.keys(error.keyPattern)[0]
+      });
+    }
+
+    // Default error response
+    res.status(500).json({
+      message: "Team creation failed",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -402,4 +457,4 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-module.exports = app;
+export default app;

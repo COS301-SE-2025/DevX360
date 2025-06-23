@@ -1,4 +1,4 @@
-const { Octokit } = require('octokit');
+import { Octokit } from 'octokit';
 
 /**
  * Universal DORA Metrics Service
@@ -148,6 +148,14 @@ async function fetchRepositoryMetrics(owner, repo) {
       await delay(60000); // Wait 1 minute
       return fetchRepositoryMetrics(owner, repo); // Retry
     }
+    
+    let errorMessage = error.message;
+    if (error.status === 404) {
+      errorMessage = `Repository not found: ${owner}/${repo}`;
+    } else if (error.status === 401) {
+      errorMessage = "Invalid GitHub token or insufficient permissions";
+    }
+
     console.error(`Error fetching metrics for ${owner}/${repo}:`, error.message);
     return null;
   }
@@ -448,7 +456,7 @@ function createMockDORAMetrics() {
   };
 }
 
-module.exports = {
+export {
   getDORAMetrics,
   getDORAMetricsBatch,
   getOrganizationDORAMetrics,

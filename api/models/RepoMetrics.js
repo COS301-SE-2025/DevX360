@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const RepoMetricsSchema = new mongoose.Schema({
   teamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", required: true },
@@ -9,4 +9,4 @@ const RepoMetricsSchema = new mongoose.Schema({
   lastUpdated: Date
 });
 
-module.exports = mongoose.model("RepoMetrics", RepoMetricsSchema);
+export default mongoose.model("RepoMetrics", RepoMetricsSchema);

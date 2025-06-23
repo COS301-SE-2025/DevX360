@@ -1,17 +1,20 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 //unit tested
 async function hashPassword(password) {
   const salt = await bcrypt.genSalt(12);
-  return bcrypt.hash(password, salt);
+  return await bcrypt.hash(password, salt);
 }
 
 //unit tested
 async function comparePassword(plainPassword, hashedPassword) {
-  return bcrypt.compare(plainPassword, hashedPassword);
+  console.log("Comparing:", plainPassword, "with", hashedPassword);
+  const result = await bcrypt.compare(plainPassword, hashedPassword);
+  console.log("Password match:", result);
+  return result;
 }
 
 //unit tested
@@ -23,7 +26,7 @@ function generateToken(
   return jwt.sign(payload, secret, options);
 }
 
-module.exports = {
+export {
   hashPassword,
   comparePassword,
   generateToken,

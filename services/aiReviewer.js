@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
 async function analyzeWithMistral(interpretedFiles, doraMetrics) {
   const summary = interpretedFiles.map(f => `File: ${f.file}\n${f.interpretation}`).join("\n\n");
@@ -32,4 +32,4 @@ Suggest improvements to the development process or code to improve these metrics
   return data.response;
 }
 
-module.exports = { analyzeWithMistral };
+export { analyzeWithMistral };

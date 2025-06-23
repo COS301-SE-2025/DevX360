@@ -1,4 +1,4 @@
-const { Octokit } = require("octokit");
+import { Octokit } from 'octokit';
 
 const octokit = new Octokit({ 
   auth: process.env.GITHUB_TOKEN,
@@ -194,7 +194,7 @@ async function fetchAllCodeFiles(owner, repo, path = "", depth = 2) {
   return fetchRepoCodeFiles(owner, repo, path, depth);
 }
 
-module.exports = { 
+export { 
   fetchRepoCodeFiles,
   fetchSpecificFileTypes,
   fetchAllCodeFiles,

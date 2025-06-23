@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-
+import 'dotenv/config';
+import mongoose from "mongoose";
 let instance = null;
 
 class Database {
@@ -42,4 +42,4 @@ class Database {
   }
 }
 
-module.exports = new Database();
+export default new Database();

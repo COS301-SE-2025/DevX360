@@ -1,4 +1,4 @@
-const { Octokit } = require('octokit');
+import { Octokit } from 'octokit';
 
 // Initialize Octokit with proper rate limit handling
 const octokit = new Octokit({
