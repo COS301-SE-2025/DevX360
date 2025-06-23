@@ -21,7 +21,7 @@ import { dirname } from 'path';
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: path.join(__dirname, "uploads") });
 const app = express();
 app.use(cookieParser());
 
@@ -32,7 +32,7 @@ import 'dotenv/config';
 import "./db.js";
 
 // Middleware
-const allowedOrigins = ["http://localhost:5500"];
+const allowedOrigins = ["http://localhost:5500", "http://localhost:5050"];
 
 app.use(
   cors({
@@ -201,7 +201,12 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({ user: { ...user.toObject(), teams } });
+    const userObj = user.toObject();
+    userObj.teams = teams;
+    if (user.avatar) {
+      userObj.avatar = ⁠ /uploads/${user.avatar} ⁠;
+    }
+    res.json({ user: userObj });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
