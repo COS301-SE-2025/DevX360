@@ -1,4 +1,4 @@
-import { Octokit } from 'octokit';
+import { getNextOctokit } from '../services/tokenManager.js';
 
 /**
  * Universal DORA Metrics Service
@@ -9,21 +9,6 @@ import { Octokit } from 'octokit';
  * @author DevX360 Team
  * @version 2.0.0
  */
-
-// Initialize Octokit with proper rate limit handling
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-  throttle: {
-    onRateLimit: (retryAfter, options) => {
-      console.log(`Rate limit hit, waiting ${retryAfter} seconds...`);
-      return true;
-    },
-    onSecondaryRateLimit: (retryAfter, options) => {
-      console.log(`Secondary rate limit hit, waiting ${retryAfter} seconds...`);
-      return true;
-    }
-  }
-});
 
 // Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -72,53 +57,25 @@ function parseGitHubUrl(repositoryUrl) {
  * @returns {Promise<Object>} DORA metrics object
  */
 async function fetchRepositoryMetrics(owner, repo) {
+  const octokit = getNextOctokit();
+
   try {
     console.log(`Fetching DORA metrics for ${owner}/${repo}...`);
-    
-    // Get releases for deployment frequency
-    const { data: releases } = await octokit.rest.repos.listReleases({
-      owner,
-      repo,
-      per_page: 100
-    });
-    await delay(1000);
 
-    // Get tags as alternative deployment indicators
-    const { data: tags } = await octokit.rest.repos.listTags({
-      owner,
-      repo,
-      per_page: 100
-    });
-    await delay(1000);
+    const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
+      octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }),
+      octokit.rest.repos.listTags({ owner, repo, per_page: 100 }),
+      octokit.rest.repos.listCommits({ owner, repo, per_page: 100 }),
+      octokit.rest.pulls.list({ owner, repo, state: 'closed', per_page: 100 }),
+      octokit.rest.issues.listForRepo({ owner, repo, state: 'closed', per_page: 100, labels: 'bug,incident' })
+    ]);
 
-    // Get commits for lead time calculation
-    const { data: commits } = await octokit.rest.repos.listCommits({
-      owner,
-      repo,
-      per_page: 100
-    });
-    await delay(1000);
+    const releases = releasesRes.data;
+    const tags = tagsRes.data;
+    const commits = commitsRes.data;
+    const pullRequests = pullsRes.data;
+    const issues = issuesRes.data;
 
-    // Get pull requests for better lead time calculation
-    const { data: pullRequests } = await octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: 'closed',
-      per_page: 100
-    });
-    await delay(1000);
-
-    // Get issues with labels for better MTTR and CFR calculation
-    const { data: issues } = await octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: 'closed',
-      per_page: 100,
-      labels: 'bug,incident'
-    });
-    await delay(1000);
-
-    // Calculate metrics
     const metrics = {
       repository: {
         name: repo,
@@ -142,21 +99,21 @@ async function fetchRepositoryMetrics(owner, repo) {
 
     console.log(`Successfully processed DORA metrics for ${owner}/${repo}`);
     return metrics;
+
   } catch (error) {
     if (error.status === 403) {
       console.error(`Rate limit exceeded for ${owner}/${repo}. Waiting 60 seconds...`);
-      await delay(60000); // Wait 1 minute
-      return fetchRepositoryMetrics(owner, repo); // Retry
-    }
-    
-    let errorMessage = error.message;
-    if (error.status === 404) {
-      errorMessage = `Repository not found: ${owner}/${repo}`;
-    } else if (error.status === 401) {
-      errorMessage = "Invalid GitHub token or insufficient permissions";
+      await delay(60000);
+      return fetchRepositoryMetrics(owner, repo); // retry
     }
 
-    console.error(`Error fetching metrics for ${owner}/${repo}:`, error.message);
+    const errorMessage = error.status === 404
+      ? `Repository not found: ${owner}/${repo}`
+      : error.status === 401
+        ? 'Invalid GitHub token or insufficient permissions'
+        : error.message;
+
+    console.error(`Error fetching metrics for ${owner}/${repo}: ${errorMessage}`);
     return null;
   }
 }

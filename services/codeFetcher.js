@@ -1,18 +1,5 @@
-import { Octokit } from 'octokit';
-
-const octokit = new Octokit({ 
-  auth: process.env.GITHUB_TOKEN,
-  throttle: {
-    onRateLimit: (retryAfter, options) => {
-      console.log(`Rate limit hit, waiting ${retryAfter} seconds...`);
-      return true;
-    },
-    onSecondaryRateLimit: (retryAfter, options) => {
-      console.log(`Secondary rate limit hit, waiting ${retryAfter} seconds...`);
-      return true;
-    }
-  }
-});
+import { getNextOctokit } from './tokenManager.js';
+import { concurrentMap } from '../api/utils/concurrentMap.js';
 
 // Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -29,90 +16,92 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
  */
 async function fetchRepoCodeFiles(owner, repo, path = "", depth = 2, fileExtensions = null) {
   const results = [];
-  
-  // Default file extensions for common programming languages
+
   const defaultExtensions = [
     '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.cs', 
     '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.html', 
     '.css', '.scss', '.sass', '.json', '.xml', '.yaml', '.yml', '.md',
     '.sh', '.bash', '.zsh', '.fish', '.sql', '.r', '.m', '.pl', '.lua'
   ];
-  
   const extensions = fileExtensions || defaultExtensions;
-  
+
   try {
+    const octokit = getNextOctokit();
     console.log(`Fetching files from ${owner}/${repo}${path ? '/' + path : ''}...`);
     
-    const { data: contents } = await octokit.rest.repos.getContent({ 
-      owner, 
-      repo, 
-      path 
+    const { data: contents } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path
     });
-    
-    await delay(1000); // Rate limiting
-    
-    for (const item of contents) {
-      if (item.type === "file") {
-        // Check if file extension matches our criteria
-        const hasValidExtension = extensions.some(ext => 
-          item.name.toLowerCase().endsWith(ext.toLowerCase())
-        );
-        
-        if (hasValidExtension) {
-          try {
-            console.log(`Fetching content for: ${item.path}`);
-            const fileContent = await octokit.rest.repos.getContent({ 
-              owner, 
-              repo, 
-              path: item.path 
-            });
-            
-            const content = Buffer.from(fileContent.data.content, 'base64').toString();
-            
-            results.push({ 
-              path: item.path, 
-              content,
-              size: content.length,
-              language: getLanguageFromExtension(item.name),
-              fetched_at: new Date().toISOString()
-            });
-            
-            await delay(500); // Small delay between file fetches
-            
-          } catch (error) {
-            console.error(`Error fetching file ${item.path}:`, error.message);
-            // Continue with other files even if one fails
-          }
-        }
-      } else if (item.type === "dir" && depth > 0) {
+
+    // Filter only files matching extensions
+    const validFiles = contents.filter(item =>
+      item.type === "file" &&
+      extensions.some(ext => item.name.toLowerCase().endsWith(ext))
+    );
+
+    // Concurrently fetch content of valid files
+    const fileResults = await concurrentMap(validFiles, 5, async (item) => {
+      const client = getNextOctokit();
+      try {
+        const fileContent = await client.rest.repos.getContent({
+          owner,
+          repo,
+          path: item.path
+        });
+
+        const content = Buffer.from(fileContent.data.content, 'base64').toString();
+
+        return {
+          path: item.path,
+          content,
+          size: content.length,
+          language: getLanguageFromExtension(item.name),
+          fetched_at: new Date().toISOString()
+        };
+      } catch (error) {
+        console.error(`Error fetching file ${item.path}:`, error.message);
+        return null;
+      }
+    });
+
+    results.push(...fileResults.filter(Boolean));
+
+    // Recursively fetch directories
+    const directories = contents.filter(item => item.type === "dir");
+    for (const dir of directories) {
+      if (depth > 0) {
         try {
-          const subFiles = await fetchRepoCodeFiles(
-            owner, 
-            repo, 
-            item.path, 
-            depth - 1, 
+          const subResults = await fetchRepoCodeFiles(
+            owner,
+            repo,
+            dir.path,
+            depth - 1,
             extensions
           );
-          results.push(...subFiles);
-        } catch (error) {
-          console.error(`Error fetching directory ${item.path}:`, error.message);
-          // Continue with other directories even if one fails
+          results.push(...subResults);
+        } catch (err) {
+          console.error(`Error fetching directory ${dir.path}:`, err.message);
         }
       }
     }
-    
-    console.log(`Successfully fetched ${results.length} files from ${owner}/${repo}${path ? '/' + path : ''}`);
+
+    console.log(`Finished fetching ${results.length} files from ${owner}/${repo}${path ? '/' + path : ''}`);
     return results;
-    
+
   } catch (error) {
     if (error.status === 404) {
       console.error(`Path not found: ${path}`);
       return [];
     } else if (error.status === 403) {
-      console.error(`Access denied: Repository may be private or authentication failed`);
-      throw error;
+      const resetTime = new Date(error.headers["x-ratelimit-reset"] * 1000);
+      const waitTime = resetTime - Date.now() + 5000;
+      console.warn(`Rate limited. Waiting ${Math.round(waitTime/1000)} seconds...`);
+      await delay(waitTime);
+      return fetchRepoCodeFiles(owner, repo, path, depth, extensions);
     } else {
-      console.error(`Error fetching repository contents:`, error.message);
+      console.error(`Error:`, error.message);
       throw error;
     }
   }

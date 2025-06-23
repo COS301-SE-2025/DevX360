@@ -75,13 +75,20 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Routes
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
     database:
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
   });
+
+  try {
+    const response = await fetch("http://localhost:11434");
+    res.status(response.status).json({ status: response.statusText });
+  } catch (error) {
+    res.status(500).json({ error: "Ollama service unavailable" });
+  }
 });
 
 app.post("/api/register", async (req, res) => {
@@ -135,7 +142,7 @@ app.post("/api/register", async (req, res) => {
       })
       .status(201)
       .json({
-        message: "Login successful",
+        message: "Registration successful",
         user: newUser,
       });
   } catch (error) {

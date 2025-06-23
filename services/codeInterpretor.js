@@ -26,27 +26,27 @@ async function interpretCodeLocally(files, model = "codellama", delayMs = 1000) 
       const language = file.language || getLanguageFromExtension(file.path);
       
       const prompt = `
-You are a senior software engineer analyzing code. Please provide a comprehensive analysis of this ${language} file.
+        You are a senior software engineer analyzing code. Please provide a comprehensive analysis of this ${language} file.
 
-File: ${file.path}
-Language: ${language}
-File Size: ${file.content.length} characters
+        File: ${file.path}
+        Language: ${language}
+        File Size: ${file.content.length} characters
 
-Please analyze and summarize:
-1. **Purpose**: What is the main purpose of this file?
-2. **Key Functions/Classes**: What are the main functions, classes, or components?
-3. **Logic Flow**: How does the code work? Describe the main logic flow.
-4. **Dependencies**: What external libraries or modules does it use?
-5. **Complexity**: Rate the complexity (Low/Medium/High) and explain why.
-6. **Potential Issues**: Any obvious problems or areas for improvement?
+        Please analyze and summarize:
+        1. **Purpose**: What is the main purpose of this file?
+        2. **Key Functions/Classes**: What are the main functions, classes, or components?
+        3. **Logic Flow**: How does the code work? Describe the main logic flow.
+        4. **Dependencies**: What external libraries or modules does it use?
+        5. **Complexity**: Rate the complexity (Low/Medium/High) and explain why.
+        6. **Potential Issues**: Any obvious problems or areas for improvement?
 
-Code:
-\`\`\`${language.toLowerCase()}
-${file.content}
-\`\`\`
+        Code:
+        \`\`\`${language.toLowerCase()}
+        ${file.content}
+        \`\`\`
 
-Provide a clear, structured analysis that would be useful for a code review or documentation.
-`.trim();
+        Provide a clear, structured analysis that would be useful for a code review or documentation.
+        `.trim();
 
       const res = await fetch("http://localhost:11434/api/generate", {
         method: "POST",
@@ -78,7 +78,7 @@ Provide a clear, structured analysis that would be useful for a code review or d
         interpreted_at: new Date().toISOString()
       });
 
-      console.log(`✅ Successfully interpreted: ${file.path}`);
+      console.log(`Successfully interpreted: ${file.path}`);
       
       // Add delay between requests to prevent overwhelming the API
       if (i < files.length - 1) {
@@ -86,7 +86,7 @@ Provide a clear, structured analysis that would be useful for a code review or d
       }
       
     } catch (error) {
-      console.error(`❌ Error interpreting ${file.path}:`, error.message);
+      console.error(`Error interpreting ${file.path}:`, error.message);
       
       interpretations.push({
         file: file.path,
@@ -100,7 +100,7 @@ Provide a clear, structured analysis that would be useful for a code review or d
     }
   }
 
-  console.log(`🎉 Code interpretation completed. Processed ${interpretations.length} files.`);
+  console.log(`Code interpretation completed. Processed ${interpretations.length} files.`);
   return interpretations;
 }
 
