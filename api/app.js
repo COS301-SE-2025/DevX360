@@ -5,9 +5,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { fetchRepoCodeFiles } from '../services/codeFetcher.js';
-import { interpretCodeLocally } from '../services/codeInterpretor.js';
-import { analyzeWithMistral } from '../services/aiReviewer.js';
+import { performDORAAnalysis } from '../services/codeInterpretor.js';
 import { parseGitHubUrl } from '../Data Collection/repository-info-service.js';
 import { analyzeRepository } from "../services/metricsService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
@@ -76,18 +74,22 @@ const authenticateToken = (req, res, next) => {
 
 // Routes
 app.get("/api/health", async (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    database:
-      mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
-  });
-
   try {
-    const response = await fetch("http://localhost:11434");
-    res.status(response.status).json({ status: response.statusText });
+    const dbStatus = mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
+    const ollamaRes = await fetch("http://localhost:11434");
+    
+    res.json({
+      status: "OK",
+      database: dbStatus,
+      ollama: ollamaRes.status === 200 ? "Operational" : "Unavailable",
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: "Ollama service unavailable" });
+    res.status(500).json({
+      status: "Degraded",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -449,14 +451,67 @@ app.post("/api/ai-review", authenticateToken, async (req, res) => {
     const { repoUrl, metrics } = metricsEntry;
     const { owner, repo } = parseGitHubUrl(repoUrl);
 
-    const codeFiles = await fetchRepoCodeFiles(owner, repo);
-    const interpreted = await interpretCodeLocally(codeFiles);
-    const feedback = await analyzeWithMistral(interpreted, metrics);
+    console.log(`Starting optimized AI review for ${owner}/${repo}...`);
+    const startTime = Date.now();
 
-    res.json({ aiFeedback: feedback });
+    // Step 1: Analyze the repository (structure + DORA indicators)
+    const { 
+      insights, 
+      repositoryAnalysis, 
+      performance, 
+      analyzedFiles 
+    } = await performDORAAnalysis(owner, repo, metrics);
+    
+    const totalTime = Date.now() - startTime;
+    // Handle case where no indicators were found
+    const totalIndicators = Object.values(repositoryAnalysis.doraIndicators).flat().length;
+    if (totalIndicators === 0) {
+      return res.status(404).json({ 
+        message: "No DORA-relevant files or patterns found in this repository",
+        suggestion: "Ensure your repository contains CI/CD, tests, monitoring, or security-related files"
+      });
+    }
+
+    console.log(`AI review completed in ${Math.round(totalTime / 1000)}s`);
+
+    res.json({
+      aiFeedback: insights,
+      analyzedFiles, // Full file list
+      analysisMetadata: {
+        repo: repositoryAnalysis.repository.name,
+        primaryLanguage: repositoryAnalysis.repository.language,
+        doraIndicatorsFound: totalIndicators,
+        filesAnalyzed: performance.filesAnalyzed,
+        doraMetricsCovered: Object.keys(repositoryAnalysis.doraIndicators).filter(k => repositoryAnalysis.doraIndicators[k].length > 0),
+        processingTimeMs: totalTime,
+        analyzedAt: repositoryAnalysis.analyzedAt
+      }
+    });
   } catch (err) {
     console.error("AI Review Error:", err);
-    res.status(500).json({ message: "AI review failed" });
+    
+    // More specific error handling
+    if (err.message.includes('rate limit')) {
+      return res.status(429).json({ 
+        message: "Rate limit exceeded", 
+        error: "GitHub API rate limit hit",
+        suggestion: "Try again in a few minutes"
+      });
+    }
+    
+    if (err.message.includes('404')) {
+      return res.status(404).json({ 
+        message: "Repository not found", 
+        error: "Repository may be private or doesn't exist",
+        suggestion: "Check repository URL and access permissions"
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "AI review failed", 
+      error: err.message,
+      suggestion: "Check repository access and AI service availability"
+    });
   }
 });
 

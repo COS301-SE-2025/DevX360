@@ -1,19 +1,17 @@
 export async function concurrentMap(items, concurrency, asyncMapper) {
   const results = [];
-  const executing = [];
-
-  for (const item of items) {
-    const p = asyncMapper(item).then(result => {
-      if (result !== null) results.push(result);
-    });
-    executing.push(p);
-
-    if (executing.length >= concurrency) {
-      await Promise.race(executing);
-      executing.splice(executing.findIndex(e => e === p), 1);
+  const queue = [...items];
+  const workers = Array(concurrency).fill().map(async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      try {
+        const result = await asyncMapper(item);
+        if (result !== null) results.push(result);
+      } catch (error) {
+        console.error(`Error processing item:`, error);
+      }
     }
-  }
-
-  await Promise.allSettled(executing);
+  });
+  await Promise.all(workers);
   return results;
 }

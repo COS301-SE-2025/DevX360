@@ -1,191 +1,183 @@
+// services/codeFetcher.js
+
 import { getNextOctokit } from './tokenManager.js';
 import { concurrentMap } from '../api/utils/concurrentMap.js';
+import { classifyFileForDORA } from './codeInterpretor.js';
 
-// Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-/**
- * Fetches code files from a GitHub repository
- * 
- * @param {string} owner - Repository owner
- * @param {string} repo - Repository name
- * @param {string} path - Directory path (default: root)
- * @param {number} depth - Recursion depth (default: 2)
- * @param {Array<string>} fileExtensions - File extensions to fetch (default: common code files)
- * @returns {Promise<Array>} Array of file objects with path and content
- */
-async function fetchRepoCodeFiles(owner, repo, path = "", depth = 2, fileExtensions = null) {
-  const results = [];
+// Focus on DORA-relevant extensions only
+const defaultExtensions = [
+  '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.cs',
+  '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.html', '.css',
+  '.json', '.yaml', '.yml', '.sh', '.bash', '.sql', '.dockerfile', 
+  '.tf', '.hcl', '.conf'
+];
 
-  const defaultExtensions = [
-    '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.cs', 
-    '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.html', 
-    '.css', '.scss', '.sass', '.json', '.xml', '.yaml', '.yml', '.md',
-    '.sh', '.bash', '.zsh', '.fish', '.sql', '.r', '.m', '.pl', '.lua'
+function getLanguageFromExtension(filename) {
+  const extension = filename.toLowerCase().split('.').pop();
+  const languageMap = {
+    'js': 'JavaScript', 'jsx': 'React JSX', 'ts': 'TypeScript', 'tsx': 'TypeScript React',
+    'py': 'Python', 'java': 'Java', 'cpp': 'C++', 'c': 'C', 'cs': 'C#', 'php': 'PHP',
+    'rb': 'Ruby', 'go': 'Go', 'rs': 'Rust', 'swift': 'Swift', 'kt': 'Kotlin',
+    'html': 'HTML', 'css': 'CSS', 'json': 'JSON', 'yaml': 'YAML', 'yml': 'YAML', 
+    'sh': 'Shell', 'bash': 'Bash', 'sql': 'SQL'
+  };
+  return languageMap[extension] || 'Unknown';
+}
+
+// Enhanced DORA-specific filtering
+function isDORARelevant(item) {
+  const path = item.path.toLowerCase();
+  const name = item.name.toLowerCase();
+  
+  // High priority DORA files
+  const highPriorityPatterns = [
+    // CI/CD and Deployment
+    /ci\//, /\.github\/workflows/, /deploy/, /dockerfile/, /jenkins/, /pipeline/,
+    /build\./, /webpack/, /gulpfile/, /package\.json/, /requirements\.txt/,
+    
+    // Core business logic
+    /auth/, /payment/, /order/, /user/, /admin/, /api/, /controller/, /service/,
+    /handler/, /processor/, /router/, /middleware/,
+    
+    // Error handling and monitoring
+    /error/, /exception/, /log/, /monitor/, /alert/, /health/, /metric/,
+    
+    // Configuration and infrastructure
+    /config/, /env/, /settings/, /terraform/, /ansible/,
+    
+    // Tests (for quality metrics)
+    /test/, /spec/, /\.test\./, /\.spec\./
   ];
-  const extensions = fileExtensions || defaultExtensions;
+  
+  // Skip common non-relevant files
+  const skipPatterns = [
+    /node_modules/, /\.git/, /dist/, /build/, /coverage/, /\.min\./,
+    /vendor/, /assets/, /static/, /public/, /images/, /fonts/
+  ];
+  
+  // Check if should skip
+  if (skipPatterns.some(pattern => pattern.test(path))) {
+    return false;
+  }
+  
+  // Check if high priority
+  if (highPriorityPatterns.some(pattern => pattern.test(path))) {
+    return true;
+  }
+  
+  // Include files with relevant extensions in important directories
+  const relevantDirs = ['src/', 'lib/', 'app/', 'server/', 'api/', 'services/'];
+  if (relevantDirs.some(dir => path.includes(dir))) {
+    return defaultExtensions.some(ext => name.endsWith(ext));
+  }
+  
+  return false;
+}
+
+async function fetchRepoCodeFiles(owner, repo, path = "", depth = 3, fileExtensions = null) {
+  const results = [];
+  const categoryCounts = {};
+  const maxFilesPerCategory = {
+    'ci_cd': 5,
+    'core_logic': 8,
+    'potential_risk': 5,
+    'test_code': 3,
+    'configuration': 4
+  };
 
   try {
     const octokit = getNextOctokit();
-    console.log(`Fetching files from ${owner}/${repo}${path ? '/' + path : ''}...`);
-    
-    const { data: contents } = await octokit.rest.repos.getContent({
-      owner,
-      repo,
-      path
-    });
+    console.log(`📁 Scanning ${owner}/${repo}${path ? '/' + path : ''}...`);
 
-    // Filter only files matching extensions
-    const validFiles = contents.filter(item =>
-      item.type === "file" &&
-      extensions.some(ext => item.name.toLowerCase().endsWith(ext))
+    const { data: contents } = await octokit.rest.repos.getContent({ owner, repo, path });
+
+    // Filter for DORA-relevant files only
+    const relevantFiles = contents.filter(item =>
+      item.type === "file" && isDORARelevant(item)
     );
 
-    // Concurrently fetch content of valid files
-    const fileResults = await concurrentMap(validFiles, 5, async (item) => {
+    console.log(`🎯 Found ${relevantFiles.length} DORA-relevant files in ${contents.length} total files`);
+
+    const fileResults = await concurrentMap(relevantFiles, 8, async (item) => {
       const client = getNextOctokit();
       try {
-        const fileContent = await client.rest.repos.getContent({
-          owner,
-          repo,
-          path: item.path
-        });
-
+        const fileContent = await client.rest.repos.getContent({ owner, repo, path: item.path });
         const content = Buffer.from(fileContent.data.content, 'base64').toString();
 
-        return {
+        // Skip very large files
+        if (content.length > 5000) {
+          console.log(`⏩ Skipping large file: ${item.path} (${content.length} chars)`);
+          return null;
+        }
+
+        const file = {
           path: item.path,
           content,
           size: content.length,
           language: getLanguageFromExtension(item.name),
           fetched_at: new Date().toISOString()
         };
+
+        const category = classifyFileForDORA(file);
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+
+        // Apply category limits
+        if (maxFilesPerCategory[category] && categoryCounts[category] > maxFilesPerCategory[category]) {
+          console.log(`📊 Category limit reached for ${category}, skipping ${file.path}`);
+          return null;
+        }
+
+        console.log(`✅ Including: ${file.path} [${category}]`);
+        return file;
+        
       } catch (error) {
-        console.error(`Error fetching file ${item.path}:`, error.message);
+        console.error(`❌ Error fetching ${item.path}: ${error.message}`);
         return null;
       }
     });
 
     results.push(...fileResults.filter(Boolean));
 
-    // Recursively fetch directories
+    // Recursively scan directories (but limit depth)
     const directories = contents.filter(item => item.type === "dir");
-    for (const dir of directories) {
+    const relevantDirs = directories.filter(dir => {
+      const dirName = dir.name.toLowerCase();
+      // Skip irrelevant directories
+      const skipDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor', 'assets', 'static', 'public'];
+      return !skipDirs.includes(dirName);
+    });
+
+    for (const dir of relevantDirs.slice(0, 10)) { // Limit directory traversal
       if (depth > 0) {
-        try {
-          const subResults = await fetchRepoCodeFiles(
-            owner,
-            repo,
-            dir.path,
-            depth - 1,
-            extensions
-          );
-          results.push(...subResults);
-        } catch (err) {
-          console.error(`Error fetching directory ${dir.path}:`, err.message);
-        }
+        const subResults = await fetchRepoCodeFiles(owner, repo, dir.path, depth - 1, fileExtensions);
+        results.push(...subResults);
       }
     }
 
-    console.log(`Finished fetching ${results.length} files from ${owner}/${repo}${path ? '/' + path : ''}`);
+    console.log(`📊 Final category counts:`, categoryCounts);
+    console.log(`✅ Fetched ${results.length} DORA-relevant files from ${owner}/${repo}${path ? '/' + path : ''}`);
     return results;
 
   } catch (error) {
     if (error.status === 404) {
-      console.error(`Path not found: ${path}`);
+      console.warn(`⚠️ Path not found: ${path}`);
       return [];
     } else if (error.status === 403) {
       const resetTime = new Date(error.headers["x-ratelimit-reset"] * 1000);
       const waitTime = resetTime - Date.now() + 5000;
-      console.warn(`Rate limited. Waiting ${Math.round(waitTime/1000)} seconds...`);
+      console.warn(`⏳ Rate limited. Waiting ${Math.round(waitTime / 1000)}s...`);
       await delay(waitTime);
-      return fetchRepoCodeFiles(owner, repo, path, depth, extensions);
+      return fetchRepoCodeFiles(owner, repo, path, depth, fileExtensions);
     } else {
-      console.error(`Error:`, error.message);
+      console.error(`❌ Fetch error:`, error.message);
       throw error;
     }
   }
 }
 
-/**
- * Determines programming language from file extension
- * 
- * @param {string} filename - The filename
- * @returns {string} Programming language name
- */
-function getLanguageFromExtension(filename) {
-  const extension = filename.toLowerCase().split('.').pop();
-  
-  const languageMap = {
-    'js': 'JavaScript',
-    'jsx': 'React JSX',
-    'ts': 'TypeScript',
-    'tsx': 'TypeScript React',
-    'py': 'Python',
-    'java': 'Java',
-    'cpp': 'C++',
-    'c': 'C',
-    'cs': 'C#',
-    'php': 'PHP',
-    'rb': 'Ruby',
-    'go': 'Go',
-    'rs': 'Rust',
-    'swift': 'Swift',
-    'kt': 'Kotlin',
-    'scala': 'Scala',
-    'html': 'HTML',
-    'css': 'CSS',
-    'scss': 'SCSS',
-    'sass': 'Sass',
-    'json': 'JSON',
-    'xml': 'XML',
-    'yaml': 'YAML',
-    'yml': 'YAML',
-    'md': 'Markdown',
-    'sh': 'Shell',
-    'bash': 'Bash',
-    'zsh': 'Zsh',
-    'fish': 'Fish',
-    'sql': 'SQL',
-    'r': 'R',
-    'm': 'MATLAB',
-    'pl': 'Perl',
-    'lua': 'Lua'
-  };
-  
-  return languageMap[extension] || 'Unknown';
-}
-
-/**
- * Fetches only specific file types
- * 
- * @param {string} owner - Repository owner
- * @param {string} repo - Repository name
- * @param {Array<string>} extensions - Array of file extensions (e.g., ['.js', '.py'])
- * @param {string} path - Directory path (default: root)
- * @param {number} depth - Recursion depth (default: 2)
- * @returns {Promise<Array>} Array of file objects
- */
-async function fetchSpecificFileTypes(owner, repo, extensions, path = "", depth = 2) {
-  return fetchRepoCodeFiles(owner, repo, path, depth, extensions);
-}
-
-/**
- * Fetches all code files (common programming languages)
- * 
- * @param {string} owner - Repository owner
- * @param {string} repo - Repository name
- * @param {string} path - Directory path (default: root)
- * @param {number} depth - Recursion depth (default: 2)
- * @returns {Promise<Array>} Array of file objects
- */
-async function fetchAllCodeFiles(owner, repo, path = "", depth = 2) {
-  return fetchRepoCodeFiles(owner, repo, path, depth);
-}
-
-export { 
+export {
   fetchRepoCodeFiles,
-  fetchSpecificFileTypes,
-  fetchAllCodeFiles,
   getLanguageFromExtension
 };
