@@ -440,10 +440,10 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
 });
 
 //AI INTERGATION
-app.post("/api/ai-review", authenticateToken, async (req, res) => {
+app.get("/api/ai-review", authenticateToken, async (req, res) => {
   try {
-    const { teamId } = req.body;
-    if (!teamId) return res.status(400).json({ message: "teamId is required" });
+    const { teamId } = req.query;  // Changed from req.body to req.query
+    if (!teamId) return res.status(400).json({ message: "teamId query parameter is required" });
 
     const metricsEntry = await RepoMetrics.findOne({ teamId });
     if (!metricsEntry) return res.status(404).json({ message: "Metrics not found" });
@@ -476,7 +476,7 @@ app.post("/api/ai-review", authenticateToken, async (req, res) => {
 
     res.json({
       aiFeedback: insights,
-      analyzedFiles, // Full file list
+      analyzedFiles,
       analysisMetadata: {
         repo: repositoryAnalysis.repository.name,
         primaryLanguage: repositoryAnalysis.repository.language,
