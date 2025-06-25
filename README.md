@@ -29,24 +29,21 @@ We use a collaborative workflow to manage progress and documentation.
   - Interactive visualization of team/individual metrics (React + D3.js).
   - Trend analysis and customizable benchmarks.
 - **Automated Integrations**:  
-  - GitHub/GitLab/Jira API integrations for seamless data collection.
-  - Apache Airflow for scheduled metric calculations.
+  - GitHub integrations for seamless data collection.
 - **Reporting**:  
   - Generate PDF/CSV reports and Slack alerts for metric deviations.
 
 ---
 
-📋[View Project Board](https://your-project-board-link.com)
-
 ## 🛠 Technologies Used
 
 | Component              | Technology/Framework      | Justification                           |
 |------------------------|---------------------------|-----------------------------------------|
-| **Frontend**           | React + D3.js             | Interactive dashboards & visualization  |
+| **Frontend**           | React                     | Interactive dashboards & visualization  |
 | **Backend**            | Node.js (Express)         | High-throughput API handling            |
 | **AI Analysis**        | Ollama (Local LLM)        | Offline, cost-free code analysis        |
-| **Data Processing**    | Apache Airflow            | Reliable metric scheduling              |
-| **Database**           | Supabase (PostgreSQL)     | Real-time capabilities & free tier      |
+| **Data Processing**    | Octogit                   | Reliable metric scheduling              |
+| **Database**           | MongoDB Atlas             | Real-time capabilities & free tier      |
 | **Hosting**            | Vercel                    | Zero-cost deployment                    |
 
 ---
@@ -54,53 +51,58 @@ We use a collaborative workflow to manage progress and documentation.
 
 
 
+## 👥 Team DOSKS
 
-
-
-**Team Name:** DOSKS
-
-## 👥 Team Profiles
+Welcome to **Team DOSKS**! We’re a cross-functional group of developers, designers, and AI enthusiasts dedicated to building DevX360. Get to know us below:
 
 <details>
-<summary><strong>Sipho Sehlapelo</strong> - Flexible Lead</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: Python, JavaScript, Full-Stack Development   
-**About Me**: "Third-year Computer Science student passionate about AI and entrepreneurship. Building tech solutions that create real-world impact through my AI agency and student-focused platforms."  
-[LinkedIn Profile](http://www.linkedin.com/in/sipho-sehlapelo-769155356)
+<summary><strong>🛡️ Sipho Sehlapelo</strong> — Flexible Lead</summary>
+
+<div>
+
+- **Key Skills:** Python · JavaScript · Full-Stack Development  
+- **About Me:**  
+  > “Third-year Computer Science student passionate about AI and entrepreneurship. I build tech solutions that make real-world impact through my AI agency and student-focused platforms.”  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/sipho-sehlapelo-769155356)
 
 </div>
 </details>
 
 <details>
-<summary><strong>Sibusiso Mngomezulu</strong> - Backend Specialist</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: Python, Node.js, API Development   
-**About Me**: "Determined software engineer and first-time founder with full-stack expertise. Specializing in backend systems and viewing challenges as opportunities for growth."  
-[LinkedIn Profile](http://www.linkedin.com/in/sibusiso-mngomezulu-)
+<summary><strong>⚙️ Sibusiso Mngomezulu</strong> — Backend Specialist</summary>
+
+<div>
+
+- **Key Skills:** Python · Node.js · API Development  
+- **About Me:**  
+  > “Determined software engineer and first-time founder with full-stack expertise. I view challenges as growth opportunities.”  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/sibusiso-mngomezulu-)
 
 </div>
 </details>
 
 <details>
-<summary><strong>Kelsey Hamann</strong> - Backend/API Support</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
+<summary><strong>🔗 Kelsey Hamann</strong> — Backend/API Support</summary>
 
-**Key Skills**: Python, Distributed Systems  
-**About Me**: "Third-year CS student focused on ethical tech solutions. Passionate about building systems that improve real-world experiences through practical engineering."  
-[LinkedIn Profile](https://www.linkedin.com/in/kelsey-d-hamann)
+<div>
+
+- **Key Skills:** Python · Distributed Systems  
+- **About Me:**  
+  > “Third-year CS student focused on ethical tech solutions. Passionate about building practical systems that improve real settings.”  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/kelsey-d-hamann)
 
 </div>
 </details>
 
 <details>
-<summary><strong>David Musa-Alsien</strong> - Frontend Lead</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
+<summary><strong>🎨 David Musa-Alsien</strong> — Frontend Lead</summary>
 
-**Key Skills**: React, D3.js, UI/UX Design   
-**About Me**: "Final-year student specializing in frontend development. Creating accessible web applications with strong focus on user-centered design principles."  
-[LinkedIn Profile](https://www.linkedin.com/in/d-m-a-381700356)
+<div>
+
+- **Key Skills:** React · D3.js · UI/UX Design  
+- **About Me:**  
+  > “Final-year student specializing in frontend development. I create accessible, user-centered web applications.”  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/d-m-a-381700356)
 
 </div>
 </details>
