@@ -214,18 +214,10 @@ async function getFileContent(octokit, owner, repo, path) {
 
 // NEW: Strict critical file filter
 function isCriticalDORAFile(path) {
-  const criticalPatterns = [
-    /(workflows|actions|.github|ci)/i,       // CI/CD configurations
-    /(docker|compose|container)/i, // Containerization
-    /(deploy|release|\.yml|\.yaml|\.sh)/i, // Deployment scripts
-    /(test|spec|jest|mocha|cypress|tap)/i, // Testing frameworks
-    /(monitor|sentry|newrelic|log|error|exception)/i, // Monitoring/logging
-    /(auth|security|\.env|vault|secret)/i, // Security
-    /(error|exception|handler)/i, // Error handling
-    /(config|\.conf|\.toml|\.properties)/i // Configuration
-  ];
-  
-  return criticalPatterns.some(pattern => pattern.test(path.toLowerCase()));
+  const pathLower = path.toLowerCase();
+  return Object.values(DORA_ANALYSIS_PATTERNS).some(metric =>
+    metric.indicators.some(pattern => pathLower.includes(pattern))
+  );
 }
 
 function checkDORAIndicators(item, indicators) {
