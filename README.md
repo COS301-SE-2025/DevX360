@@ -56,11 +56,11 @@ We use a collaborative workflow to manage progress and documentation.
 Welcome to **Team DOSKS**! We’re final-year Computer Science students at the University of Pretoria who love all things code, data, and UX. Get to know us below:
 
 <details>
-<summary><strong>🛡️ Sipho Sehlapelo</strong> — Flexible Lead</summary>
+<summary><strong>🛡️ Sipho Sehlapelo</strong> — Currently serving as the Project Manager, UI Engineer, and Designer</summary>
 
 <div>
 
-- **Key Skills:** Python · JavaScript · Full-Stack Development  
+- **Key Skills:** React · Full-Stack Development  
 - **About Me:**  
   > “I’m in my final year studying Computer Science at UP. I’m driven by solving real-world problems with code—whether it’s building a full-stack web app in JavaScript or exploring data pipelines in Python. I love finding creative ways to bridge theory with hands-on projects.”
 
@@ -72,11 +72,12 @@ Find me on:
 </details>
 
 <details>
-<summary><strong>⚙️ Sibusiso Mngomezulu</strong> — Backend Specialist</summary>
+<summary><strong>⚙️ Sibusiso Mngomezulu</strong> — Currently serving on the backend team as a Data Engineer, with major contributions to Service
+Engineering</summary>
 
 <div>
 
-- **Key Skills:** Python · Node.js · API Development  
+- **Key Skills:** JavaScript · Node.js · API Development  
 - **About Me:**  
   > “As a final-year UP CS student, I’m passionate about designing robust backend systems. I enjoy writing clean Node.js APIs, optimizing data flows in Python, and ensuring that every service scales efficiently. I’m always curious about new patterns in distributed computing and I enjoy tinkering with open-source projects.”
 
@@ -89,11 +90,13 @@ Find me here:
 </details>
 
 <details>
-<summary><strong>🔗 Kelsey Hamann</strong> — Backend/API Support</summary>
+<summary><strong>🔗 Kelsey Hamann</strong> — Currently serving on the backend as the Integration Engineer, and partially as a Data
+Engineer, Testing Engineer, and Architect.
+</summary>
 
 <div>
 
-- **Key Skills:** Python · Distributed Systems  
+- **Key Skills:** JavaScript · Distributed Systems  
 - **About Me:**  
   > “I’m wrapping up my CS degree at UP this year, with a deep interest in distributed systems and Python scripting. I find joy in breaking down complex architectures into maintainable modules and exploring container orchestration.”
 
@@ -106,11 +109,13 @@ Contact me here:
 </details>
 
 <details>
-<summary><strong>🎨 David Musa-Alsien</strong> — Frontend Lead</summary>
+<summary><strong>🎨 David Musa-Alsien</strong> — Currently serving as the Documentation Specialist, Testing Engineer, and partially as an
+Architect and DevOps Engineer.
+</summary>
 
 <div>
 
-- **Key Skills:** React · D3.js · UI/UX Design  
+- **Key Skills:** React · UI/UX Design  
 - **About Me:**  
   > “In my final year at UP, I focus on crafting intuitive user experiences. I’m passionate about accessibility and love turning data into interactive visual stories. I enjoy seeing how I can apply the coding concepts I learn in everyday life and using my skills to benefit those around me as well as myself.”
 
