@@ -38,16 +38,16 @@ We use a collaborative workflow to manage progress and documentation.
 ## 🛠 Technologies Used
 
 | Component           | Technology/Framework                                                                                   | Justification                          |
-|---------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
+|---------------------|--------------------------------------------------------------------------------------------------------|----------------------------------------|
 | **Frontend**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/react/react.png" width="24"/> React      | Interactive dashboards & visualization |
 | **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling           |
-| **AI Analysis**     | <img src="https://raw.githubusercontent.com/github/explore/main/topics/ollama/ollama.png" width="24"/> Ollama (Local LLM)    | Offline, cost-free code analysis       |
-| **Data Processing** | <img src="https://raw.githubusercontent.com/github/explore/main/topics/octokit/octokit.png" width="24"/> Octokit            | Reliable metric scheduling             |
+| **AI Analysis**     | <img src="https://miro.medium.com/v2/resize:fit:1100/format:webp/1*UnUo_KuVO3gVcrwPqiAzAg.png" width="24"/> Ollama (Local LLM) | Offline, cost-free code analysis       |
+| **Data Processing** | 🐙 Octokit                                                                                              | Reliable metric scheduling             |
 | **Database**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/mongodb/mongodb.png" width="24"/> MongoDB Atlas     | Real-time capabilities & free tier     |
 | **Hosting**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/vercel/vercel.png" width="24"/> Vercel                  | Zero-cost deployment                   |
 
----
 
+---
 
 
 
@@ -62,8 +62,11 @@ Welcome to **Team DOSKS**! We’re final-year Computer Science students at the U
 
 - **Key Skills:** Python · JavaScript · Full-Stack Development  
 - **About Me:**  
-  > “I’m in my final year studying Computer Science at UP. I’m driven by solving real-world problems with code—whether it’s building a full-stack web app in JavaScript or exploring data pipelines in Python. I love finding creative ways to bridge theory with hands-on projects.”  
-- 🔗 [LinkedIn](https://www.linkedin.com/in/sipho-sehlapelo-769155356)
+  > “I’m in my final year studying Computer Science at UP. I’m driven by solving real-world problems with code—whether it’s building a full-stack web app in JavaScript or exploring data pipelines in Python. I love finding creative ways to bridge theory with hands-on projects.”
+
+Find me on:
+
+[![LinkedIn – Sipho Sehlapelo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sipho%20Sehlapelo)](https://www.linkedin.com/in/sipho-sehlapelo-769155356)
 
 </div>
 </details>
@@ -75,8 +78,12 @@ Welcome to **Team DOSKS**! We’re final-year Computer Science students at the U
 
 - **Key Skills:** Python · Node.js · API Development  
 - **About Me:**  
-  > “As a final-year UP CS student, I’m passionate about designing robust backend systems. I enjoy writing clean Node.js APIs, optimizing data flows in Python, and ensuring that every service scales efficiently. I’m always curious about new patterns in distributed computing and I enjoy tinkering with open-source projects.”  
-- 🔗 [LinkedIn](https://www.linkedin.com/in/sibusiso-mngomezulu-)
+  > “As a final-year UP CS student, I’m passionate about designing robust backend systems. I enjoy writing clean Node.js APIs, optimizing data flows in Python, and ensuring that every service scales efficiently. I’m always curious about new patterns in distributed computing and I enjoy tinkering with open-source projects.”
+
+
+Find me here:
+
+[![LinkedIn – Sibusiso Mngomezulu](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sibusiso%20Mngomezulu)](https://www.linkedin.com/in/sibusiso-mngomezulu-)
 
 </div>
 </details>
@@ -88,8 +95,12 @@ Welcome to **Team DOSKS**! We’re final-year Computer Science students at the U
 
 - **Key Skills:** Python · Distributed Systems  
 - **About Me:**  
-  > “I’m wrapping up my CS degree at UP this year, with a deep interest in distributed systems and Python scripting. I find joy in breaking down complex architectures into maintainable modules and exploring container orchestration.”  
-- 🔗 [LinkedIn](https://www.linkedin.com/in/kelsey-d-hamann)
+  > “I’m wrapping up my CS degree at UP this year, with a deep interest in distributed systems and Python scripting. I find joy in breaking down complex architectures into maintainable modules and exploring container orchestration.”
+
+
+Contact me here:
+
+[![LinkedIn – Kelsey Hamann](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Kelsey%20Hamann)](https://www.linkedin.com/in/kelsey-d-hamann)
 
 </div>
 </details>
@@ -101,11 +112,19 @@ Welcome to **Team DOSKS**! We’re final-year Computer Science students at the U
 
 - **Key Skills:** React · D3.js · UI/UX Design  
 - **About Me:**  
-  > “In my final year at UP, I focus on crafting intuitive user experiences. I’m passionate about accessibility and love turning data into interactive visual stories. I enjoy seeing how I can apply the coding concepts I learn in everyday life and using my skills to benefit those around me as well as myself.”  
-- 🔗 [LinkedIn](https://www.linkedin.com/in/d-m-a-381700356)
+  > “In my final year at UP, I focus on crafting intuitive user experiences. I’m passionate about accessibility and love turning data into interactive visual stories. I enjoy seeing how I can apply the coding concepts I learn in everyday life and using my skills to benefit those around me as well as myself.”
+
+Contact me here:
+
+[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](https://www.linkedin.com/in/d-m-a-381700356)
 
 </div>
 </details>
+
+
+Contact us here:
+
+📧 **Team Email:** doskscapstone17@gmail.com
 
 
 # DevX360
