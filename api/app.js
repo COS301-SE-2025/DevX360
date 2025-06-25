@@ -5,16 +5,16 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { performDORAAnalysis } from '../services/codeInterpretor.js';
-import { parseGitHubUrl } from '../Data Collection/repository-info-service.js';
+import { performDORAAnalysis } from "../services/codeInterpretor.js";
+import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -24,13 +24,17 @@ const app = express();
 app.use(cookieParser());
 
 // Load environment variables
-import 'dotenv/config';
+import "dotenv/config";
 
 // Database connection
 import "./db.js";
 
 // Middleware
-const allowedOrigins = ["http://localhost:5500", "http://localhost:5050"];
+const allowedOrigins = [
+  "http://localhost:5500",
+  "http://localhost:5050",
+  "http://localhost:3000",
+];
 
 app.use(
   cors({
@@ -75,20 +79,21 @@ const authenticateToken = (req, res, next) => {
 // Routes
 app.get("/api/health", async (req, res) => {
   try {
-    const dbStatus = mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
+    const dbStatus =
+      mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
     const ollamaRes = await fetch("http://localhost:11434");
-    
+
     res.json({
       status: "OK",
       database: dbStatus,
       ollama: ollamaRes.status === 200 ? "Operational" : "Unavailable",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     res.status(500).json({
       status: "Degraded",
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -209,20 +214,23 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
       userObj.avatar = `/uploads/${user.avatar}`;
     }
     res.json({ user: userObj });
-
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-app.put('/api/profile', authenticateToken, async (req, res) => {
+app.put("/api/profile", authenticateToken, async (req, res) => {
   try {
     const { name, email, password } = req.body;
     const updates = {};
-    
+
     if (!name && !email && !password) {
-      return res.status(400).json({ message: "At least one field (name, email, or password) is required" });
+      return res
+        .status(400)
+        .json({
+          message: "At least one field (name, email, or password) is required",
+        });
     }
 
     const user = await User.findById(req.user.userId);
@@ -233,18 +241,24 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     if (name) {
       updates.name = name.trim();
     }
-    
+
     if (email) {
-      const emailExists = await User.findOne({ email: email.trim().toLowerCase() });
+      const emailExists = await User.findOne({
+        email: email.trim().toLowerCase(),
+      });
       if (emailExists && emailExists._id.toString() !== req.user.userId) {
-        return res.status(400).json({ message: "Email already in use by another account" });
+        return res
+          .status(400)
+          .json({ message: "Email already in use by another account" });
       }
       updates.email = email.trim().toLowerCase();
     }
-    
+
     if (password) {
       if (password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters" });
+        return res
+          .status(400)
+          .json({ message: "Password must be at least 6 characters" });
       }
       updates.password = await hashPassword(password);
     }
@@ -253,13 +267,12 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
       req.user.userId,
       { $set: updates },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select("-password");
 
-    res.json({ 
+    res.json({
       message: "Profile updated successfully",
-      user: updatedUser 
+      user: updatedUser,
     });
-
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({ message: "Error updating profile" });
@@ -324,7 +337,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       password: hashed,
       creator: req.user.userId,
       members: [req.user.userId],
-      repoUrl
+      repoUrl,
     });
 
     await team.save();
@@ -336,7 +349,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       return res.status(400).json({
         message: "Invalid GitHub URL",
         details: parseError.message,
-        example: "Valid format: https://github.com/username/repository"
+        example: "Valid format: https://github.com/username/repository",
       });
     }
 
@@ -349,7 +362,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       return res.status(500).json({
         message: "Repository analysis failed",
         error: analysisError.message,
-        suggestion: "Check repository accessibility or try again later"
+        suggestion: "Check repository accessibility or try again later",
       });
     }
 
@@ -359,33 +372,33 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       owner,
       repo,
       metrics,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Team created successfully",
       team: {
         id: team._id,
         name: team.name,
-        repoUrl: team.repoUrl
-      }
+        repoUrl: team.repoUrl,
+      },
     });
   } catch (error) {
     console.error("Team creation error:", error);
-    
+
     // Handle specific error types
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         message: "Validation error",
-        errors: Object.values(error.errors).map(err => err.message)
+        errors: Object.values(error.errors).map((err) => err.message),
       });
     }
 
-    if (error.name === 'MongoServerError' && error.code === 11000) {
+    if (error.name === "MongoServerError" && error.code === 11000) {
       return res.status(400).json({
         message: "Database error",
         details: "Duplicate key violation",
-        field: Object.keys(error.keyPattern)[0]
+        field: Object.keys(error.keyPattern)[0],
       });
     }
 
@@ -393,7 +406,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     res.status(500).json({
       message: "Team creation failed",
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
@@ -431,7 +444,7 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
     res.json({
       team,
       doraMetrics: metrics?.metrics || null,
-      lastUpdated: metrics?.lastUpdated || null
+      lastUpdated: metrics?.lastUpdated || null,
     });
   } catch (err) {
     console.error("Error retrieving team info:", err);
@@ -442,11 +455,15 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
 //AI INTERGATION
 app.get("/api/ai-review", authenticateToken, async (req, res) => {
   try {
-    const { teamId } = req.query;  // Changed from req.body to req.query
-    if (!teamId) return res.status(400).json({ message: "teamId query parameter is required" });
+    const { teamId } = req.query; // Changed from req.body to req.query
+    if (!teamId)
+      return res
+        .status(400)
+        .json({ message: "teamId query parameter is required" });
 
     const metricsEntry = await RepoMetrics.findOne({ teamId });
-    if (!metricsEntry) return res.status(404).json({ message: "Metrics not found" });
+    if (!metricsEntry)
+      return res.status(404).json({ message: "Metrics not found" });
 
     const { repoUrl, metrics } = metricsEntry;
     const { owner, repo } = parseGitHubUrl(repoUrl);
@@ -455,20 +472,19 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
     const startTime = Date.now();
 
     // Step 1: Analyze the repository (structure + DORA indicators)
-    const { 
-      insights, 
-      repositoryAnalysis, 
-      performance, 
-      analyzedFiles 
-    } = await performDORAAnalysis(owner, repo, metrics);
-    
+    const { insights, repositoryAnalysis, performance, analyzedFiles } =
+      await performDORAAnalysis(owner, repo, metrics);
+
     const totalTime = Date.now() - startTime;
     // Handle case where no indicators were found
-    const totalIndicators = Object.values(repositoryAnalysis.doraIndicators).flat().length;
+    const totalIndicators = Object.values(
+      repositoryAnalysis.doraIndicators
+    ).flat().length;
     if (totalIndicators === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: "No DORA-relevant files or patterns found in this repository",
-        suggestion: "Ensure your repository contains CI/CD, tests, monitoring, or security-related files"
+        suggestion:
+          "Ensure your repository contains CI/CD, tests, monitoring, or security-related files",
       });
     }
 
@@ -482,35 +498,37 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
         primaryLanguage: repositoryAnalysis.repository.language,
         doraIndicatorsFound: totalIndicators,
         filesAnalyzed: performance.filesAnalyzed,
-        doraMetricsCovered: Object.keys(repositoryAnalysis.doraIndicators).filter(k => repositoryAnalysis.doraIndicators[k].length > 0),
+        doraMetricsCovered: Object.keys(
+          repositoryAnalysis.doraIndicators
+        ).filter((k) => repositoryAnalysis.doraIndicators[k].length > 0),
         processingTimeMs: totalTime,
-        analyzedAt: repositoryAnalysis.analyzedAt
-      }
+        analyzedAt: repositoryAnalysis.analyzedAt,
+      },
     });
   } catch (err) {
     console.error("AI Review Error:", err);
-    
+
     // More specific error handling
-    if (err.message.includes('rate limit')) {
-      return res.status(429).json({ 
-        message: "Rate limit exceeded", 
+    if (err.message.includes("rate limit")) {
+      return res.status(429).json({
+        message: "Rate limit exceeded",
         error: "GitHub API rate limit hit",
-        suggestion: "Try again in a few minutes"
+        suggestion: "Try again in a few minutes",
       });
     }
-    
-    if (err.message.includes('404')) {
-      return res.status(404).json({ 
-        message: "Repository not found", 
+
+    if (err.message.includes("404")) {
+      return res.status(404).json({
+        message: "Repository not found",
         error: "Repository may be private or doesn't exist",
-        suggestion: "Check repository URL and access permissions"
+        suggestion: "Check repository URL and access permissions",
       });
     }
-    
-    res.status(500).json({ 
-      message: "AI review failed", 
+
+    res.status(500).json({
+      message: "AI review failed",
       error: err.message,
-      suggestion: "Check repository access and AI service availability"
+      suggestion: "Check repository access and AI service availability",
     });
   }
 });
