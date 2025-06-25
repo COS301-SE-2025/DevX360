@@ -1,7 +1,8 @@
 # DevX360: AI-Powered DevOps Analytics Platform
 
-
-![Build Status](https://github.com/COS301-SE-2025/DevX360/actions/workflows/ci.yml/badge.svg)
+![Top Language](https://img.shields.io/github/languages/top/COS301-SE-2025/DevX360)
+![Commit Activity](https://img.shields.io/github/commit-activity/m/COS301-SE-2025/DevX360)
+![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/DevX360)
 ![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/DevX360)
 ![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/DevX360)
 
