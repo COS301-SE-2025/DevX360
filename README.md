@@ -37,14 +37,14 @@ We use a collaborative workflow to manage progress and documentation.
 
 ## 🛠 Technologies Used
 
-| Component              | Technology/Framework      | Justification                           |
-|------------------------|---------------------------|-----------------------------------------|
-| **Frontend**           | React                     | Interactive dashboards & visualization  |
-| **Backend**            | Node.js (Express)         | High-throughput API handling            |
-| **AI Analysis**        | Ollama (Local LLM)        | Offline, cost-free code analysis        |
-| **Data Processing**    | Octogit                   | Reliable metric scheduling              |
-| **Database**           | MongoDB Atlas             | Real-time capabilities & free tier      |
-| **Hosting**            | Vercel                    | Zero-cost deployment                    |
+| Component           | Technology/Framework                                                                                   | Justification                          |
+|---------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
+| **Frontend**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/react/react.png" width="24"/> React      | Interactive dashboards & visualization |
+| **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling           |
+| **AI Analysis**     | <img src="https://raw.githubusercontent.com/github/explore/main/topics/ollama/ollama.png" width="24"/> Ollama (Local LLM)    | Offline, cost-free code analysis       |
+| **Data Processing** | <img src="https://raw.githubusercontent.com/github/explore/main/topics/octokit/octokit.png" width="24"/> Octokit            | Reliable metric scheduling             |
+| **Database**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/mongodb/mongodb.png" width="24"/> MongoDB Atlas     | Real-time capabilities & free tier     |
+| **Hosting**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/vercel/vercel.png" width="24"/> Vercel                  | Zero-cost deployment                   |
 
 ---
 
@@ -53,7 +53,7 @@ We use a collaborative workflow to manage progress and documentation.
 
 ## 👥 Team DOSKS
 
-Welcome to **Team DOSKS**! We’re a cross-functional group of developers, designers, and AI enthusiasts dedicated to building DevX360. Get to know us below:
+Welcome to **Team DOSKS**! We’re final-year Computer Science students at the University of Pretoria who love all things code, data, and UX. Get to know us below:
 
 <details>
 <summary><strong>🛡️ Sipho Sehlapelo</strong> — Flexible Lead</summary>
@@ -62,7 +62,7 @@ Welcome to **Team DOSKS**! We’re a cross-functional group of developers, desig
 
 - **Key Skills:** Python · JavaScript · Full-Stack Development  
 - **About Me:**  
-  > “Third-year Computer Science student passionate about AI and entrepreneurship. I build tech solutions that make real-world impact through my AI agency and student-focused platforms.”  
+  > “I’m in my final year studying Computer Science at UP. I’m driven by solving real-world problems with code—whether it’s building a full-stack web app in JavaScript or exploring data pipelines in Python. I love finding creative ways to bridge theory with hands-on projects.”  
 - 🔗 [LinkedIn](https://www.linkedin.com/in/sipho-sehlapelo-769155356)
 
 </div>
@@ -75,7 +75,7 @@ Welcome to **Team DOSKS**! We’re a cross-functional group of developers, desig
 
 - **Key Skills:** Python · Node.js · API Development  
 - **About Me:**  
-  > “Determined software engineer and first-time founder with full-stack expertise. I view challenges as growth opportunities.”  
+  > “As a final-year UP CS student, I’m passionate about designing robust backend systems. I enjoy writing clean Node.js APIs, optimizing data flows in Python, and ensuring that every service scales efficiently. I’m always curious about new patterns in distributed computing and I enjoy tinkering with open-source projects.”  
 - 🔗 [LinkedIn](https://www.linkedin.com/in/sibusiso-mngomezulu-)
 
 </div>
@@ -88,7 +88,7 @@ Welcome to **Team DOSKS**! We’re a cross-functional group of developers, desig
 
 - **Key Skills:** Python · Distributed Systems  
 - **About Me:**  
-  > “Third-year CS student focused on ethical tech solutions. Passionate about building practical systems that improve real settings.”  
+  > “I’m wrapping up my CS degree at UP this year, with a deep interest in distributed systems and Python scripting. I find joy in breaking down complex architectures into maintainable modules and exploring container orchestration.”  
 - 🔗 [LinkedIn](https://www.linkedin.com/in/kelsey-d-hamann)
 
 </div>
@@ -101,11 +101,12 @@ Welcome to **Team DOSKS**! We’re a cross-functional group of developers, desig
 
 - **Key Skills:** React · D3.js · UI/UX Design  
 - **About Me:**  
-  > “Final-year student specializing in frontend development. I create accessible, user-centered web applications.”  
+  > “In my final year at UP, I focus on crafting intuitive user experiences. I’m passionate about accessibility and love turning data into interactive visual stories. I enjoy seeing how I can apply the coding concepts I learn in everyday life and using my skills to benefit those around me as well as myself.”  
 - 🔗 [LinkedIn](https://www.linkedin.com/in/d-m-a-381700356)
 
 </div>
 </details>
+
 
 # DevX360
 
