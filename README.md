@@ -1,5 +1,11 @@
 # DevX360: AI-Powered DevOps Analytics Platform
 
+
+![Build Status](https://github.com/COS301-SE-2025/DevX360/actions/workflows/ci.yml/badge.svg)
+![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/DevX360)
+![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/DevX360)
+
+
 ## 🚀 Project Description
 
 **DevX360** is an AI-powered DevOps analytics platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates tracking, analysis, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance.
@@ -82,15 +88,7 @@
 </div>
 </details>
 
-<details>
-<summary><strong>Owethu Dlamini</strong> - Frontend Support</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: JavaScript, Testing Frameworks  
-**About Me**: "Software engineer passionate about cybersecurity and collaborative problem-solving. Committed to building secure, impactful systems."  
-[LinkedIn Profile](https://www.linkedin.com/in/opsdlamini)
+# DevX360
 
-</div>
-</details>
 
 ---
