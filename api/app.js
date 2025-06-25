@@ -7,6 +7,7 @@ import multer from "multer";
 import mongoose from "mongoose";
 import { performDORAAnalysis } from "../services/codeInterpretor.js";
 import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
+import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
@@ -25,9 +26,6 @@ app.use(cookieParser());
 
 // Load environment variables
 import "dotenv/config";
-
-// Database connection
-import "./db.js";
 
 // Middleware
 const allowedOrigins = [
@@ -354,9 +352,11 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     }
 
     let metrics;
+    let repositoryInfo;
     try {
       const analysis = await analyzeRepository(repoUrl);
       metrics = analysis.metrics;
+      repositoryInfo = await getRepositoryInfo(repoUrl);
     } catch (analysisError) {
       console.error("Repository analysis failed:", analysisError);
       return res.status(500).json({
@@ -372,6 +372,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       owner,
       repo,
       metrics,
+      repositoryInfo, 
       lastUpdated: new Date(),
     });
 
@@ -382,6 +383,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
         name: team.name,
         repoUrl: team.repoUrl,
       },
+      repositoryInfo,
     });
   } catch (error) {
     console.error("Team creation error:", error);
@@ -439,12 +441,13 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
 
     if (!team) return res.status(404).json({ message: "Team not found" });
 
-    const metrics = await RepoMetrics.findOne({ teamId: team._id });
+    const repoData = await RepoMetrics.findOne({ teamId: team._id });
 
     res.json({
       team,
-      doraMetrics: metrics?.metrics || null,
-      lastUpdated: metrics?.lastUpdated || null,
+      doraMetrics: repoData?.metrics || null,       // Existing DORA metrics
+      repositoryInfo: repoData?.repositoryInfo || null, // Full GitHub data
+      lastUpdated: repoData?.lastUpdated || null,
     });
   } catch (err) {
     console.error("Error retrieving team info:", err);

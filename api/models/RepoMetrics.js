@@ -6,6 +6,7 @@ const RepoMetricsSchema = new mongoose.Schema({
   owner: String,
   repo: String,
   metrics: Object,
+  repositoryInfo: { type: Object, required: true },
   lastUpdated: Date
 });
 

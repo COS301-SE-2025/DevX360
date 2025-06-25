@@ -2,28 +2,68 @@ import 'dotenv/config';
 import mongoose from "mongoose";
 import app from "./app.js";
 
-const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
+class Server {
+  static instance = null;
+  
+  constructor() {
+    if (Server.instance) {
+      return Server.instance;
+    }
+    
+    this.PORT = process.env.PORT || 5000;
+    this.MONGODB_URI = process.env.MONGODB_URI;
+    this.server = null;
+    Server.instance = this;
+  }
 
-if (!MONGODB_URI) {
-  console.error("MONGODB_URI is not set. Check your .env file");
-  process.exit(1);
+  async start() {
+    if (!this.MONGODB_URI) {
+      console.error("MONGODB_URI is not set. Check your .env file");
+      process.exit(1);
+    }
+
+    try {
+      await mongoose.connect(this.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      console.log("Connected to MongoDB Atlas");
+
+      this.server = app.listen(this.PORT, () => {
+        console.log(`Server running on port ${this.PORT}`);
+        console.log(`Health check: http://localhost:${this.PORT}/api/health`);
+      });
+
+      return this.server;
+    } catch (error) {
+      console.error("MongoDB connection error:", error);
+      process.exit(1);
+    }
+  }
+
+  async stop() {
+    if (this.server) {
+      await new Promise(resolve => this.server.close(resolve));
+      console.log('HTTP server closed');
+    }
+    await mongoose.disconnect();
+    console.log('MongoDB connection closed');
+  }
 }
 
-mongoose
-  .connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connected to MongoDB Atlas");
+// Create and start the server instance
+const server = new Server();
+server.start();
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
-    });
-  })
-  .catch((error) => {
-    console.error("MongoDB connection error:", error);
-    process.exit(1);
-  });
+// Graceful shutdown handling
+process.on('SIGINT', async () => {
+  await server.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await server.stop();
+  process.exit(0);
+});
+
+export default server;
