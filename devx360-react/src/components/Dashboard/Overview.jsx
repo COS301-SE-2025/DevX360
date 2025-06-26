@@ -10,11 +10,18 @@ function Overview() {
   const [avatar, setAvatar] = useState(defaultAvatar);
 
   // Update avatar when currentUser changes
-  useEffect(() => {
-    setAvatar(currentUser?.avatar ? 
-      `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${currentUser.avatar}` 
-      : defaultAvatar);
-  }, [currentUser]);
+ useEffect(() => {
+    if (currentUser?.avatar) {
+      // Handle both full URLs and backend paths
+      const avatarUrl = currentUser.avatar.startsWith('http') 
+        ? currentUser.avatar 
+        : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
+      
+      setAvatar(avatarUrl);
+    } else {
+      setAvatar(defaultAvatar);
+    }
+}, [currentUser]);
 
   return (
     <>
