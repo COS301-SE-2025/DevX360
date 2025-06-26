@@ -12,6 +12,7 @@ import Metrics from './components/Dashboard/Metrics';
 import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth import
 import { ThemeProvider } from './context/ThemeContext';
 
+
 //ProtectedRoute, this protects all the authenticated routes
 const ProtectedRoute = ({ children }) => {
   const { currentUser, loading } = useAuth();
