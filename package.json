@@ -12,11 +12,13 @@
     "multer": "^2.0.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "jest": "^29.0.0"
   },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "reset": "rm -rf node_modules package-lock.json && npm install"
+    "reset": "rm -rf node_modules package-lock.json && npm install",
+    "test": "jest"
   }
 }
