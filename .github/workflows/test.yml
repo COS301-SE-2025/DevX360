@@ -26,4 +26,4 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm jest Testing/tests/unit/sample.test.js
+        run: npm test Testing/tests/unit/sample.test.js
