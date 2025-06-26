@@ -83,13 +83,17 @@ function Metrics() {
         const data = await response.json();
 
         if (response.status === 200) {
-          setAiFeedback(teamData.team.analysisStatus);
+          setAiFeedback(data.aiFeedback);
+          console.log(data.status);
           setAiStatus('completed');
+           console.log(data.aiFeedback);
           setAiLoading(false);
           clearInterval(pollInterval);
         } else if (response.status === 202) {
           setAiStatus('pending');
-          setAiProgress(teamData.team.analysisStatus || 0);
+          console.log(data.status)
+
+          setAiProgress(data.status);
           setAiLoading(false);
           
           if (!pollInterval) {
