@@ -3,9 +3,12 @@ name: Run Tests
 on:
   push:
     branches: [main, dev]
+    paths:
+      - 'DevX360/**'
   pull_request:
     branches: [main, dev]
-
+    paths:
+      - 'DevX360/**'
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,4 +26,4 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm test Testing/tests/unit/sample.test.js
+        run: npm jest Testing/tests/unit/sample.test.js
