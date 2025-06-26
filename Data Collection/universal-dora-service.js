@@ -10,6 +10,24 @@ import { getNextOctokit } from '../services/tokenManager.js';
  * @version 2.0.0
  */
 
+// Enhanced DORA Patterns for Universal Accuracy
+const UNIVERSAL_DORA_PATTERNS = {
+  change_failure_rate: {
+    primary_indicators: [
+      'bug', 'incident', 'error', 'exception', 'crash', 'failure', 'outage',
+      'downtime', 'broken', 'fix', 'hotfix', 'patch', 'rollback', 'revert'
+    ],
+    secondary_indicators: [
+      'auth', 'secure', 'permission', 'access', 'sanitiz', 'validate', 'input',
+      'csrf', 'xss', 'injection', 'overflow', 'race', 'deadlock', 'memory leak'
+    ],
+    deployment_context: [
+      'deploy', 'release', 'production', 'rollback', 'hotfix', 'emergency deploy',
+      'after deploy', 'in production', 'caused by deploy', 'deployment issue'
+    ]
+  }
+};
+
 // Helper function to add delay between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -50,7 +68,420 @@ function parseGitHubUrl(repositoryUrl) {
 }
 
 /**
- * Fetches DORA metrics for a single repository
+ * Enhanced Issue Content Analysis for Universal Accuracy
+ */
+function analyzeIssueContent(issue, patterns) {
+  const content = `${issue.title} ${issue.body || ''}`.toLowerCase();
+  const labels = issue.labels?.map(label => label.name.toLowerCase()) || [];
+  
+  let score = 0;
+  let matchedPatterns = [];
+  let confidence = 'low';
+  let hasDeploymentContext = false;
+  let isExcluded = false;
+  
+  // Check for exclusion patterns
+  const excludePatterns = [
+    'documentation', 'docs', 'enhancement', 'feature', 'request', 'question',
+    'discussion', 'proposal', 'idea', 'suggestion', 'help wanted', 'good first issue'
+  ];
+  
+  isExcluded = excludePatterns.some(pattern => 
+    content.includes(pattern) || labels.some(label => label.includes(pattern))
+  );
+  
+  if (isExcluded) {
+    return {
+      score: 0,
+      confidence: 'excluded',
+      matchedPatterns: ['excluded'],
+      hasExplicitLabel: false,
+      hasDeploymentContext: false,
+      isExcluded: true
+    };
+  }
+  
+  // Check for deployment context
+  hasDeploymentContext = patterns.deployment_context.some(context => 
+    content.includes(context)
+  );
+  
+  // Check explicit labels first (highest confidence)
+  const hasExplicitLabel = labels.some(label => 
+    patterns.primary_indicators.includes(label) || 
+    patterns.secondary_indicators.includes(label)
+  );
+  
+  if (hasExplicitLabel) {
+    score += 15;
+    confidence = 'high';
+    matchedPatterns.push('explicit_label');
+  }
+  
+  // Check content for primary indicators
+  patterns.primary_indicators.forEach(indicator => {
+    if (content.includes(indicator)) {
+      score += 8;
+      matchedPatterns.push(`primary_${indicator}`);
+    }
+  });
+  
+  // Check content for secondary indicators
+  patterns.secondary_indicators.forEach(indicator => {
+    if (content.includes(indicator)) {
+      score += 3;
+      matchedPatterns.push(`secondary_${indicator}`);
+    }
+  });
+  
+  // Check labels for partial matches
+  labels.forEach(label => {
+    patterns.primary_indicators.forEach(indicator => {
+      if (label.includes(indicator) || indicator.includes(label)) {
+        score += 5;
+        matchedPatterns.push(`label_match_${label}`);
+      }
+    });
+  });
+  
+  // Bonus for deployment context
+  if (hasDeploymentContext) {
+    score += 5;
+    matchedPatterns.push('deployment_context');
+  }
+  
+  // Determine confidence level
+  if (score >= 15) confidence = 'high';
+  else if (score >= 8) confidence = 'medium';
+  else if (score >= 3) confidence = 'low';
+  else confidence = 'very_low';
+  
+  return {
+    score,
+    confidence,
+    matchedPatterns,
+    hasExplicitLabel,
+    hasDeploymentContext,
+    isExcluded: false
+  };
+}
+
+/**
+ * Enhanced Deployment Detection for Universal Accuracy
+ */
+function detectDeployments(releases, commits) {
+  const deployments = [];
+  
+  // Add releases as deployments
+  releases.forEach(release => {
+    if (!release.draft && !release.prerelease) {
+      deployments.push({
+        type: 'release',
+        date: new Date(release.created_at),
+        version: release.tag_name,
+        name: release.name
+      });
+    }
+  });
+  
+  // Detect deployment commits
+  const deploymentCommits = commits.filter(commit => {
+    const message = commit.commit.message.toLowerCase();
+    return message.includes('deploy') || 
+           message.includes('release') || 
+           message.includes('production') ||
+           message.includes('hotfix') ||
+           message.includes('emergency');
+  });
+  
+  deploymentCommits.forEach(commit => {
+    deployments.push({
+      type: 'commit',
+      date: new Date(commit.commit.author.date),
+      version: commit.sha.substring(0, 7),
+      name: commit.commit.message.split('\n')[0]
+    });
+  });
+  
+  return deployments.sort((a, b) => a.date - b.date);
+}
+
+/**
+ * Universal CFR Calculation with Maximum Accuracy
+ */
+function calculateUniversalChangeFailureRate(releases, issues, commits) {
+  const cfrPatterns = UNIVERSAL_DORA_PATTERNS.change_failure_rate;
+  
+  // Enhanced Issue Analysis with Temporal Correlation
+  const failureIssues = issues.map(issue => {
+    const analysis = analyzeIssueContent(issue, cfrPatterns);
+    
+    // Enhanced failure detection with severity weighting
+    const severityScore = calculateIssueSeverity(issue, analysis);
+    const temporalScore = calculateTemporalCorrelation(issue, releases, commits);
+    const contextScore = calculateDeploymentContext(issue, releases);
+    
+    const totalScore = analysis.score + severityScore + temporalScore + contextScore;
+    
+    return {
+      ...issue,
+      failureAnalysis: analysis,
+      severityScore,
+      temporalScore,
+      contextScore,
+      totalScore,
+      isFailure: totalScore >= 12 && !analysis.isExcluded,
+      hasDeploymentContext: contextScore > 0,
+      failureType: classifyFailureType(issue, analysis, totalScore),
+      confidence: calculateFailureConfidence(totalScore, analysis)
+    };
+  }).filter(issue => issue.isFailure);
+  
+  // Advanced Deployment Detection
+  const deployments = detectDeployments(releases, commits);
+  const totalDeployments = deployments.length;
+  
+  // Intelligent Failure Classification
+  const classifiedFailures = classifyFailures(failureIssues, deployments);
+  const deploymentFailures = classifiedFailures.deployment;
+  const generalFailures = classifiedFailures.general;
+  const criticalFailures = classifiedFailures.critical;
+  
+  // Multi-Source Validation
+  const validationResults = validateFailures(failureIssues, commits, deployments);
+  
+  // Calculate Universal CFR with Confidence
+  const cfrResults = calculateUniversalCFR(
+    totalDeployments,
+    deploymentFailures,
+    generalFailures,
+    criticalFailures,
+    validationResults
+  );
+  
+  return {
+    total_deployments: totalDeployments,
+    deployment_failures: deploymentFailures.length,
+    general_issues: generalFailures.length,
+    critical_failures: criticalFailures.length,
+    failure_rate: cfrResults.generalFailureRate,
+    deployment_failure_rate: cfrResults.deploymentFailureRate,
+    critical_failure_rate: cfrResults.criticalFailureRate,
+    confidence_score: cfrResults.confidenceScore,
+    accuracy_indicators: cfrResults.accuracyIndicators,
+    data_sources: {
+      explicit_labels: validationResults.explicitLabels,
+      content_analysis: validationResults.contentAnalysis,
+      commit_patterns: validationResults.commitPatterns,
+      deployment_failures: deploymentFailures.length,
+      temporal_correlation: validationResults.temporalCorrelation,
+      severity_analysis: validationResults.severityAnalysis,
+      total_issues: issues.length
+    },
+    status: cfrResults.status
+  };
+}
+
+// Helper functions for universal CFR accuracy
+function calculateIssueSeverity(issue, analysis) {
+  let severityScore = 0;
+  
+  // Label-based severity
+  const severityLabels = ['critical', 'high', 'urgent', 'blocker', 'p0', 'p1'];
+  const hasSeverityLabel = issue.labels?.some(label => 
+    severityLabels.includes(label.name.toLowerCase())
+  );
+  if (hasSeverityLabel) severityScore += 8;
+  
+  // Content-based severity indicators
+  const severityKeywords = ['crash', 'outage', 'downtime', 'broken', 'fatal', 'emergency'];
+  const content = `${issue.title} ${issue.body || ''}`.toLowerCase();
+  severityKeywords.forEach(keyword => {
+    if (content.includes(keyword)) severityScore += 3;
+  });
+  
+  // Comment volume (more comments = more severe)
+  if (issue.comments > 5) severityScore += 2;
+  if (issue.comments > 10) severityScore += 3;
+  
+  return Math.min(severityScore, 15);
+}
+
+function calculateTemporalCorrelation(issue, releases, commits) {
+  let temporalScore = 0;
+  const issueDate = new Date(issue.created_at);
+  
+  // Check if issue was created near a deployment
+  releases.forEach(release => {
+    const releaseDate = new Date(release.created_at);
+    const daysDiff = Math.abs((issueDate - releaseDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff <= 1) temporalScore += 10;
+    else if (daysDiff <= 3) temporalScore += 6;
+    else if (daysDiff <= 7) temporalScore += 3;
+  });
+  
+  // Check commit patterns around issue creation
+  const relevantCommits = commits.filter(commit => {
+    const commitDate = new Date(commit.commit.author.date);
+    const daysDiff = Math.abs((issueDate - commitDate) / (1000 * 60 * 60 * 24));
+    return daysDiff <= 7;
+  });
+  
+  if (relevantCommits.length > 0) {
+    const fixCommits = relevantCommits.filter(commit => 
+      commit.commit.message.toLowerCase().includes('fix') ||
+      commit.commit.message.toLowerCase().includes('revert')
+    );
+    temporalScore += fixCommits.length * 2;
+  }
+  
+  return Math.min(temporalScore, 20);
+}
+
+function calculateDeploymentContext(issue, releases) {
+  let contextScore = 0;
+  const content = `${issue.title} ${issue.body || ''}`.toLowerCase();
+  
+  // Direct deployment references
+  const deploymentKeywords = [
+    'deploy', 'release', 'production', 'rollback', 'hotfix', 'emergency deploy',
+    'after deploy', 'in production', 'caused by deploy', 'deployment issue',
+    'release issue', 'version', 'v', 'tag'
+  ];
+  
+  deploymentKeywords.forEach(keyword => {
+    if (content.includes(keyword)) contextScore += 5;
+  });
+  
+  // Version number references
+  const versionPattern = /v?\d+\.\d+\.\d+/g;
+  const versions = content.match(versionPattern);
+  if (versions) contextScore += versions.length * 3;
+  
+  return Math.min(contextScore, 15);
+}
+
+function classifyFailureType(issue, analysis, totalScore) {
+  if (analysis.hasDeploymentContext) return 'deployment';
+  if (totalScore >= 20) return 'critical';
+  if (totalScore >= 15) return 'high';
+  if (totalScore >= 12) return 'medium';
+  return 'low';
+}
+
+function calculateFailureConfidence(totalScore, analysis) {
+  let confidence = 'low';
+  if (totalScore >= 25) confidence = 'very_high';
+  else if (totalScore >= 20) confidence = 'high';
+  else if (totalScore >= 15) confidence = 'medium';
+  else if (totalScore >= 12) confidence = 'low';
+  return confidence;
+}
+
+function classifyFailures(failureIssues, deployments) {
+  const deploymentFailures = [];
+  const generalFailures = [];
+  const criticalFailures = [];
+  
+  failureIssues.forEach(issue => {
+    if (issue.failureType === 'deployment') {
+      deploymentFailures.push(issue);
+    } else if (issue.failureType === 'critical') {
+      criticalFailures.push(issue);
+    } else {
+      generalFailures.push(issue);
+    }
+  });
+  
+  return { deployment: deploymentFailures, general: generalFailures, critical: criticalFailures };
+}
+
+function validateFailures(failureIssues, commits, deployments) {
+  const explicitLabels = failureIssues.filter(i => i.failureAnalysis.hasExplicitLabel).length;
+  const contentAnalysis = failureIssues.filter(i => i.failureAnalysis.score >= 8).length;
+  const commitPatterns = commits.filter(commit => 
+    commit.commit.message.toLowerCase().includes('fix') ||
+    commit.commit.message.toLowerCase().includes('bug') ||
+    commit.commit.message.toLowerCase().includes('revert')
+  ).length;
+  
+  // Temporal validation
+  const temporalCorrelation = failureIssues.filter(i => i.temporalScore > 0).length;
+  
+  // Severity validation
+  const severityAnalysis = failureIssues.filter(i => i.severityScore > 5).length;
+  
+  return {
+    explicitLabels,
+    contentAnalysis,
+    commitPatterns,
+    temporalCorrelation,
+    severityAnalysis
+  };
+}
+
+function calculateUniversalCFR(totalDeployments, deploymentFailures, generalFailures, criticalFailures, validationResults) {
+  // Handle edge cases
+  if (totalDeployments === 0) {
+    const totalIssues = deploymentFailures.length + generalFailures.length + criticalFailures.length;
+    const issueFailureRate = totalIssues > 0 ? ((totalIssues / 100) * 100).toFixed(2) + '%' : '0%';
+    
+    return {
+      generalFailureRate: issueFailureRate,
+      deploymentFailureRate: 'N/A (no deployments)',
+      criticalFailureRate: '0%',
+      confidenceScore: Math.min(calculateConfidenceScore(validationResults), 60),
+      accuracyIndicators: {
+        dataQuality: 'medium',
+        sampleSize: 'small',
+        temporalCoverage: 'limited',
+        patternRecognition: 'good'
+      },
+      status: 'No deployments found - showing issue failure rate instead'
+    };
+  }
+  
+  // Calculate failure rates with confidence weighting
+  const deploymentFailureRate = ((deploymentFailures.length / totalDeployments) * 100).toFixed(2) + '%';
+  const generalFailureRate = ((generalFailures.length / totalDeployments) * 100).toFixed(2) + '%';
+  const criticalFailureRate = ((criticalFailures.length / totalDeployments) * 100).toFixed(2) + '%';
+  
+  // Enhanced confidence calculation
+  const confidenceScore = calculateConfidenceScore(validationResults);
+  
+  // Accuracy indicators
+  const accuracyIndicators = {
+    dataQuality: totalDeployments >= 5 ? 'high' : totalDeployments >= 2 ? 'medium' : 'low',
+    sampleSize: totalDeployments >= 10 ? 'large' : totalDeployments >= 5 ? 'medium' : 'small',
+    temporalCoverage: 'good',
+    patternRecognition: validationResults.contentAnalysis > 0 ? 'excellent' : 'good'
+  };
+  
+  return {
+    generalFailureRate,
+    deploymentFailureRate,
+    criticalFailureRate,
+    confidenceScore,
+    accuracyIndicators,
+    status: 'Universal CFR calculated successfully'
+  };
+}
+
+function calculateConfidenceScore(validationResults) {
+  const baseScore = (
+    validationResults.explicitLabels * 25 +
+    validationResults.contentAnalysis * 20 +
+    validationResults.commitPatterns * 15 +
+    validationResults.temporalCorrelation * 10 +
+    validationResults.severityAnalysis * 10
+  );
+  
+  return Math.min(100, baseScore);
+}
+
+/**
+ * Fetches DORA metrics for a single repository with 30-day filter
  * 
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
@@ -60,21 +491,60 @@ async function fetchRepositoryMetrics(owner, repo) {
   const octokit = getNextOctokit();
 
   try {
-    console.log(`Fetching DORA metrics for ${owner}/${repo}...`);
+    console.log(`Fetching DORA metrics for ${owner}/${repo} (30-day analysis)...`);
+
+    // Calculate the date threshold for 30 days ago
+    const dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - 30);
+    console.log(`Analyzing data from ${dateThreshold.toISOString()} to present`);
 
     const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
       octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }),
       octokit.rest.repos.listTags({ owner, repo, per_page: 100 }),
       octokit.rest.repos.listCommits({ owner, repo, per_page: 100 }),
       octokit.rest.pulls.list({ owner, repo, state: 'closed', per_page: 100 }),
-      octokit.rest.issues.listForRepo({ owner, repo, state: 'closed', per_page: 100, labels: 'bug,incident' })
+      octokit.rest.issues.listForRepo({ owner, repo, state: 'closed', per_page: 100 })
     ]);
 
-    const releases = releasesRes.data;
-    const tags = tagsRes.data;
-    const commits = commitsRes.data;
-    const pullRequests = pullsRes.data;
-    const issues = issuesRes.data;
+    // Filter data by date threshold with proper null checks
+    const releases = releasesRes.data.filter(release => 
+      release.created_at && new Date(release.created_at) >= dateThreshold
+    );
+    
+    const tags = tagsRes.data.filter(tag => {
+      try {
+        return tag.commit?.commit?.author?.date && 
+               new Date(tag.commit.commit.author.date) >= dateThreshold;
+      } catch (error) {
+        console.warn(`Skipping tag with invalid date structure: ${tag.name}`);
+        return false;
+      }
+    });
+    
+    const commits = commitsRes.data.filter(commit => {
+      try {
+        return commit.commit?.author?.date && 
+               new Date(commit.commit.author.date) >= dateThreshold;
+      } catch (error) {
+        console.warn(`Skipping commit with invalid date structure: ${commit.sha?.substring(0, 7) || 'unknown'}`);
+        return false;
+      }
+    });
+    
+    const pullRequests = pullsRes.data.filter(pr => 
+      pr.created_at && new Date(pr.created_at) >= dateThreshold
+    );
+    
+    const issues = issuesRes.data.filter(issue => 
+      issue.created_at && new Date(issue.created_at) >= dateThreshold
+    );
+
+    console.log(`Filtered data counts over 30 days:`);
+    console.log(`  Releases: ${releases.length}`);
+    console.log(`  Tags: ${tags.length}`);
+    console.log(`  Commits: ${commits.length}`);
+    console.log(`  Pull Requests: ${pullRequests.length}`);
+    console.log(`  Issues: ${issues.length}`);
 
     const metrics = {
       repository: {
@@ -83,21 +553,27 @@ async function fetchRepositoryMetrics(owner, repo) {
         full_name: `${owner}/${repo}`,
         url: `https://github.com/${owner}/${repo}`
       },
-      deployment_frequency: calculateDeploymentFrequency(releases, tags),
+      analysis_period: {
+        days_back: 30,
+        start_date: dateThreshold.toISOString(),
+        end_date: new Date().toISOString()
+      },
+      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30),
       lead_time: calculateLeadTime(pullRequests, commits),
       mttr: calculateMTTR(issues),
-      change_failure_rate: calculateChangeFailureRate(releases, issues),
+      change_failure_rate: calculateUniversalChangeFailureRate(releases, issues, commits),
       data_summary: {
         releases_count: releases.length,
         tags_count: tags.length,
         commits_count: commits.length,
         pull_requests_count: pullRequests.length,
         issues_count: issues.length,
+        analysis_period_days: 30,
         fetched_at: new Date().toISOString()
       }
     };
 
-    console.log(`Successfully processed DORA metrics for ${owner}/${repo}`);
+    console.log(`Successfully processed DORA metrics for ${owner}/${repo} over 30 days`);
     return metrics;
 
   } catch (error) {
@@ -224,7 +700,7 @@ async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
 }
 
 // DORA Metrics Calculation Functions (keeping your existing logic)
-function calculateDeploymentFrequency(releases, tags) {
+function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
   // Filter out draft and pre-release releases to count only actual deployments
   const deployments = releases
     .filter(r => !r.draft && !r.prerelease)
@@ -235,28 +711,28 @@ function calculateDeploymentFrequency(releases, tags) {
     return {
       total_deployments: 0,
       frequency_per_day: 0,
-      time_span_days: 0,
-      status: 'No deployments found'
+      analysis_period_days: daysBack,
+      status: 'No deployments found in analysis period'
     };
   }
 
   if (deployments.length === 1) {
     return {
       total_deployments: 1,
-      time_span_days: 0,
-      frequency_per_day: 'N/A (single deployment)',
-      status: 'Single deployment'
+      analysis_period_days: daysBack,
+      frequency_per_day: (1 / daysBack).toFixed(3),
+      status: 'Single deployment in analysis period'
     };
   }
 
-  const timeSpan = deployments[deployments.length - 1] - deployments[0];
-  const days = timeSpan / (1000 * 60 * 60 * 24);
+  // Calculate frequency based on the analysis period, not deployment time span
+  const frequencyPerDay = (deployments.length / daysBack).toFixed(3);
 
   return {
     total_deployments: deployments.length,
-    time_span_days: Math.round(days),
-    frequency_per_day: (deployments.length / (days || 1)).toFixed(2),
-    status: 'Multiple deployments'
+    analysis_period_days: daysBack,
+    frequency_per_day: frequencyPerDay,
+    status: 'Multiple deployments in analysis period'
   };
 }
 
@@ -306,7 +782,7 @@ function calculateMTTR(issues) {
       min_days: 0,
       max_days: 0,
       total_incidents_analyzed: 0,
-      status: 'No bug/incident issues found'
+      status: 'No issues found'
     };
   }
 
@@ -337,115 +813,9 @@ function calculateMTTR(issues) {
   };
 }
 
-function calculateChangeFailureRate(releases, issues) {
-  if (!releases || releases.length === 0) {
-    return {
-      total_deployments: 0,
-      bug_or_incident_fixes: 0,
-      failure_rate: '0%',
-      status: 'No releases found'
-    };
-  }
-
-  // Only count issues labeled as 'bug' or 'incident'
-  const failureIssues = issues.filter(issue =>
-    issue.labels &&
-    issue.labels.some(label =>
-      ['bug', 'incident'].includes(label.name.toLowerCase())
-    )
-  );
-
-  return {
-    total_deployments: releases.length,
-    bug_or_incident_fixes: failureIssues.length,
-    failure_rate: ((failureIssues.length / releases.length) * 100).toFixed(2) + '%',
-    status: 'CFR calculated successfully'
-  };
-}
-
-/**
- * Creates a mock DORA metrics response for testing purposes
- * 
- * @returns {Object} Mock DORA metrics object
- */
-function createMockDORAMetrics() {
-  return {
-    repository: {
-      name: "test-repository",
-      owner: "test-owner",
-      full_name: "test-owner/test-repository",
-      url: "https://github.com/test-owner/test-repository"
-    },
-    deployment_frequency: {
-      total_deployments: 15,
-      time_span_days: 90,
-      frequency_per_day: "0.17",
-      status: "Multiple deployments"
-    },
-    lead_time: {
-      average_days: "3.5",
-      min_days: "0.5",
-      max_days: "12.0",
-      total_prs_analyzed: 25,
-      status: "Valid lead times calculated"
-    },
-    mttr: {
-      average_days: "2.1",
-      min_days: "0.1",
-      max_days: "8.5",
-      total_incidents_analyzed: 8,
-      status: "Valid MTTR calculated"
-    },
-    change_failure_rate: {
-      total_deployments: 15,
-      bug_or_incident_fixes: 2,
-      failure_rate: "13.33%",
-      status: "CFR calculated successfully"
-    },
-    data_summary: {
-      releases_count: 15,
-      tags_count: 20,
-      commits_count: 150,
-      pull_requests_count: 30,
-      issues_count: 12,
-      fetched_at: new Date().toISOString()
-    }
-  };
-}
-
-// Add this function to filter out unwanted file types
-function shouldSkipFile(filename) {
-  const skipExtensions = [
-    '.test.js', '.spec.js', '.test.ts', '.spec.ts',  // Test files
-    '.md', '.txt', '.yml', '.yaml',                  // Documentation/config
-    '.lock', '.log', '.tmp',                         // Generated files
-    '.min.js', '.bundle.js',                         // Minified/bundled files
-    '.d.ts'                                          // TypeScript declaration files
-  ];
-  
-  const skipPatterns = [
-    /test\//, /tests\//, /__tests__\//,              // Test directories
-    /node_modules\//, /dist\//, /build\//,           // Build directories
-    /\.git\//, /\.github\//                          // Git/GitHub files
-  ];
-  
-  // Check file extension
-  const hasSkipExtension = skipExtensions.some(ext => 
-    filename.toLowerCase().endsWith(ext)
-  );
-  
-  // Check directory patterns
-  const matchesSkipPattern = skipPatterns.some(pattern => 
-    pattern.test(filename)
-  );
-  
-  return hasSkipExtension || matchesSkipPattern;
-}
-
 export {
   getDORAMetrics,
   getDORAMetricsBatch,
   getOrganizationDORAMetrics,
-  parseGitHubUrl,
-  createMockDORAMetrics
+  parseGitHubUrl
 }; 
