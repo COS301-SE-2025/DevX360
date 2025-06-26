@@ -5,10 +5,10 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
-import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
+import { performDORAAnalysis } from "../services/codeInterpretor.js";
+import { parseGitHubUrl } from "../Data_Collection/repository-info-service.js";
+import { getRepositoryInfo } from "../Data_Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
-import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
 import cookieParser from "cookie-parser";
@@ -79,12 +79,20 @@ app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
-    const ollamaRes = await fetch("http://localhost:11434");
+    
+    let ollamaStatus = "Unavailable";
+    try {
+      const ollamaRes = await fetch("http://localhost:11434");
+      ollamaStatus = ollamaRes.status === 200 ? "Operational" : "Unavailable";
+    } catch (ollamaError) {
+      // Ollama service is not available, but this shouldn't cause a 500 error
+      ollamaStatus = "Unavailable";
+    }
 
     res.json({
       status: "OK",
       database: dbStatus,
-      ollama: ollamaRes.status === 200 ? "Operational" : "Unavailable",
+      ollama: ollamaStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -376,8 +384,6 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       lastUpdated: new Date(),
     });
 
-    setTimeout(() => runAIAnalysis(team._id), 0);
-
     res.status(201).json({
       message: "Team created successfully",
       team: {
@@ -460,26 +466,55 @@ app.get("/api/teams/:name", authenticateToken, async (req, res) => {
 //AI INTERGATION
 app.get("/api/ai-review", authenticateToken, async (req, res) => {
   try {
-    const { teamId } = req.query;
-    if (!teamId) return res.status(400).json({ message: "teamId required" });
+    const { teamId } = req.query; // Changed from req.body to req.query
+    if (!teamId)
+      return res
+        .status(400)
+        .json({ message: "teamId query parameter is required" });
 
     const metricsEntry = await RepoMetrics.findOne({ teamId });
-    if (!metricsEntry) return res.status(404).json({ message: "Metrics not found" });
+    if (!metricsEntry)
+      return res.status(404).json({ message: "Metrics not found" });
 
-    if (metricsEntry.analysisStatus !== 'completed') {
-      return res.status(202).json({
-        status: metricsEntry.analysisStatus,
-        message: "Analysis in progress. Please check back later."
+    const { repoUrl, metrics } = metricsEntry;
+    const { owner, repo } = parseGitHubUrl(repoUrl);
+
+    console.log(`Starting optimized AI review for ${owner}/${repo}...`);
+    const startTime = Date.now();
+
+    // Step 1: Analyze the repository (structure + DORA indicators)
+    const { insights, repositoryAnalysis, performance, analyzedFiles } =
+      await performDORAAnalysis(owner, repo, metrics);
+
+    const totalTime = Date.now() - startTime;
+    // Handle case where no indicators were found
+    const totalIndicators = Object.values(
+      repositoryAnalysis.doraIndicators
+    ).flat().length;
+    if (totalIndicators === 0) {
+      return res.status(404).json({
+        message: "No DORA-relevant files or patterns found in this repository",
+        suggestion:
+          "Ensure your repository contains CI/CD, tests, monitoring, or security-related files",
       });
     }
 
+    console.log(`AI review completed in ${Math.round(totalTime / 1000)}s`);
+
     res.json({
-      aiFeedback: metricsEntry.aiAnalysis.insights,
+      aiFeedback: insights,
+      analyzedFiles,
       analysisMetadata: {
-        ...metricsEntry.aiAnalysis.metadata,
-        lastUpdated: metricsEntry.aiAnalysis.lastAnalyzed
+        repo: repositoryAnalysis.repository.name,
+        primaryLanguage: repositoryAnalysis.repository.language,
+        doraIndicatorsFound: totalIndicators,
+        filesAnalyzed: performance.filesAnalyzed,
+        doraMetricsCovered: Object.keys(
+          repositoryAnalysis.doraIndicators
+        ).filter((k) => repositoryAnalysis.doraIndicators[k].length > 0),
+        processingTimeMs: totalTime,
+        analyzedAt: repositoryAnalysis.analyzedAt,
       },
-      status: metricsEntry.analysisStatus,
     });
   } catch (err) {
     console.error("AI Review Error:", err);
