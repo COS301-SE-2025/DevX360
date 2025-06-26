@@ -62,7 +62,7 @@ Before launching the DevX360 app:
 1. Navigate to Team section
 2. Click "Create New Team"
 3. Enter team name, password and GitHub repo URL
-4. Invite members via email or share join link
+4. Click "Create Team"
 
 ### 3.2 Joining a Team
 ![image](https://github.com/user-attachments/assets/f3cd5380-4f59-40e4-8e3c-3e30f96dc7c2)
