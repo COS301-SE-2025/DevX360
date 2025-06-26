@@ -5,7 +5,6 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { performDORAAnalysis } from "../services/codeInterpretor.js";
 import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
 import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
