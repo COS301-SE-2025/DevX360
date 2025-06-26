@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 function Metrics() {
   const { currentUser } = useAuth();
@@ -12,6 +13,7 @@ function Metrics() {
   const [error, setError] = useState(null);
   const [repoMatch, setRepoMatch] = useState(false);
   const [aiFeedback, setAiFeedback] = useState(null);
+  const [parsedFeedback, setParsedFeedback] = useState({});
   const [aiLoading, setAiLoading] = useState(true);
   const [aiError, setAiError] = useState(null);
   const [aiStatus, setAiStatus] = useState('checking');
@@ -84,6 +86,12 @@ function Metrics() {
 
         if (response.status === 200) {
           setAiFeedback(data.aiFeedback);
+          const feedbackSections = {};
+          const matches = [...data.aiFeedback.matchAll(/## ([^\n]+)\n([\s\S]*?)(?=##|$)/g)];
+          matches.forEach(([_, title, content]) => {
+            feedbackSections[title.trim()] = content.trim();
+          });
+          setParsedFeedback(feedbackSections);
           console.log(data.status);
           setAiStatus('completed');
            console.log(data.aiFeedback);
@@ -155,11 +163,13 @@ function Metrics() {
 
   const renderFeedbackSection = (title, content) => {
     if (!content) return null;
-    
+
     return (
-      <div className="feedback-section">
-        <h3>{title}</h3>
-        <div className="feedback-content" dangerouslySetInnerHTML={{ __html: content }} />
+      <div className="metric-section" key={title}>
+        <h2 className="text-xl font-bold mb-2">{title}</h2>
+        <div className="prose max-w-none">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
       </div>
     );
   };
@@ -528,10 +538,10 @@ function Metrics() {
           ) : aiFeedback ? (
             <div className="analysis-results">
               <div className="feedback-container">
-                {renderFeedbackSection('Deployment Frequency', aiFeedback.aiFeedback.match(/## Deployment Frequency([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Lead Time for Changes', aiFeedback.aiFeedback.match(/## Lead Time for Changes([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Change Failure Rate', aiFeedback.aiFeedback.match(/## Change Failure Rate([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Mean Time to Recovery', aiFeedback.aiFeedback.match(/## Mean Time to Recovery([\s\S]*?)(?=##|$)/)?.[0])}
+                {renderFeedbackSection('Deployment Frequency', parsedFeedback['Deployment Frequency'])}
+                {renderFeedbackSection('Lead Time for Changes', parsedFeedback['Lead Time for Changes'])}
+                {renderFeedbackSection('Change Failure Rate', parsedFeedback['Change Failure Rate (CFR)'])}
+                {renderFeedbackSection('Mean Time to Recovery', parsedFeedback['Mean Time to Recovery (MTTR)'])}
               </div>
             </div>
           ) : (

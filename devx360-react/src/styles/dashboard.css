@@ -792,3 +792,23 @@
   to { transform: rotate(360deg); }
 }
 
+.markdown {
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+.markdown h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+.markdown strong {
+  font-weight: bold;
+}
+
+.markdown ul {
+  list-style: disc;
+  margin-left: 1.5rem;
+}
