@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
-import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink } from 'lucide-react';
 
 function Metrics() {
   const { currentUser } = useAuth();
@@ -11,11 +11,6 @@ function Metrics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [repoMatch, setRepoMatch] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState(null);
-  const [aiLoading, setAiLoading] = useState(true);
-  const [aiError, setAiError] = useState(null);
-  const [aiStatus, setAiStatus] = useState('checking');
-  const [aiProgress, setAiProgress] = useState(0);
 
   useEffect(() => {
     if (currentUser?.avatar) {
@@ -30,7 +25,7 @@ function Metrics() {
 
   useEffect(() => {
     const fetchTeamMetrics = async () => {
-      if (!Array.isArray(currentUser?.teams) || currentUser.teams.length === 0) {
+      if (currentUser.teams === null) {
         setError('No team assigned to user');
         setLoading(false);
         return;
@@ -49,6 +44,7 @@ function Metrics() {
         const data = await response.json();
         setTeamData(data);
         
+        // Check if repository URLs match
         if (data.team?.repoUrl && data.doraMetrics?.repository?.url) {
           setRepoMatch(data.team.repoUrl === data.doraMetrics.repository.url);
         }
@@ -61,483 +57,418 @@ function Metrics() {
     };
 
     fetchTeamMetrics();
-  }, [currentUser, currentUser?.teams]);
+  }, [currentUser]);
 
-  useEffect(() => {
-    if (!teamData?.team?._id) return;
-
-    const teamId = teamData.team._id;
-    let pollInterval;
-
-    const checkAiFeedback = async () => {
-      try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-        const response = await fetch(`${API_BASE_URL}/api/ai-review?teamId=${teamId}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to check AI feedback status');
-        }
-
-        const data = await response.json();
-
-        if (response.status === 200) {
-          setAiFeedback(teamData.team.analysisStatus);
-          setAiStatus('completed');
-          setAiLoading(false);
-          clearInterval(pollInterval);
-        } else if (response.status === 202) {
-          setAiStatus('pending');
-          setAiProgress(teamData.team.analysisStatus || 0);
-          setAiLoading(false);
-          
-          if (!pollInterval) {
-            pollInterval = setInterval(checkAiFeedback, 30000);
-          }
-        }
-      } catch (err) {
-        setAiError(err.message);
-        setAiStatus('error');
-        setAiLoading(false);
-        clearInterval(pollInterval);
-      }
-    };
-
-    checkAiFeedback();
-
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [teamData]);
-
-  const renderAiStatus = () => {
-    switch (aiStatus) {
-      case 'checking':
-        return (
-          <div className="status-indicator checking">
-            <Loader className="icon spin" />
-            <span>Checking for AI analysis...</span>
-          </div>
-        );
-      case 'pending':
-        return (
-          <div className="status-indicator processing">
-            <Loader className="icon spin" />
-            <span>Analysis in progress... {aiProgress}%</span>
-            <div className="progress-bar">
-              <div className="progress" style={{ width: `${aiProgress}%` }}></div>
-            </div>
-          </div>
-        );
-      case 'completed':
-        return (
-          <div className="status-indicator completed">
-            <CheckCircle className="icon" />
-            <span>Analysis completed</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="status-indicator error">
-            <AlertCircle className="icon" />
-            <span>Error: {aiError}</span>
-          </div>
-        );
-      default:
-        return null;
-    }
+  const getStatusColor = (status) => {
+    if (status.includes('Elite') || status.includes('High')) return '#10b981';
+    if (status.includes('Medium')) return '#f59e0b';
+    if (status.includes('Low')) return '#ef4444';
+    return '#6b7280';
   };
 
-  const renderFeedbackSection = (title, content) => {
-    if (!content) return null;
-    
-    return (
-      <div className="feedback-section">
-        <h3>{title}</h3>
-        <div className="feedback-content" dangerouslySetInnerHTML={{ __html: content }} />
-      </div>
-    );
+  const getDeploymentFrequencyStatus = (frequency) => {
+    const freq = parseFloat(frequency);
+    if (freq >= 1) return 'Elite';
+    if (freq >= 0.14) return 'High';
+    if (freq >= 0.04) return 'Medium';
+    return 'Low';
+  };
+
+  const getLeadTimeStatus = (days) => {
+    const avgDays = parseFloat(days);
+    if (avgDays <= 1) return 'Elite';
+    if (avgDays <= 7) return 'High';
+    if (avgDays <= 30) return 'Medium';
+    return 'Low';
+  };
+
+  const getMTTRStatus = (days) => {
+    const avgDays = parseFloat(days);
+    if (avgDays <= 1) return 'Elite';
+    if (avgDays <= 7) return 'High';
+    if (avgDays <= 30) return 'Medium';
+    return 'Low';
+  };
+
+  const getChangeFailureRateStatus = (rate) => {
+    const percentage = parseFloat(rate.replace('%', ''));
+    if (percentage <= 15) return 'Elite';
+    if (percentage <= 20) return 'High';
+    if (percentage <= 30) return 'Medium';
+    return 'Low';
   };
 
   if (loading) {
     return (
-      <div className="loading-spinner-container">
-        <div className="loading-spinner"></div>
-        <p>Loading metrics...</p>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+          <h1 className="text-lg lg:text-2xl font-bold text-gray-900">DORA Metrics</h1>
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <span className="block text-sm font-medium text-gray-900">{currentUser?.name}</span>
+              <span className="block text-xs text-gray-500">{currentUser?.role}</span>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+          </div>
+        </header>
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <span className="ml-3 text-lg text-gray-600">Loading metrics...</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
-    return <div className="error-message">{error}</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+          <h1 className="text-lg lg:text-2xl font-bold text-gray-900">DORA Metrics</h1>
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <span className="block text-sm font-medium text-gray-900">{currentUser?.name}</span>
+              <span className="block text-xs text-gray-500">{currentUser?.role}</span>
+            </div>
+          </div>
+        </header>
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Metrics</h3>
+            <p className="text-red-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  if (!teamData) {
-    return <div className="error-message">No team data available</div>;
-  }
+  const { team, doraMetrics, lastUpdated } = teamData;
 
-  const contributorData = teamData.repositoryInfo.contributors
-    .slice(0, 5)
-    .map(contributor => ({
-      name: contributor.username,
-      contributions: contributor.contributions,
-      avatar: contributor.avatar_url,
-      profile: contributor.profile_url
-    }));
-
-  const activityData = [
-    { name: 'PRs', value: teamData.doraMetrics.data_summary.pull_requests_count },
-    { name: 'Commits', value: teamData.doraMetrics.data_summary.commits_count },
-    { name: 'Releases', value: teamData.doraMetrics.data_summary.releases_count },
-    { name: 'Tags', value: teamData.doraMetrics.data_summary.tags_count }
-  ];
-
-  const deploymentFrequencyData = [
+  // Prepare chart data
+  const performanceData = [
     { 
-      period: 'Current', 
-      frequency: parseFloat(teamData.doraMetrics.deployment_frequency.frequency_per_day) 
+      metric: 'Deployment Frequency', 
+      score: getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day) === 'Elite' ? 4 : 
+             getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day) === 'High' ? 3 :
+             getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day) === 'Medium' ? 2 : 1,
+      status: getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day),
+      fill: getStatusColor(getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day))
     },
     { 
-      period: 'Target', 
-      frequency: 1.0
+      metric: 'Lead Time', 
+      score: getLeadTimeStatus(doraMetrics.lead_time.average_days) === 'Elite' ? 4 : 
+             getLeadTimeStatus(doraMetrics.lead_time.average_days) === 'High' ? 3 :
+             getLeadTimeStatus(doraMetrics.lead_time.average_days) === 'Medium' ? 2 : 1,
+      status: getLeadTimeStatus(doraMetrics.lead_time.average_days),
+      fill: getStatusColor(getLeadTimeStatus(doraMetrics.lead_time.average_days))
+    },
+    { 
+      metric: 'MTTR', 
+      score: doraMetrics.mttr.total_incidents_analyzed === 0 ? 4 : 
+             getMTTRStatus(doraMetrics.mttr.average_days) === 'Elite' ? 4 : 
+             getMTTRStatus(doraMetrics.mttr.average_days) === 'High' ? 3 :
+             getMTTRStatus(doraMetrics.mttr.average_days) === 'Medium' ? 2 : 1,
+      status: doraMetrics.mttr.total_incidents_analyzed === 0 ? 'No Issues' : getMTTRStatus(doraMetrics.mttr.average_days),
+      fill: doraMetrics.mttr.total_incidents_analyzed === 0 ? '#10b981' : getStatusColor(getMTTRStatus(doraMetrics.mttr.average_days))
+    },
+    { 
+      metric: 'Change Failure Rate', 
+      score: getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate) === 'Elite' ? 4 : 
+             getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate) === 'High' ? 3 :
+             getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate) === 'Medium' ? 2 : 1,
+      status: getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate),
+      fill: getStatusColor(getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate))
     }
   ];
 
-  const leadTimeComparisonData = [
-    { 
-      type: 'Current', 
-      days: parseFloat(teamData.doraMetrics.lead_time.average_days) 
-    },
-    { 
-      type: 'Elite', 
-      days: 1.0
-    }
+  // Pie chart data for repository analysis
+  const repositoryData = [
+    { name: 'Releases', value: doraMetrics.data_summary.releases_count, fill: '#8b5cf6' },
+    { name: 'Commits', value: doraMetrics.data_summary.commits_count, fill: '#3b82f6' },
+    { name: 'Pull Requests', value: doraMetrics.data_summary.pull_requests_count || 1, fill: '#10b981' },
+    { name: 'Issues', value: doraMetrics.data_summary.issues_count, fill: '#f59e0b' },
+    { name: 'Tags', value: doraMetrics.data_summary.tags_count, fill: '#ef4444' }
   ];
-
-  const contributorActivityData = contributorData.map(contributor => ({
-    name: contributor.name,
-    contributions: contributor.contributions,
-    prs: Math.floor(contributor.contributions / 3)
-  }));
 
   return (
-    <>
-      <header className="main-header">
-        <h1>DORA Metrics Dashboard</h1>
-        <div className="user-profile">
-          <div className="user-info">
-            <span className="user-name">{currentUser?.name}</span>
-            <span className="user-role">{currentUser?.role}</span>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">DORA Metrics</h1>
+        <div className="flex items-center space-x-3">
+          <div className="text-right">
+            <span className="block text-sm font-medium text-gray-900">{currentUser?.name}</span>
+            <span className="block text-xs text-gray-500">{currentUser?.role}</span>
           </div>
-          <div className="user-avatar">
-            <img 
-              src={avatar} 
-              alt="User Avatar" 
-              onError={(e) => {
-                e.target.src = defaultAvatar;
-              }}
-            />
+          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+            <span className="text-white font-medium text-sm">
+              {currentUser?.name?.charAt(0) || 'U'}
+            </span>
           </div>
         </div>
       </header>
 
-      <div className="metrics-container">
-        <div className="metric-card-wide">
-          <div className="metric-header">
-            <h3>Repository Overview</h3>
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        {/* Team Info Card */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Users className="h-6 w-6 text-blue-500" />
+              <h2 className="text-xl font-semibold text-gray-900">{team.name}</h2>
+            </div>
+            <span className="text-sm text-gray-500">
+              Updated: {new Date(lastUpdated).toLocaleDateString()}
+            </span>
           </div>
-          <div className="metric-details-grid">
-            <div className="metric-column">
-              <div className="metric-row">
-                <span>Team</span>
-                <span>{teamData.team.name}</span>
-              </div>
-              <div className="metric-row">
-                <span>Created By</span>
-                <span>{teamData.team.creator?.name || 'Unknown'}</span>
-              </div>
-              <div className="metric-row">
-                <span>Members</span>
-                <span>{teamData.team.members.length} members</span>
-              </div>
-            </div>
-            <div className="metric-column">
-              <div className="metric-row">
-                <span>Repository</span>
-                <span>
-                  <a href={teamData.team.repoUrl} target="_blank" rel="noopener noreferrer">
-                    {teamData.repositoryInfo.full_name}
-                  </a>
-                  {repoMatch ? 'Verified' : 'Mismatch'}
-                </span>
-              </div>
-              <div className="metric-row">
-                <span>Primary Language</span>
-                <span>{teamData.repositoryInfo.primary_language || 'N/A'}</span>
-              </div>
-              <div className="metric-row">
-                <span>Default Branch</span>
-                <span>{teamData.repositoryInfo.default_branch || 'N/A'}</span>
-              </div>
-            </div>
-            <div className="metric-column">
-              <div className="metric-row">
-                <span><Star size={16} /> Stars</span>
-                <span>{teamData.repositoryInfo.stars?.toLocaleString() || 'N/A'}</span>
-              </div>
-              <div className="metric-row">
-                <span><GitFork size={16} /> Forks</span>
-                <span>{teamData.repositoryInfo.forks?.toLocaleString() || 'N/A'}</span>
-              </div>
-              <div className="metric-row">
-                <span><Eye size={16} /> Watchers</span>
-                <span>{teamData.repositoryInfo.watchers?.toLocaleString() || 'N/A'}</span>
-              </div>
-            </div>
-            <div className="metric-column">
-              <div className="metric-row">
-                <span><Bug size={16} /> Open Issues</span>
-                <span>{teamData.repositoryInfo.open_issues?.toLocaleString() || 'N/A'}</span>
-              </div>
-              <div className="metric-row">
-                <span>Created</span>
-                <span>{new Date(teamData.repositoryInfo.created_at).toLocaleDateString()}</span>
-              </div>
-              <div className="metric-row">
-                <span>Last Updated</span>
-                <span>{new Date(teamData.repositoryInfo.updated_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="metrics-grid" style={{ marginTop: '1rem' }}>
-          <div className="metric-card">
-            <div className="metric-header">
-              <GitBranch className="metric-icon" />
-              <h3>Deployment Frequency</h3>
-            </div>
-            <div className="metric-value">
-              {teamData.doraMetrics.deployment_frequency.frequency_per_day}/day
-            </div>
-            <div className="metric-trend">
-              {teamData.doraMetrics.deployment_frequency.total_deployments} deployments in {teamData.doraMetrics.deployment_frequency.time_span_days} days
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <Clock className="metric-icon" />
-              <h3>Lead Time</h3>
-            </div>
-            <div className="metric-value">
-              {teamData.doraMetrics.lead_time.average_days} days avg
-            </div>
-            <div className="metric-trend">
-              Range: {teamData.doraMetrics.lead_time.min_days} - {teamData.doraMetrics.lead_time.max_days} days
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <TrendingUp className="metric-icon" />
-              <h3>Change Failure Rate</h3>
-            </div>
-            <div className="metric-value" style={{ color: '#10B981' }}>
-              {teamData.doraMetrics.change_failure_rate.failure_rate}
-            </div>
-            <div className="metric-trend">
-              {teamData.doraMetrics.change_failure_rate.bug_or_incident_fixes} failures in {teamData.doraMetrics.change_failure_rate.total_deployments} deployments
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <Zap className="metric-icon" />
-              <h3>MTTR</h3>
-            </div>
-            <div className="metric-value">
-              {teamData.doraMetrics.mttr.average_days || 0} days
-            </div>
-            <div className="metric-trend">
-              {teamData.doraMetrics.mttr.total_incidents_analyzed > 0 ? (
-                `Range: ${teamData.doraMetrics.mttr.min_days} - ${teamData.doraMetrics.mttr.max_days} days`
-              ) : (
-                "No incidents analyzed"
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="metrics-grid" style={{ marginTop: '1rem' }}>
-          <div className="metric-card">
-            <div className="metric-header">
-              <Calendar className="metric-icon" />
-              <h3>Repository Activity Timeline</h3>
-            </div>
-            <div style={{ height: '250px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  layout="vertical"
-                  data={[
-                    {
-                      event: 'Repository Created',
-                      date: new Date(teamData.repositoryInfo.created_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Last Commit Pushed',
-                      date: new Date(teamData.repositoryInfo.pushed_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Last Updated',
-                      date: new Date(teamData.repositoryInfo.updated_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Data Fetched',
-                      date: new Date(teamData.lastUpdated),
-                      value: 1
-                    }
-                  ]}
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Repository</p>
+              <div className="flex items-center space-x-2">
+                <a 
+                  href={doraMetrics.repository.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1"
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    type="number" 
-                    domain={[
-                      new Date(teamData.repositoryInfo.created_at).getTime() - (1000 * 60 * 60 * 24 * 30),
-                      new Date(teamData.lastUpdated).getTime() + (1000 * 60 * 60 * 24 * 30)
-                    ]}
-                    tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()}
-                    dataKey="date"
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="event" 
-                    width={120}
-                  />
-                  <Tooltip 
-                    labelFormatter={(value) => ''}
-                    formatter={(value, name, props) => [
-                      new Date(props.payload.date).toLocaleString(),
-                      props.payload.event
-                    ]}
-                  />
-                  <Bar 
-                    dataKey="date" 
-                    fill="#3B82F6"
-                    barSize={20}
-                    shape={<rect rx="4" ry="4" />}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                  <span>{doraMetrics.repository.full_name}</span>
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+                {repoMatch && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Verified
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="metric-note">
-              Shows project longevity and recency of activity. Created: {new Date(teamData.repositoryInfo.created_at).toLocaleDateString()}
+            
+            <div>
+              <p className="text-sm text-gray-600">Team Members</p>
+              <p className="font-medium">{team.members.length} members</p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-600">Created by</p>
+              <p className="font-medium">{team.creator.name}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* DORA Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Deployment Frequency */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Activity className="h-5 w-5 text-blue-500" />
+                <h3 className="font-semibold text-gray-900 text-sm">Deployment Frequency</h3>
+              </div>
+              <span 
+                className="px-2 py-1 rounded-full text-xs font-medium"
+                style={{ 
+                  backgroundColor: `${getStatusColor(getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day))}20`,
+                  color: getStatusColor(getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day))
+                }}
+              >
+                {getDeploymentFrequencyStatus(doraMetrics.deployment_frequency.frequency_per_day)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold text-gray-900">
+                {doraMetrics.deployment_frequency.frequency_per_day}/day
+              </p>
+              <p className="text-sm text-gray-600">
+                {doraMetrics.deployment_frequency.total_deployments} deployments in {doraMetrics.deployment_frequency.time_span_days} days
+              </p>
             </div>
           </div>
 
-          <div className="metric-card">
-            <div className="metric-header">
-              <Activity className="metric-icon" />
-              <h3>Repository Activity</h3>
+          {/* Lead Time */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-green-500" />
+                <h3 className="font-semibold text-gray-900 text-sm">Lead Time</h3>
+              </div>
+              <span 
+                className="px-2 py-1 rounded-full text-xs font-medium"
+                style={{ 
+                  backgroundColor: `${getStatusColor(getLeadTimeStatus(doraMetrics.lead_time.average_days))}20`,
+                  color: getStatusColor(getLeadTimeStatus(doraMetrics.lead_time.average_days))
+                }}
+              >
+                {getLeadTimeStatus(doraMetrics.lead_time.average_days)}
+              </span>
             </div>
-            <div className="summary-grid">
-              <div className="summary-item">
-                <span>Pull Requests</span>
-                <span>{teamData.doraMetrics.data_summary.pull_requests_count}</span>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold text-gray-900">
+                {parseFloat(doraMetrics.lead_time.average_days).toFixed(1)} days
+              </p>
+              <p className="text-sm text-gray-600">
+                Range: {parseFloat(doraMetrics.lead_time.min_days).toFixed(1)} - {parseFloat(doraMetrics.lead_time.max_days).toFixed(1)} days
+              </p>
+            </div>
+          </div>
+
+          {/* MTTR */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <h3 className="font-semibold text-gray-900 text-sm">MTTR</h3>
               </div>
-              <div className="summary-item">
-                <span>Commits</span>
-                <span>{teamData.doraMetrics.data_summary.commits_count}</span>
+              <span 
+                className="px-2 py-1 rounded-full text-xs font-medium"
+                style={{ 
+                  backgroundColor: `${doraMetrics.mttr.total_incidents_analyzed === 0 ? '#10b981' : getStatusColor(getMTTRStatus(doraMetrics.mttr.average_days))}20`,
+                  color: doraMetrics.mttr.total_incidents_analyzed === 0 ? '#10b981' : getStatusColor(getMTTRStatus(doraMetrics.mttr.average_days))
+                }}
+              >
+                {doraMetrics.mttr.total_incidents_analyzed === 0 ? 'No Issues' : getMTTRStatus(doraMetrics.mttr.average_days)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold text-gray-900">
+                {doraMetrics.mttr.average_days} days
+              </p>
+              <p className="text-sm text-gray-600">
+                {doraMetrics.mttr.total_incidents_analyzed} incidents analyzed
+              </p>
+            </div>
+          </div>
+
+          {/* Change Failure Rate */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5 text-red-500" />
+                <h3 className="font-semibold text-gray-900 text-sm">Change Failure Rate</h3>
               </div>
-              <div className="summary-item">
-                <span>Releases</span>
-                <span>{teamData.doraMetrics.data_summary.releases_count}</span>
+              <span 
+                className="px-2 py-1 rounded-full text-xs font-medium"
+                style={{ 
+                  backgroundColor: `${getStatusColor(getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate))}20`,
+                  color: getStatusColor(getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate))
+                }}
+              >
+                {getChangeFailureRateStatus(doraMetrics.change_failure_rate.failure_rate)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold text-gray-900">
+                {doraMetrics.change_failure_rate.failure_rate}
+              </p>
+              <p className="text-sm text-gray-600">
+                {doraMetrics.change_failure_rate.bug_or_incident_fixes} failures in {doraMetrics.change_failure_rate.total_deployments} deployments
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Repository Analysis and Chart Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Repository Analysis Summary */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+              <GitBranch className="h-5 w-5 text-purple-500" />
+              <span>Repository Analysis Summary</span>
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-purple-600">{doraMetrics.data_summary.releases_count}</p>
+                <p className="text-sm text-gray-600">Releases</p>
               </div>
-              <div className="summary-item">
-                <span>Tags</span>
-                <span>{teamData.doraMetrics.data_summary.tags_count}</span>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">{doraMetrics.data_summary.commits_count}</p>
+                <p className="text-sm text-gray-600">Commits</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">{doraMetrics.data_summary.pull_requests_count}</p>
+                <p className="text-sm text-gray-600">Pull Requests</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">{doraMetrics.data_summary.issues_count}</p>
+                <p className="text-sm text-gray-600">Issues</p>
               </div>
             </div>
-            <div style={{ height: '200px', marginTop: '1rem' }}>
+          </div>
+
+          {/* Repository Data Distribution Pie Chart */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Repository Data Distribution</h3>
+            <div className="w-full h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
+                <PieChart>
+                  <Pie
+                    data={repositoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {repositoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [value, name]} />
+                </PieChart>
               </ResponsiveContainer>
             </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <Users className="metric-icon" />
-              <h3>Top Contributors</h3>
-            </div>
-            <div className="contributors-list">
-              {contributorData.map((contributor, index) => (
-                <div key={index} className="contributor-item">
-                  <div className="contributor-rank">{index + 1}</div>
-                  <img 
-                    src={contributor.avatar} 
-                    alt={contributor.name} 
-                    className="contributor-avatar"
-                    onError={(e) => {
-                      e.target.src = defaultAvatar;
-                    }}
-                  />
-                  <div className="contributor-info">
-                    <a href={contributor.profile} target="_blank" rel="noopener noreferrer">
-                      {contributor.name}
-                    </a>
-                    <span>{contributor.contributions} contributions</span>
-                  </div>
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              {repositoryData.map((entry, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: entry.fill }}
+                  ></div>
+                  <span className="text-sm text-gray-600">{entry.name}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* AI Analysis Section */}
-        <div className="ai-analysis-section">
-          <h2>AI Performance Analysis</h2>
-          
-          {renderAiStatus()}
-
-          {aiError && (
-            <div className="error-message">
-              {aiError}
-            </div>
-          )}
-
-          {aiLoading ? (
-            <div className="loading-spinner-container">
-              <div className="loading-spinner"></div>
-              <p>Loading AI analysis...</p>
-            </div>
-          ) : aiFeedback ? (
-            <div className="analysis-results">
-              <div className="feedback-container">
-                {renderFeedbackSection('Deployment Frequency', aiFeedback.aiFeedback.match(/## Deployment Frequency([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Lead Time for Changes', aiFeedback.aiFeedback.match(/## Lead Time for Changes([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Change Failure Rate', aiFeedback.aiFeedback.match(/## Change Failure Rate([\s\S]*?)(?=##|$)/)?.[0])}
-                {renderFeedbackSection('Mean Time to Recovery', aiFeedback.aiFeedback.match(/## Mean Time to Recovery([\s\S]*?)(?=##|$)/)?.[0])}
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>No AI analysis available yet. Analysis is automatically started when you create or join a team.</p>
-            </div>
-          )}
+        {/* Performance Overview Bar Chart */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">DORA Metrics Performance</h3>
+          <div className="w-full h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={performanceData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="metric" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  fontSize={12}
+                />
+                <YAxis 
+                  domain={[0, 4]} 
+                  tickFormatter={(value) => ['', 'Low', 'Medium', 'High', 'Elite'][value] || ''} 
+                />
+                <Tooltip 
+                  formatter={(value, name, props) => [props.payload.status, 'Performance Level']}
+                  labelFormatter={(label) => `Metric: ${label}`}
+                />
+                <Bar 
+                  dataKey="score" 
+                  fill="#8884d8"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
