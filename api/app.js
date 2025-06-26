@@ -79,8 +79,14 @@ app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
-    const ollamaRes = await fetch("http://localhost:11434");
-
+    let ollamaStatus = "Unavailable";
+    try {
+      const ollamaRes = await fetch("http://localhost:11434");
+      ollamaStatus = ollamaRes.status === 200 ? "Operational" : "Unavailable";
+    } catch (ollamaError) {
+      // Ollama service is not available, but this shouldn't cause a 500 error
+      ollamaStatus = "Unavailable";
+    }
     res.json({
       status: "OK",
       database: dbStatus,
