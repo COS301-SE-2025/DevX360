@@ -13,10 +13,7 @@
 
 ---
 
-We use a collaborative workflow to manage progress and documentation.
 
-📄 [View our updated SRS Document](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.3.1.pdf)  
-📋 [Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
 
 
@@ -49,6 +46,10 @@ We use a collaborative workflow to manage progress and documentation.
 
 ---
 
+We use a collaborative workflow to manage progress and documentation.
+
+📄 [View our updated SRS Document](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.3.1.pdf)  
+📋 [Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
 
 ## 👥 Team DOSKS
@@ -130,6 +131,9 @@ Contact me here:
 Contact us here:
 
 📧 **Team Email:** doskscapstone17@gmail.com
+
+
+[You can view our detailed project planning here](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation/Architectural%20Requirements%20V3.1.pdf)
 
 
 # DevX360
