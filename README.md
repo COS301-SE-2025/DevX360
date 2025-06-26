@@ -1,96 +1,122 @@
-# DevX360: AI-Powered DevOps Analytics Platform
+# DevX360 User Manual
 
-## 🚀 Project Description
+## 1. Getting Started
 
-**DevX360** is an AI-powered DevOps analytics platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates tracking, analysis, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance.
+### 1.1 Prerequisites Before Running the App
 
----
-**SRS Document in "Documentation Folder"**
+Before launching the DevX360 app:
 
-## 🔑 Key Features
+1. **Start the API**  
+   - Follow the setup instructions in the official README:  
+     👉 [API Setup Guide](https://github.com/COS301-SE-2025/DevX360/blob/feature/api/README.md)
 
-- **AI-Driven Insights**:  
-  - Identify performance bottlenecks via Ollama (local LLM) code analysis.
-  - Predictive alerts to prevent workflow degradation.
-- **Real-Time Dashboard**:  
-  - Interactive visualization of team/individual metrics (React + D3.js).
-  - Trend analysis and customizable benchmarks.
-- **Automated Integrations**:  
-  - GitHub/GitLab/Jira API integrations for seamless data collection.
-  - Apache Airflow for scheduled metric calculations.
-- **Reporting**:  
-  - Generate PDF/CSV reports and Slack alerts for metric deviations.
+2. **Run the Frontend App**
+   - Navigate to the `devx360-react/src` folder:
+     ```bash
+     cd devx360-react/src
+     ```
+   - Install dependencies:
+     ```bash
+     npm install
+     ```
+   - Start the development server:
+     ```bash
+     npm start
+     ```
+### 1.2 Registration
+![Screenshot 2025-06-26 215029](https://github.com/user-attachments/assets/979c9f9a-d589-4052-b447-f07ca794d3cd)
 
----
+1. Click "Sign Up" on the login page
+2. Enter your details (name, email, role)
+3. Verify your email address
+4. Log in with your credentials
 
-## 🛠 Technologies Used
+### 1.3 Login
+![Screenshot 2025-06-26 215002](https://github.com/user-attachments/assets/6762dffc-99dc-417a-8376-6258740005da)
 
-| Component              | Technology/Framework      | Justification                           |
-|------------------------|---------------------------|-----------------------------------------|
-| **Frontend**           | React + D3.js             | Interactive dashboards & visualization  |
-| **Backend**            | Node.js (Express)         | High-throughput API handling            |
-| **AI Analysis**        | Ollama (Local LLM)        | Offline, cost-free code analysis        |
-| **Data Processing**    | Apache Airflow            | Reliable metric scheduling              |
-| **Database**           | Supabase (PostgreSQL)     | Real-time capabilities & free tier      |
-| **Hosting**            | Vercel                    | Zero-cost deployment                    |
+1. Enter email and password
+2. Press Sign in
 
----
-
-## 👥 Team Profiles
-
-<details>
-<summary><strong>Sipho Sehlapelo</strong> - Flexible Lead</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: Python, JavaScript, Full-Stack Development   
-**About Me**: "Third-year Computer Science student passionate about AI and entrepreneurship. Building tech solutions that create real-world impact through my AI agency and student-focused platforms."  
-[LinkedIn Profile](http://www.linkedin.com/in/sipho-sehlapelo-769155356)
-
-</div>
-</details>
-
-<details>
-<summary><strong>Sibusiso Mngomezulu</strong> - Backend Specialist</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: Python, Node.js, API Development   
-**About Me**: "Determined software engineer and first-time founder with full-stack expertise. Specializing in backend systems and viewing challenges as opportunities for growth."  
-[LinkedIn Profile](http://www.linkedin.com/in/sibusiso-mngomezulu-)
-
-</div>
-</details>
-
-<details>
-<summary><strong>Kelsey Hamann</strong> - Backend/API Support</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
-
-**Key Skills**: Python, Distributed Systems  
-**About Me**: "Third-year CS student focused on ethical tech solutions. Passionate about building systems that improve real-world experiences through practical engineering."  
-[LinkedIn Profile](https://www.linkedin.com/in/kelsey-d-hamann)
-
-</div>
-</details>
-
-<details>
-<summary><strong>David Musa-Alsien</strong> - Frontend Lead</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
-
-**Key Skills**: React, D3.js, UI/UX Design   
-**About Me**: "Final-year student specializing in frontend development. Creating accessible web applications with strong focus on user-centered design principles."  
-[LinkedIn Profile](https://www.linkedin.com/in/d-m-a-381700356)
-
-</div>
-</details>
-
-<details>
-<summary><strong>Owethu Dlamini</strong> - Frontend Support</summary>
-<div style="display: flex; gap: 20px; margin-top: 10px;">
- 
-**Key Skills**: JavaScript, Testing Frameworks  
-**About Me**: "Software engineer passionate about cybersecurity and collaborative problem-solving. Committed to building secure, impactful systems."  
-[LinkedIn Profile](https://www.linkedin.com/in/opsdlamini)
-
-</div>
-</details>
 
 ---
+
+## 2. Dashboard Overview
+
+### 2.1 Navigation
+1. **Sidebar Menu**: Access different sections
+2. **User Profile**: View/update your details
+3. **Theme Toggle**: Switch between light/dark mode
+
+### 2.2 Key Metrics
+- Deployment Frequency
+- Lead Time for Changes
+- Change Failure Rate
+- Mean Time to Recovery
+
+---
+
+## 3. Team Management
+![Screenshot 2025-06-26 215317](https://github.com/user-attachments/assets/4c942f39-6615-4d09-918e-fd031e223071)
+
+### 3.1 Creating a Team
+1. Navigate to Team section
+2. Click "Create New Team"
+3. Enter team name, password and GitHub repo URL
+4. Invite members via email or share join link
+
+### 3.2 Joining a Team
+![image](https://github.com/user-attachments/assets/f3cd5380-4f59-40e4-8e3c-3e30f96dc7c2)
+
+1. Get team name and password from your manager
+2. Search for the team
+3. Enter password when prompted
+
+---
+
+## 4. Metrics Interpretation
+![Screenshot 2025-06-26 215540](https://github.com/user-attachments/assets/5a9174fc-ac9e-4f35-9926-d2125513d909)
+
+
+### 4.1 Understanding DORA Metrics
+- **Deployment Frequency**: How often your team deploys code
+- **Lead Time**: Time from commit to production
+- **Change Failure Rate**: Percentage of failed deployments
+- **MTTR**: How quickly you recover from failures
+
+### 4.2 Benchmarking
+Compare your metrics against industry standards:
+- Elite: >1 deploy/day, <1 day lead time
+- High: 1 deploy/week, 1-7 days lead time
+- Medium: 1 deploy/month, 1-6 months lead time
+- Low: <1 deploy/month, >6 months lead time
+
+---
+
+## 5. AI Analysis
+![Screenshot 2025-06-26 215654](https://github.com/user-attachments/assets/ec928b57-2945-4bc7-b68a-7062dfd20430)
+
+### 5.1 Requesting Analysis
+1. Navigate to Metrics dashboard
+2. Wait for processing (typically 2-5 minutes)
+3. View results in the AI Feedback section
+
+### 5.2 Understanding Suggestions
+AI provides recommendations on:
+- Code quality improvements
+- Process optimizations
+- Team workflow suggestions
+
+---
+
+## 6. Troubleshooting
+
+### Common Issues
+**Problem**: Can't see team metrics  
+**Solution**: Ensure you're added to the team and have correct permissions
+
+**Problem**: GitHub repo not connecting  
+**Solution**: Check repository URL and ensure proper access rights
+
+**Problem**: AI analysis taking too long  
+**Solution**: Larger repos may take more time. Check back in 10 minutes.
+
