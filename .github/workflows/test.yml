@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, dev]
     paths:
-      - 'DevX360/**'
+      - 'devX360/**'
   pull_request:
     branches: [main, dev]
     paths:
-      - 'DevX360/**'
+      - 'devX360/**'
 jobs:
   test:
     runs-on: ubuntu-latest
