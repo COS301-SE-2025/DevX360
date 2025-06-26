@@ -478,7 +478,8 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
       analysisMetadata: {
         ...metricsEntry.aiAnalysis.metadata,
         lastUpdated: metricsEntry.aiAnalysis.lastAnalyzed
-      }
+      },
+      status: metricsEntry.analysisStatus,
     });
   } catch (err) {
     console.error("AI Review Error:", err);
