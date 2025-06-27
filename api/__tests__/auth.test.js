@@ -1,119 +1,92 @@
-import { jest } from '@jest/globals';
-import request from 'supertest';
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import { jest, describe, beforeEach, afterEach, test, expect } from '@jest/globals';
 
-// Import the app
-import app from '../app.js';
-
-// Import models
-import User from '../models/User.js';
-
-// Test database configuration
-const TEST_DB_URI = process.env.TEST_DB_URI || 'mongodb://localhost:27017/devx360_test_auth';
-
-// Test data
-const testUser = {
-  name: 'Test User',
-  email: 'test@example.com',
-  password: 'password123',
-  role: 'user'
+// Mock bcryptjs
+const mockBcrypt = {
+  genSalt: jest.fn(),
+  hash: jest.fn(),
+  compare: jest.fn(),
 };
+jest.unstable_mockModule('bcryptjs', () => ({
+  default: mockBcrypt,
+}));
 
-describe('Authentication Tests - Simplified', () => {
-  beforeAll(async () => {
-    await mongoose.connect(TEST_DB_URI);
-  });
+// Mock jsonwebtoken
+const mockJwt = {
+  sign: jest.fn(),
+};
+jest.unstable_mockModule('jsonwebtoken', () => ({
+  default: mockJwt,
+}));
 
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
-  });
+describe('Auth Utilities', () => {
+  const originalEnv = process.env;
+  let hashPassword, comparePassword, generateToken;
 
   beforeEach(async () => {
-    await User.deleteMany({});
     jest.clearAllMocks();
+    // Set process.env.JWT_SECRET before importing the module
+    process.env = { ...originalEnv, JWT_SECRET: 'test_secret' };
+    // Dynamically import the module after setting process.env
+    ({ hashPassword, comparePassword, generateToken } = await import('../utils/auth.js'));
   });
 
-  describe('POST /api/register', () => {
-    it('should register a new user successfully', async () => {
-      const response = await request(app)
-        .post('/api/register')
-        .send(testUser)
-        .expect(201);
+  afterEach(() => {
+    process.env = originalEnv;
+  });
 
-      expect(response.body).toHaveProperty('message', 'Registration successful');
-      expect(response.body).toHaveProperty('user');
-      expect(response.body.user).toHaveProperty('email', testUser.email);
-      expect(response.body.user).toHaveProperty('name', testUser.name);
-      expect(response.headers['set-cookie']).toBeDefined();
-    });
+  describe('hashPassword', () => {
+    test('should hash a password using bcrypt', async () => {
+      mockBcrypt.genSalt.mockResolvedValue('mockSalt');
+      mockBcrypt.hash.mockResolvedValue('hashedPassword123');
 
-    it('should reject registration with missing fields', async () => {
-      const response = await request(app)
-        .post('/api/register')
-        .send({ name: 'Test', email: 'test@example.com' })
-        .expect(400);
+      const hashedPassword = await hashPassword('plainPassword');
 
-      expect(response.body).toHaveProperty('message', 'Name, email, and password are required');
-    });
-
-    it('should reject registration with short password', async () => {
-      const response = await request(app)
-        .post('/api/register')
-        .send({ ...testUser, password: '123' })
-        .expect(400);
-
-      expect(response.body).toHaveProperty('message', 'Password must be at least 6 characters long');
-    });
-
-    it('should reject registration with existing email', async () => {
-      // Create user first
-      await User.create(testUser);
-
-      const response = await request(app)
-        .post('/api/register')
-        .send(testUser)
-        .expect(400);
-
-      expect(response.body).toHaveProperty('message', 'User with this email already exists');
+      expect(mockBcrypt.genSalt).toHaveBeenCalledWith(12);
+      expect(mockBcrypt.hash).toHaveBeenCalledWith('plainPassword', 'mockSalt');
+      expect(hashedPassword).toBe('hashedPassword123');
     });
   });
 
-  describe('POST /api/login', () => {
-    beforeEach(async () => {
-      const hashedPassword = await bcrypt.hash(testUser.password, 10);
-      await User.create({ ...testUser, password: hashedPassword });
+  describe('comparePassword', () => {
+    test('should compare a plain password with a hashed password', async () => {
+      mockBcrypt.compare.mockResolvedValue(true);
+
+      const result = await comparePassword('plainPassword', 'hashedPassword');
+
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('plainPassword', 'hashedPassword');
+      expect(result).toBe(true);
     });
 
-    it('should login user successfully', async () => {
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: testUser.email, password: testUser.password })
-        .expect(200);
+    test('should return false for incorrect password', async () => {
+      mockBcrypt.compare.mockResolvedValue(false);
 
-      expect(response.body).toHaveProperty('message', 'Login successful');
-      expect(response.body).toHaveProperty('user');
-      expect(response.body.user).toHaveProperty('email', testUser.email);
-      expect(response.headers['set-cookie']).toBeDefined();
-    });
+      const result = await comparePassword('wrongPassword', 'hashedPassword');
 
-    it('should reject login with missing credentials', async () => {
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: testUser.email })
-        .expect(400);
-
-      expect(response.body).toHaveProperty('message', 'Email and password are required');
-    });
-
-    it('should reject login with invalid email', async () => {
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'nonexistent@example.com', password: testUser.password })
-        .expect(401);
-
-      expect(response.body).toHaveProperty('message', 'Invalid email');
+      expect(result).toBe(false);
     });
   });
-}); 
+
+  describe('generateToken', () => {
+    test('should generate a JWT token with default options', () => {
+      const payload = { userId: '123' };
+      mockJwt.sign.mockReturnValue('mockToken');
+
+      const token = generateToken(payload);
+
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test_secret', { expiresIn: '7d' });
+      expect(token).toBe('mockToken');
+    });
+
+    test('should generate a JWT token with custom secret and options', () => {
+      const payload = { userId: '123' };
+      const customSecret = 'custom_secret';
+      const customOptions = { expiresIn: '1h' };
+      mockJwt.sign.mockReturnValue('customMockToken');
+
+      const token = generateToken(payload, customSecret, customOptions);
+
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, customSecret, customOptions);
+      expect(token).toBe('customMockToken');
+    });
+  });
+});

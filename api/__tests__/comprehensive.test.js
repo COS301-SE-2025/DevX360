@@ -1,19 +1,118 @@
+// Set up test environment variables BEFORE any imports
+process.env.JWT_SECRET = 'test-secret-key-for-jwt-signing';
+process.env.MONGODB_URI = 'mongodb://localhost:27017/devx360_test_comprehensive';
+
 import { jest } from '@jest/globals';
 import request from 'supertest';
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-// Import the app
-import app from '../app.js';
+// Mock mongoose and database operations
+const mockUser = {
+  _id: 'mock-user-id',
+  name: 'Test User',
+  email: 'test@example.com',
+  password: 'hashed-password',
+  role: 'user',
+  save: jest.fn().mockResolvedValue(true),
+  toObject: jest.fn().mockReturnValue({
+    _id: 'mock-user-id',
+    name: 'Test User',
+    email: 'test@example.com',
+    role: 'user'
+  })
+};
 
-// Import models
-import User from '../models/User.js';
-import Team from '../models/Team.js';
-import RepoMetrics from '../models/RepoMetrics.js';
+const mockTeam = {
+  _id: 'mock-team-id',
+  name: 'Test Team',
+  description: 'Test Description',
+  owner: 'mock-user-id',
+  members: [],
+  repositories: [],
+  save: jest.fn().mockResolvedValue(true),
+  toObject: jest.fn().mockReturnValue({
+    _id: 'mock-team-id',
+    name: 'Test Team',
+    description: 'Test Description',
+    owner: 'mock-user-id',
+    members: [],
+    repositories: []
+  })
+};
 
-// Test database configuration
-const TEST_DB_URI = process.env.TEST_DB_URI || 'mongodb://localhost:27017/devx360_test_comprehensive';
+const mockRepoMetrics = {
+  _id: 'mock-metrics-id',
+  teamId: 'mock-team-id',
+  repoUrl: 'https://github.com/test/repo',
+  metrics: {},
+  repositoryInfo: {},
+  save: jest.fn().mockResolvedValue(true),
+  toObject: jest.fn().mockReturnValue({
+    _id: 'mock-metrics-id',
+    teamId: 'mock-team-id',
+    repoUrl: 'https://github.com/test/repo',
+    metrics: {},
+    repositoryInfo: {}
+  })
+};
+
+// Mock the models
+jest.unstable_mockModule('../models/User.js', () => ({
+  default: {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    find: jest.fn(),
+    deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 })
+  }
+}));
+
+jest.unstable_mockModule('../models/Team.js', () => ({
+  default: {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    find: jest.fn(),
+    deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 })
+  }
+}));
+
+jest.unstable_mockModule('../models/RepoMetrics.js', () => ({
+  default: {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    find: jest.fn(),
+    deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 })
+  }
+}));
+
+// Mock bcrypt
+jest.unstable_mockModule('bcryptjs', () => ({
+  default: {
+    hash: jest.fn().mockResolvedValue('hashed-password'),
+    compare: jest.fn().mockResolvedValue(true)
+  }
+}));
+
+// Mock mongoose connection
+jest.unstable_mockModule('mongoose', () => ({
+  default: {
+    connect: jest.fn().mockResolvedValue(true),
+    connection: {
+      readyState: 1,
+      close: jest.fn().mockResolvedValue(true),
+      dropDatabase: jest.fn().mockResolvedValue(true)
+    }
+  }
+}));
+
+// Import the app after mocks are set up
+const { default: app } = await import('../app.js');
+const { default: User } = await import('../models/User.js');
+const { default: Team } = await import('../models/Team.js');
+const { default: RepoMetrics } = await import('../models/RepoMetrics.js');
 
 // Test data
 const testUser = {
@@ -32,24 +131,12 @@ const testAdmin = {
 
 const testTeam = {
   name: 'Test Team',
-  password: 'team123',
+  description: 'Test Description',
   repoUrl: 'https://github.com/expressjs/express'
 };
 
 describe('Comprehensive Unit Tests for DevX360 App', () => {
-  beforeAll(async () => {
-    await mongoose.connect(TEST_DB_URI);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
-  });
-
-  beforeEach(async () => {
-    await User.deleteMany({});
-    await Team.deleteMany({});
-    await RepoMetrics.deleteMany({});
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -68,6 +155,11 @@ describe('Comprehensive Unit Tests for DevX360 App', () => {
   describe('Authentication Endpoints', () => {
     describe('POST /api/register', () => {
       it('should register a new user successfully', async () => {
+        // Mock User.findOne to return null (user doesn't exist)
+        User.findOne.mockResolvedValue(null);
+        // Mock User.create to return the mock user
+        User.create.mockResolvedValue(mockUser);
+
         const response = await request(app)
           .post('/api/register')
           .send(testUser)
@@ -91,9 +183,9 @@ describe('Comprehensive Unit Tests for DevX360 App', () => {
     });
 
     describe('POST /api/login', () => {
-      beforeEach(async () => {
-        const hashedPassword = await bcrypt.hash(testUser.password, 10);
-        await User.create({ ...testUser, password: hashedPassword });
+      beforeEach(() => {
+        // Mock User.findOne to return the mock user
+        User.findOne.mockResolvedValue(mockUser);
       });
 
       it('should login user successfully', async () => {
@@ -120,12 +212,10 @@ describe('Comprehensive Unit Tests for DevX360 App', () => {
   });
 
   describe('Profile Management', () => {
-    let testToken, testUserId;
-    beforeEach(async () => {
-      const hashedPassword = await bcrypt.hash(testUser.password, 10);
-      const user = await User.create({ ...testUser, password: hashedPassword });
-      testUserId = user._id;
-      testToken = jwt.sign({ userId: testUserId, email: testUser.email, role: testUser.role }, 'test-secret');
+    let testToken;
+    beforeEach(() => {
+      testToken = jwt.sign({ userId: 'mock-user-id', email: testUser.email, role: testUser.role }, process.env.JWT_SECRET);
+      User.findById.mockResolvedValue(mockUser);
     });
 
     it('should return 401 without token', async () => {
@@ -134,34 +224,62 @@ describe('Comprehensive Unit Tests for DevX360 App', () => {
         .expect(401);
       expect(response.body).toHaveProperty('message');
     });
+
+    it('should return profile with valid token', async () => {
+      const response = await request(app)
+        .get('/api/profile')
+        .set('Cookie', `token=${testToken}`)
+        .expect(200);
+      
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user).toHaveProperty('email', testUser.email);
+    });
   });
 
   describe('User Management', () => {
-    let adminToken, testAdminId;
-    beforeEach(async () => {
-      const hashedPassword = await bcrypt.hash(testAdmin.password, 10);
-      const admin = await User.create({ ...testAdmin, password: hashedPassword });
-      testAdminId = admin._id;
-      adminToken = jwt.sign({ userId: testAdminId, email: testAdmin.email, role: 'admin' }, 'test-secret');
+    let adminToken;
+    beforeEach(() => {
+      adminToken = jwt.sign({ userId: 'mock-admin-id', email: testAdmin.email, role: 'admin' }, process.env.JWT_SECRET);
+      User.find.mockResolvedValue([mockUser]);
     });
 
     it('should reject non-admin access to /api/users', async () => {
-      const userToken = jwt.sign({ userId: 'testUserId', email: 'test@example.com', role: 'user' }, 'test-secret');
+      const userToken = jwt.sign({ userId: 'testUserId', email: 'test@example.com', role: 'user' }, process.env.JWT_SECRET);
       const response = await request(app)
         .get('/api/users')
         .set('Cookie', `token=${userToken}`)
         .expect(403);
       expect(response.body).toHaveProperty('message');
     });
+
+    it('should allow admin access to /api/users', async () => {
+      const response = await request(app)
+        .get('/api/users')
+        .set('Cookie', `token=${adminToken}`)
+        .expect(200);
+      
+      expect(response.body).toHaveProperty('users');
+      expect(Array.isArray(response.body.users)).toBe(true);
+    });
   });
 
   describe('Team Management', () => {
-    let testToken, testUserId;
-    beforeEach(async () => {
-      const hashedPassword = await bcrypt.hash(testUser.password, 10);
-      const user = await User.create({ ...testUser, password: hashedPassword });
-      testUserId = user._id;
-      testToken = jwt.sign({ userId: testUserId, email: testUser.email, role: testUser.role }, 'test-secret');
+    let testToken;
+    beforeEach(() => {
+      testToken = jwt.sign({ userId: 'mock-user-id', email: testUser.email, role: testUser.role }, process.env.JWT_SECRET);
+      User.findById.mockResolvedValue(mockUser);
+      Team.create.mockResolvedValue(mockTeam);
+    });
+
+    it('should create team successfully', async () => {
+      const response = await request(app)
+        .post('/api/teams')
+        .set('Cookie', `token=${testToken}`)
+        .send(testTeam)
+        .expect(201);
+      
+      expect(response.body).toHaveProperty('message', 'Team created successfully');
+      expect(response.body).toHaveProperty('team');
     });
 
     it('should reject team creation with missing fields', async () => {
@@ -169,7 +287,7 @@ describe('Comprehensive Unit Tests for DevX360 App', () => {
         .post('/api/teams')
         .set('Cookie', `token=${testToken}`)
         .send({ name: 'Test Team' })
-        .expect(403);
+        .expect(400);
       expect(response.body).toHaveProperty('message');
     });
   });
