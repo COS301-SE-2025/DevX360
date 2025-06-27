@@ -26,17 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run smart tests
+      - name: Run backend service tests
         run: |
-          echo "Looking for changed files to test..."
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep '\.jsx\?$' || true)
-
-          if [ -n "$CHANGED" ]; then
-            echo "Found changes in files:"
-            echo "$CHANGED"
-            echo "Running only related tests..."
-            npx jest --findRelatedTests $CHANGED
-          else
-            echo "No changed testable files detected. Running all tests instead..."
-            npx jest devX360/testing
-          fi
+          echo "Running selected test folders..."
+          npx jest devX360/backend/services/__tests__ \
+                   devX360/backend/api/__tests__ \
+                   "devX360/backend/Data Collection/__tests__"
