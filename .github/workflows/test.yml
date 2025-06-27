@@ -24,7 +24,8 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --save-dev babel-jest
+
 
       - name: Run backend service tests
         run: |
