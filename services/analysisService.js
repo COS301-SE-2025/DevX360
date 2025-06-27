@@ -14,7 +14,8 @@ export async function runAIAnalysis(teamId) {
     metricsEntry.analysisStatus = 'pending';
     await metricsEntry.save();
 
-    const { repoUrl, metrics } = metricsEntry;
+    const { metrics } = metricsEntry;
+    const repoUrl = metricsEntry.repositoryInfo.url;
     const { owner, repo } = parseGitHubUrl(repoUrl);
     
     console.log(`Starting AI analysis for ${owner}/${repo}...`);

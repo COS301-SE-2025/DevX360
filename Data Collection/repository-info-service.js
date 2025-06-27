@@ -103,28 +103,25 @@ async function fetchTopContributors(owner, repo, limit = 10) {
       per_page: limit
     });
     
-    await delay(1000); // Rate limiting
-    
-    const processedContributors = contributors.map(contributor => ({
-      username: contributor.login,
-      contributions: contributor.contributions,
-      avatar_url: contributor.avatar_url,
-      profile_url: contributor.html_url,
-      account_type: contributor.type,
-      site_admin: contributor.site_admin || false
+    await delay(1000);
+
+    const processedContributors = contributors.map(user => ({
+      username: user.login,
+      contributions: user.contributions,
+      avatar_url: user.avatar_url,
+      profile_url: user.html_url,
+      account_type: user.type,
+      site_admin: user.site_admin || false
     }));
-    
-    // Calculate accuracy indicators
-    const accuracyMetrics = {
-      total_contributors_found: contributors.length,
-      has_contributions_data: contributors.every(c => c.contributions !== undefined),
-      data_completeness: contributors.length > 0 ? 'complete' : 'incomplete',
-      confidence_score: contributors.length >= 5 ? 95 : contributors.length >= 2 ? 85 : 70
-    };
-    
+
     return {
       contributors: processedContributors,
-      accuracy_metrics: accuracyMetrics
+      accuracy_metrics: {
+        total_contributors_found: contributors.length,
+        has_contributions_data: contributors.every(c => c.contributions !== undefined),
+        data_completeness: contributors.length > 0 ? 'complete' : 'incomplete',
+        confidence_score: contributors.length >= 5 ? 95 : contributors.length >= 2 ? 85 : 70
+      }
     };
   } catch (error) {
     console.error(`Error fetching contributors for ${owner}/${repo}:`, error.message);
@@ -189,7 +186,7 @@ function analyzeRepositoryStats(repository) {
   const stats = {
     stars: repository.stargazers_count,
     forks: repository.forks_count,
-    watchers: repository.watchers_count,
+    watchers: repository.subscribers_count,
     open_issues: repository.open_issues_count,
     size: repository.size
   };
@@ -256,9 +253,40 @@ async function getRepositoryInfo(repositoryUrl) {
       repo
     });
     await delay(1000);
+
+    // Fetch open issues (excluding PRs)
+    let issues = [];
+    let page = 1;
+
+    while (true) {
+      const { data } = await octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        state: 'open',
+        per_page: 100,
+        page
+      });
+      const filtered = data.filter(issue => !issue.pull_request);
+      issues.push(...filtered);
+      if (data.length < 100) break;
+      page++;
+      await delay(1000);
+    }
+
+    //Retrieve only the open issues (Excluding PR)
+    const openIssuesOnly = issues.filter(issue => !issue.pull_request);
+    console.log("OPEN ISSUES: ", openIssuesOnly.length);
+    // Fetch open pull requests
+    const { data: pullRequests } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: 'open',
+      per_page: 100
+    });
+    await delay(1000);
     
     // Fetch top contributors with accuracy metrics
-    const contributorData = await fetchTopContributors(owner, repo, 10);
+    const contributorData = await fetchTopContributors(owner, repo, 30, 10);
     
     // Enhanced language analysis
     const languageAnalysis = analyzeLanguages(languages);
@@ -286,7 +314,8 @@ async function getRepositoryInfo(repositoryUrl) {
       stars: statsAnalysis.statistics.stars,
       forks: statsAnalysis.statistics.forks,
       watchers: statsAnalysis.statistics.watchers,
-      open_issues: statsAnalysis.statistics.open_issues,
+      open_issues: openIssuesOnly.length,
+      open_pull_requests: pullRequests.length,
       size: statsAnalysis.statistics.size,
       
       // Enhanced programming languages with analysis

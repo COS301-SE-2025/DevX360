@@ -20,8 +20,12 @@
     "octokit": "^5.0.3"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.27.2",
     "@types/bcryptjs": "^2.4.6",
-    "nodemon": "^2.0.15"
+    "babel-jest": "^30.0.2",
+    "jest": "^30.0.3",
+    "nodemon": "^2.0.15",
+    "supertest": "^7.1.1"
   },
   "scripts": {
     "start": "node server.js",
