@@ -11,7 +11,6 @@ function Metrics() {
   const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [repoMatch, setRepoMatch] = useState(false);
   const [aiFeedback, setAiFeedback] = useState(null);
   const [parsedFeedback, setParsedFeedback] = useState({});
   const [aiLoading, setAiLoading] = useState(true);
@@ -51,9 +50,6 @@ function Metrics() {
         const data = await response.json();
         setTeamData(data);
         
-        if (data.team?.repoUrl && data.doraMetrics?.repository?.url) {
-          setRepoMatch(data.team.repoUrl === data.doraMetrics.repository.url);
-        }
         
         setLoading(false);
       } catch (err) {
@@ -201,7 +197,7 @@ function Metrics() {
     }));
 
   const activityData = [
-    { name: 'PRs', value: teamData.doraMetrics.data_summary.pull_requests_count },
+    { name: 'PRs', value: teamData.repositoryInfo.open_pull_requests},
     { name: 'Commits', value: teamData.doraMetrics.data_summary.commits_count },
     { name: 'Releases', value: teamData.doraMetrics.data_summary.releases_count },
     { name: 'Tags', value: teamData.doraMetrics.data_summary.tags_count }
@@ -218,16 +214,16 @@ function Metrics() {
     }
   ];
 
-  const leadTimeComparisonData = [
-    { 
-      type: 'Current', 
-      days: parseFloat(teamData.doraMetrics.lead_time.average_days) 
-    },
-    { 
-      type: 'Elite', 
-      days: 1.0
-    }
-  ];
+  // const leadTimeComparisonData = [
+  //   { 
+  //     type: 'Current', 
+  //     days: parseFloat(teamData.doraMetrics.lead_time.average_days) 
+  //   },
+  //   { 
+  //     type: 'Elite', 
+  //     days: 1.0
+  //   }
+  // ];
 
   const contributorActivityData = contributorData.map(contributor => ({
     name: contributor.name,
@@ -235,7 +231,7 @@ function Metrics() {
     prs: Math.floor(contributor.contributions / 3)
   }));
 
-  return (
+ return (
     <>
       <header className="main-header">
         <h1>DORA Metrics Dashboard</h1>
@@ -257,6 +253,7 @@ function Metrics() {
       </header>
 
       <div className="metrics-container">
+        {/* Repository Overview - Cleaner Layout */}
         <div className="metric-card-wide">
           <div className="metric-header">
             <h3>Repository Overview</h3>
@@ -280,10 +277,9 @@ function Metrics() {
               <div className="metric-row">
                 <span>Repository</span>
                 <span>
-                  <a href={teamData.team.repoUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={teamData.repositoryInfo.url} target="_blank" rel="noopener noreferrer">
                     {teamData.repositoryInfo.full_name}
                   </a>
-                  {repoMatch ? 'Verified' : 'Mismatch'}
                 </span>
               </div>
               <div className="metric-row">
@@ -336,7 +332,7 @@ function Metrics() {
               {teamData.doraMetrics.deployment_frequency.frequency_per_day}/day
             </div>
             <div className="metric-trend">
-              {teamData.doraMetrics.deployment_frequency.total_deployments} deployments in {teamData.doraMetrics.deployment_frequency.time_span_days} days
+              {teamData.doraMetrics.deployment_frequency.total_deployments} deployments in {teamData.doraMetrics.deployment_frequency.analysis_period_days} days
             </div>
           </div>
 
@@ -385,73 +381,96 @@ function Metrics() {
         </div>
 
         <div className="metrics-grid" style={{ marginTop: '1rem' }}>
-          <div className="metric-card">
-            <div className="metric-header">
-              <Calendar className="metric-icon" />
-              <h3>Repository Activity Timeline</h3>
+         <div className="metric-card">
+  <div className="metric-header">
+    <Calendar className="metric-icon" />
+    <h3>Repository Activity Timeline</h3>
+  </div>
+  <div style={{ height: '250px', marginTop: '1rem' }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart
+        data={[
+          {
+            name: 'Created',
+            date: new Date(teamData.repositoryInfo.created_at),
+            value: 1
+          },
+          {
+            name: 'First Release',
+            date: new Date(teamData.repositoryInfo.created_at),
+            value: 2
+          },
+          {
+            name: 'Last Push',
+            date: new Date(teamData.repositoryInfo.pushed_at),
+            value: 3
+          },
+          {
+            name: 'Updated',
+            date: new Date(teamData.repositoryInfo.updated_at),
+            value: 4
+          },
+          {
+            name: 'Current',
+            date: new Date(teamData.lastUpdated),
+            value: 5
+          }
+        ]}
+        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+        <XAxis 
+          dataKey="date"
+          tickFormatter={(date) => new Date(date).toLocaleDateString()}
+          tick={{ fill: '#64748b', fontSize: 12 }}
+          axisLine={false}
+          tickLine={false}
+          interval="preserveStartEnd"
+        />
+        <YAxis 
+          hide={true}
+          domain={[0, 6]}
+        />
+        <Tooltip 
+          content={({ payload }) => (
+            <div className="custom-tooltip">
+              {payload && payload[0] && (
+                <>
+                  <p className="tooltip-event">{payload[0].payload.name}</p>
+                  <p className="tooltip-date">
+                    {new Date(payload[0].payload.date).toLocaleDateString()}
+                  </p>
+                </>
+              )}
             </div>
-            <div style={{ height: '250px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  layout="vertical"
-                  data={[
-                    {
-                      event: 'Repository Created',
-                      date: new Date(teamData.repositoryInfo.created_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Last Commit Pushed',
-                      date: new Date(teamData.repositoryInfo.pushed_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Last Updated',
-                      date: new Date(teamData.repositoryInfo.updated_at),
-                      value: 1
-                    },
-                    {
-                      event: 'Data Fetched',
-                      date: new Date(teamData.lastUpdated),
-                      value: 1
-                    }
-                  ]}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    type="number" 
-                    domain={[
-                      new Date(teamData.repositoryInfo.created_at).getTime() - (1000 * 60 * 60 * 24 * 30),
-                      new Date(teamData.lastUpdated).getTime() + (1000 * 60 * 60 * 24 * 30)
-                    ]}
-                    tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()}
-                    dataKey="date"
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="event" 
-                    width={120}
-                  />
-                  <Tooltip 
-                    labelFormatter={(value) => ''}
-                    formatter={(value, name, props) => [
-                      new Date(props.payload.date).toLocaleString(),
-                      props.payload.event
-                    ]}
-                  />
-                  <Bar 
-                    dataKey="date" 
-                    fill="#3B82F6"
-                    barSize={20}
-                    shape={<rect rx="4" ry="4" />}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="metric-note">
-              Shows project longevity and recency of activity. Created: {new Date(teamData.repositoryInfo.created_at).toLocaleDateString()}
-            </div>
-          </div>
+          )}
+        />
+        <Line 
+          type="monotone"
+          dataKey="value"
+          stroke="#3B82F6"
+          strokeWidth={2}
+          dot={{ 
+            r: 6,
+            fill: '#3B82F6',
+            stroke: '#fff',
+            strokeWidth: 2
+          }}
+          activeDot={{ 
+            r: 8,
+            fill: '#3B82F6',
+            stroke: '#fff',
+            strokeWidth: 2
+          }}
+          isAnimationActive={true}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+  <div className="metric-note">
+    Timeline showing key repository events. Created: {new Date(teamData.repositoryInfo.created_at).toLocaleDateString()}
+  </div>
+</div>
 
           <div className="metric-card">
             <div className="metric-header">
@@ -461,7 +480,7 @@ function Metrics() {
             <div className="summary-grid">
               <div className="summary-item">
                 <span>Pull Requests</span>
-                <span>{teamData.doraMetrics.data_summary.pull_requests_count}</span>
+                <span>{teamData.repositoryInfo.open_pull_requests}</span>
               </div>
               <div className="summary-item">
                 <span>Commits</span>
@@ -515,6 +534,7 @@ function Metrics() {
                 </div>
               ))}
             </div>
+          <h6>*Top contributors based on default branch commits (all-time)</h6>      
           </div>
         </div>
 
