@@ -28,7 +28,8 @@ jobs:
 
       - name: Run backend service tests
         run: |
-          echo "Running selected test folders..."
-          npx jest devX360/backend/services/__tests__ \
-                   devX360/backend/api/__tests__ \
-                   "devX360/backend/Data Collection/__tests__"
+          echo "Running selected test folders using jest.config.js..."
+          npx jest --config devX360/backend/jest.config.js \
+            devX360/backend/services/__tests__ \
+            devX360/backend/api/__tests__ \
+            "devX360/backend/Data Collection/__tests__"
