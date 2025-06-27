@@ -24,13 +24,12 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --save-dev babel-jest
-
+        run: npm ci
 
       - name: Run backend service tests
         run: |
-          echo "Running selected test folders using jest.config.js..."
-          npx jest --config devX360/backend/jest.config.cjs \
+          echo "Running selected test folders using jest.config.cjs with ESM support..."
+          node --experimental-vm-modules node_modules/jest/bin/jest.js --config devX360/backend/jest.config.cjs \
             devX360/backend/services/__tests__ \
             devX360/backend/api/__tests__ \
             "devX360/backend/Data Collection/__tests__"
