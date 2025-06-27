@@ -71,10 +71,6 @@ api/
 
 ---
 
-```sh
-node live-demo-openai-cs-agents-demo.js https://github.com/openai/openai-python
-```
-
 ---
 
 ## API Endpoints
