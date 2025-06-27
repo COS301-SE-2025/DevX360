@@ -1,13 +1,20 @@
-name: CI - Run Backend Tests
+name: CI - Run Tests
 
 on:
   push:
     branches: [main, dev]
+    paths:
+      - 'devX360/backend/**'
+      - 'devX360/frontend/src/components/Dashboard/**'
   pull_request:
     branches: [main, dev]
+    paths:
+      - 'devX360/backend/**'
+      - 'devX360/frontend/src/components/Dashboard/**'
 
 jobs:
   run-backend-tests:
+    if: ${{ github.event.head_commit.modified && contains(join(github.event.head_commit.modified, ','), 'devX360/backend') }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -26,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run all Jest tests
+      - name: Run backend Jest tests
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -36,4 +43,31 @@ jobs:
           node --experimental-vm-modules
           node_modules/jest/bin/jest.js
           "services/__tests__"
+          "api/__tests__"
           "Data Collection/__tests__"
+
+  run-frontend-tests:
+    if: ${{ github.event.head_commit.modified && contains(join(github.event.head_commit.modified, ','), 'devX360/frontend/src/components/Dashboard') }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: devX360/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend Jest tests for Dashboard
+        run: >
+          node --experimental-vm-modules
+          node_modules/jest/bin/jest.js
+          "src/components/Dashboard"
