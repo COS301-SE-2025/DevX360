@@ -5,7 +5,6 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
 import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
@@ -340,22 +339,10 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       name,
       password: hashed,
       creator: req.user.userId,
-      members: [req.user.userId],
-      repoUrl,
+      members: [req.user.userId]
     });
 
     await team.save();
-
-    let owner, repo;
-    try {
-      ({ owner, repo } = parseGitHubUrl(repoUrl));
-    } catch (parseError) {
-      return res.status(400).json({
-        message: "Invalid GitHub URL",
-        details: parseError.message,
-        example: "Valid format: https://github.com/username/repository",
-      });
-    }
 
     let metrics;
     let repositoryInfo;
@@ -374,9 +361,6 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
 
     await RepoMetrics.create({
       teamId: team._id,
-      repoUrl,
-      owner,
-      repo,
       metrics,
       repositoryInfo, 
       lastUpdated: new Date(),
@@ -389,7 +373,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       team: {
         id: team._id,
         name: team.name,
-        repoUrl: team.repoUrl,
+        repoUrl: repositoryInfo.url,
       },
       repositoryInfo,
     });
