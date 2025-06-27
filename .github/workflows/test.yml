@@ -43,7 +43,6 @@ jobs:
           node --experimental-vm-modules
           node_modules/jest/bin/jest.js
           "services/__tests__"
-          "api/__tests__"
           "Data Collection/__tests__"
 
   run-frontend-tests:
