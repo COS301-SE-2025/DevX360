@@ -9,6 +9,7 @@ import Profile from './components/Dashboard/Profile';
 import Overview from './components/Dashboard/Overview';
 import Team from './components/Dashboard/Team';
 import Metrics from './components/Dashboard/Metrics';
+import HelpMenu from './components/Dashboard/HelpMenu';
 import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth import
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -52,6 +53,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="metrics" element={<Metrics />} />
+              <Route path="help" element={<HelpMenu />} />
             </Route>
           </Routes>
         </AuthProvider>
