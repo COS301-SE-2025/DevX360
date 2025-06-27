@@ -9,6 +9,7 @@ on:
     branches: [main, dev]
     paths:
       - 'devX360/**'
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,5 +26,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
-        run: npm test Testing/tests/unit/sample.test.js
+      - name: Detect changed files
+        id: changes
+        run: |
+          git fetch origin main
+          echo "CHANGED=$(git diff --name-only origin/main...HEAD | grep '\.jsx\?$' || true)" >> $GITHUB_ENV
+
+      - name: Run related tests
+        if: env.CHANGED != ''
+        run: |
+          echo "Changed files: $CHANGED"
+          npx jest --findRelatedTests $CHANGED
