@@ -71,12 +71,6 @@ api/
 
 ---
 
-## Usage
-
-### Live Demo Script
-
-To run a full workflow (repo info, DORA metrics, code fetch, AI interpretation):
-
 ```sh
 node live-demo-openai-cs-agents-demo.js https://github.com/openai/openai-python
 ```
