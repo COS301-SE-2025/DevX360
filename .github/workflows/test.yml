@@ -1,35 +1,35 @@
-name: Run Tests
+name: CI - Run Backend Tests
 
 on:
   push:
     branches: [main, dev]
-    paths:
-      - 'devX360/**'
   pull_request:
     branches: [main, dev]
-    paths:
-      - 'devX360/**'
 
 jobs:
-  test:
+  run-backend-tests:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: devX360/backend
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run backend service tests
-        run: |
-          echo "Running selected test folders using jest.config.cjs with ESM support..."
-          node --experimental-vm-modules node_modules/jest/bin/jest.js --config devX360/backend/jest.config.cjs \
-            devX360/backend/services/__tests__ \
-            devX360/backend/api/__tests__ \
-            "devX360/backend/Data Collection/__tests__"
+      - name: Run all Jest tests
+        run: >
+          node --experimental-vm-modules
+          node_modules/jest/bin/jest.js
+          "services/__tests__"
+          "api/__tests__"
+          "Data Collection/__tests__"
