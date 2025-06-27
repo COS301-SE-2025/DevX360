@@ -31,6 +31,9 @@ describe('runAIAnalysis', () => {
     mockMetricsEntry = {
       teamId: 'test-team',
       repoUrl: 'https://github.com/owner/repo',
+      repositoryInfo: {
+        url: 'https://github.com/owner/repo'
+      },
       metrics: { deployment_frequency: {} },
       analysisStatus: 'idle',
       aiAnalysis: null,

@@ -1,9 +1,10 @@
-
 import { jest, describe, beforeEach, test, expect } from '@jest/globals';
 
 const mockGet = jest.fn();
 const mockListLanguages = jest.fn();
 const mockListContributors = jest.fn();
+const mockListForRepo = jest.fn();
+const mockPullsList = jest.fn();
 
 jest.unstable_mockModule('octokit', () => ({
   Octokit: jest.fn().mockImplementation(() => ({
@@ -12,6 +13,12 @@ jest.unstable_mockModule('octokit', () => ({
         get: mockGet,
         listLanguages: mockListLanguages,
         listContributors: mockListContributors,
+      },
+      issues: {
+        listForRepo: mockListForRepo,
+      },
+      pulls: {
+        list: mockPullsList,
       },
     },
   })),
@@ -25,6 +32,8 @@ describe('RepositoryInfoService', () => {
     mockGet.mockClear();
     mockListLanguages.mockClear();
     mockListContributors.mockClear();
+    mockListForRepo.mockClear();
+    mockPullsList.mockClear();
   });
 
   describe('parseGitHubUrl', () => {
@@ -77,13 +86,37 @@ describe('RepositoryInfoService', () => {
 
   describe('getRepositoryInfo', () => {
     test('should fetch and process repository information', async () => {
-      const repoData = { name: 'repo', stargazers_count: 10, forks_count: 5, watchers_count: 10, open_issues_count: 2, size: 1024, license: { name: 'MIT' } };
+      const repoData = { 
+        name: 'repo', 
+        full_name: 'owner/repo',
+        stargazers_count: 10, 
+        forks_count: 5, 
+        watchers_count: 10, 
+        open_issues_count: 2, 
+        size: 1024, 
+        license: { name: 'MIT' },
+        html_url: 'https://github.com/owner/repo',
+        clone_url: 'https://github.com/owner/repo.git',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z',
+        pushed_at: '2023-01-01T00:00:00Z',
+        default_branch: 'main',
+        private: false,
+        fork: false,
+        archived: false,
+        disabled: false,
+        topics: []
+      };
       const languagesData = { JavaScript: 1000 };
       const contributorsData = [{ login: 'user1', contributions: 100 }];
+      const issuesData = [{ id: 1, pull_request: null }];
+      const pullsData = [{ id: 1 }];
 
       mockGet.mockResolvedValue({ data: repoData });
       mockListLanguages.mockResolvedValue({ data: languagesData });
       mockListContributors.mockResolvedValue({ data: contributorsData });
+      mockListForRepo.mockResolvedValue({ data: issuesData });
+      mockPullsList.mockResolvedValue({ data: pullsData });
 
       const result = await getRepositoryInfo('https://github.com/owner/repo');
 
