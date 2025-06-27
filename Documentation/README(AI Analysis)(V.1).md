@@ -140,19 +140,6 @@ const analysis = await interpretCodeLocally(files);
 console.log(analysis);
 ```
 
----
-
-## Troubleshooting
-
-- **Rate limit errors:**  
-  Ensure your `GITHUB_TOKEN` is set and valid.
-- **AI errors:**  
-  Check your `OPENAI_API_KEY` and network connectivity.
-- **Database errors:**  
-  Ensure MongoDB is running and accessible.
-
----
-
 ## Scripts
 
 - `npm start` – Start the server
@@ -166,11 +153,3 @@ console.log(analysis);
 - express, mongoose, octokit, node-fetch, bcryptjs, jsonwebtoken, multer, dotenv, cors, cookie-parser, express-rate-limit, nodemon (dev)
 
 ---
-
-## License
-
-MIT
-
----
-
-**For more details, see the code comments and each service's file header. If you need API request/response examples or want to auto-generate docs, consider using Swagger or Postman.** 
