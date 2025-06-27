@@ -140,10 +140,7 @@
   object-fit: cover;
 }
 
-/* Content Styles */
-.content-section {
-  /* Add any general content styles here */
-}
+
 
 /* Welcome and About Cards */
 .welcome-card,
@@ -458,7 +455,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Add to dashboard.css */
 .metrics-container {
   padding: 2rem;
   background-color: var(--bg-container);
@@ -486,14 +482,19 @@
 .metrics-header h2 {
   margin-bottom: 0.5rem;
 }
-
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Force 4 columns */
-  gap: 1rem; /* Smaller gap */
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
 }
-
+.metric-card-wide {
+  grid-column: span 2;
+  background-color: var(--bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
 
 .metric-card {
   background-color: var(--bg);
@@ -513,6 +514,17 @@
   font-size: 1.1rem;
   color: var(--primary);
 }
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card-wide {
+    grid-column: span 1;
+  }
+}
+
 
 .status-badge {
   font-size: 0.7rem;
@@ -688,9 +700,11 @@
   margin-top: 3rem;
   padding: 2rem;
   background-color: var(--bg-container);
+  border-left: 5px solid var(--primary);
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
+
 
 .status-indicator {
   display: flex;
@@ -811,4 +825,119 @@
 .markdown ul {
   list-style: disc;
   margin-left: 1.5rem;
+}
+
+/* Help Menu Styles */
+.help-menu-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.help-menu-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+
+.help-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.help-menu-card {
+  background-color: var(--bg-container);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.help-menu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.help-menu-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.help-menu-card-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-icon {
+  color: var(--primary);
+}
+
+.help-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-menu-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-menu-list li:last-child {
+  border-bottom: none;
+}
+
+.help-menu-link {
+  display: block;
+  padding: 0.5rem 0;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.help-menu-link:hover {
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .help-menu-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .help-menu-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Timeline Chart Styles */
+.custom-tooltip {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.tooltip-event {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #1e293b;
+}
+
+.tooltip-date {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.metric-note {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 0.5rem;
 }
