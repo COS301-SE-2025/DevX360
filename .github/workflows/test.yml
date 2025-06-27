@@ -27,6 +27,8 @@ jobs:
         run: npm ci
 
       - name: Run all Jest tests
+        env:
+          MONGODB_URI: ${{ secrets.TEST_DB_URI }}
         run: >
           node --experimental-vm-modules
           node_modules/jest/bin/jest.js
