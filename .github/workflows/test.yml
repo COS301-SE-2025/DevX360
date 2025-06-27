@@ -29,9 +29,12 @@ jobs:
       - name: Run all Jest tests
         env:
           TEST_DB_URI: ${{ secrets.TEST_DB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GITHUB_TOKEN_1: ${{ secrets.TOKEN1 }}
+          GITHUB_TOKEN_2: ${{ secrets.TOKEN2 }}
         run: >
-          node --experimental-vm-modules
-          node_modules/jest/bin/jest.js
-          "services/__tests__"
-          "api/__tests__"
+          node --experimental-vm-modules node_modules/jest/bin/jest.js \
+          --testTimeout=20000 \
+          "services/__tests__" \
+          "api/__tests__" \
           "Data Collection/__tests__"
