@@ -24,7 +24,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install --save-dev @testing-library/jest-dom
+        run: npm ci
 
       - name: Run backend Jest tests
         env:
@@ -56,12 +56,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install testing library for jest-dom
-        run: npm install --save-dev @testing-library/jest-dom
-
-      - name: Run Dashboard Jest tests
-        run: node --experimental-vm-modules node_modules/jest/bin/jest.js "src/components/Dashboard"
 
       - name: Run frontend Jest tests
         run: >
