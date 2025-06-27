@@ -1,8 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 //unit tested
 async function hashPassword(password) {
   const salt = await bcrypt.genSalt(12);
@@ -18,7 +16,7 @@ async function comparePassword(plainPassword, hashedPassword) {
 //unit tested
 function generateToken(
   payload,
-  secret = JWT_SECRET,
+  secret = process.env.JWT_SECRET,
   options = { expiresIn: "7d" }
 ) {
   return jwt.sign(payload, secret, options);

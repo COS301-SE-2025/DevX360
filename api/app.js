@@ -65,7 +65,7 @@ const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Access token required" });
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err)
       return res.status(403).json({ message: "Invalid or expired token" });
     req.user = user;
@@ -79,17 +79,20 @@ app.get("/api/health", async (req, res) => {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
     let ollamaStatus = "Unavailable";
+    let ollamaRes = null;
+    
     try {
-      const ollamaRes = await fetch("http://localhost:11434");
+      ollamaRes = await fetch("http://localhost:11434");
       ollamaStatus = ollamaRes.status === 200 ? "Operational" : "Unavailable";
     } catch (ollamaError) {
       // Ollama service is not available, but this shouldn't cause a 500 error
       ollamaStatus = "Unavailable";
     }
+    
     res.json({
       status: "OK",
       database: dbStatus,
-      ollama: ollamaRes.status === 200 ? "Operational" : "Unavailable",
+      ollama: ollamaStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
