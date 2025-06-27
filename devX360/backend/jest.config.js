@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   testEnvironment: 'node',
   testMatch: [
     '**/__tests__/**/*.test.js',
@@ -10,6 +10,8 @@ export default {
     '/api/__tests__/comprehensive.test.js',
     '/api/__tests__/app.test.js'
   ],
-  transform: {},
+  transform: {
+    '^.+\\.js$': 'babel-jest'  // Use babel-jest to transform JS files
+  },
   verbose: true
 };
