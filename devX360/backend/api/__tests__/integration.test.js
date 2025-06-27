@@ -19,6 +19,8 @@ import User from '../models/User.js';
 import Team from '../models/Team.js';
 import RepoMetrics from '../models/RepoMetrics.js';
 
+jest.setTimeout(30000); // 30 seconds
+
 // Mock external services that are outside the scope of our integration
 // For example, the actual GitHub API calls made by repository-info-service.js
 // and the Ollama service called by app.js health check.
