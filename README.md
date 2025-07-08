@@ -48,7 +48,8 @@
 
 We use a collaborative workflow to manage progress and documentation.
 
-[📄 View our updated SRS Document (PDF)](Documentation/SRS%20V2.3.1.pdf?raw=true)
+[📄 View our updated SRS Document (PDF)](https://github.com/COS301-SE-2025/DevX360/raw/main/Documentation/SRS%20V2.3.1.pdf)
+
 📋 [Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
 
