@@ -10,6 +10,7 @@ import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
+import { authorizeTeamAccess } from "../api/middlewares/authorizeTeamAccess.js";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
@@ -104,6 +105,7 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+//Need a way to connect a users github id to their profile during registration
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password, role, inviteCode } = req.body;
@@ -422,31 +424,78 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
       await team.save();
     }
 
+    //extractOwnerAndRepo and collectMemberActivity To be used when the required functions are implemented in data collection
+    //or perhaps another file
+    //Also when the connection with a user through their github profile is finalized
+
+    /*const user = await User.findById(req.user.userId);
+    if (user.githubUsername) {
+      const repoData = await RepoMetrics.findOne({ teamId: team._id });
+      if (repoData && repoData.repositoryInfo?.url) {
+        const [owner, repo] = extractOwnerAndRepo(repoData.repositoryInfo.url);
+        if (owner && repo) {
+          const stats = await collectMemberActivity(owner, repo, user.githubUsername);
+          repoData.memberStats = repoData.memberStats || {};
+          repoData.memberStats[userId] = {
+            githubUsername: user.githubUsername,
+            ...stats,
+          };
+          await repoData.save();
+        }
+      }
+    }*/
+
     res.json({ message: "Joined team", teamId: team._id });
   } catch (error) {
     res.status(500).json({ message: "Joining team error" });
   }
 });
 
-app.get("/api/teams/:name", authenticateToken, async (req, res) => {
-  try {
-    const team = await Team.findOne({ name: req.params.name })
-      .populate("creator", "name")
-      .populate("members", "name email");
+// TEAM DETAILS WITH RBAC
+app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
+  const team = req.team;
+  const repoData = await RepoMetrics.findOne({ teamId: team._id });
 
-    if (!team) return res.status(404).json({ message: "Team not found" });
+  const base = {
+    team: { id: team._id, name: team.name },
+    doraMetrics: repoData?.metrics || null,
+    repositoryInfo: repoData?.repositoryInfo || null,
+    lastUpdated: repoData?.lastUpdated || null,
+  };
 
-    const repoData = await RepoMetrics.findOne({ teamId: team._id });
-
-    res.json({
-      team,
-      doraMetrics: repoData?.metrics || null,       // Existing DORA metrics
-      repositoryInfo: repoData?.repositoryInfo || null, // Full GitHub data
-      lastUpdated: repoData?.lastUpdated || null,
+  if (req.user.id === team.creator) {
+    await team.populate("creator", "name");
+    await team.populate("members", "name email");
+    return res.json({
+      ...base,
+      members: team.members,
+      creator: team.creator,
+      memberStats: repoData?.memberStats || {},
+      permissions: "full",
     });
-  } catch (err) {
-    console.error("Error retrieving team info:", err);
-    res.status(500).json({ message: "Failed to retrieve team info" });
+  }
+
+  const userStats = repoData?.memberStats?.[req.user.userId] || {};
+  res.json({
+    ...base,
+    myStats: userStats,
+    permissions: "read-only",
+  });
+});
+
+// DELETE TEAM (by name, creator only)
+app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
+  if (req.user.teamRole !== "creator") {
+    return res.status(403).json({ message: "Only the team creator can delete the team" });
+  }
+
+  try {
+    await Team.deleteOne({ name: req.team.name });
+    await RepoMetrics.deleteOne({ teamId: req.team._id });
+    res.json({ message: "Team deleted successfully" });
+  } catch (error) {
+    console.error("Delete team error:", error);
+    res.status(500).json({ message: "Failed to delete team" });
   }
 });
 
