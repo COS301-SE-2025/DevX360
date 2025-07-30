@@ -486,10 +486,117 @@ function createMockRepositoryResponse() {
   };
 }
 
+/**
+ * Extracts owner and repo from GitHub URL (simplified version)
+ * @param {string} url - GitHub repository URL
+ * @returns {Array} [owner, repo]
+ */
+export function extractOwnerAndRepo(url) {
+  const parsed = parseGitHubUrl(url);
+  return [parsed.owner, parsed.repo];
+}
+
+/**
+ * Collects member activity statistics for a specific user in a repository
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name  
+ * @param {string} githubUsername - GitHub username to analyze
+ * @returns {Promise<Object>} Activity statistics
+ */
+export async function collectMemberActivity(owner, repo, githubUsername) {
+  try {
+    console.log(`Collecting activity for ${githubUsername} in ${owner}/${repo}`);
+    
+    // Fetch user's commits
+    const { data: commits } = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      author: githubUsername,
+      per_page: 100
+    });
+    
+    // Fetch user's pull requests
+    const { data: pullRequests } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100
+    });
+    
+    // Filter PRs by author
+    const userPRs = pullRequests.filter(pr => pr.user?.login === githubUsername);
+    
+    // Fetch user's issues
+    const { data: issues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100
+    });
+    
+    // Filter issues by author (excluding PRs)
+    const userIssues = issues.filter(issue => 
+      issue.user?.login === githubUsername && !issue.pull_request
+    );
+    
+    // Calculate statistics
+    const stats = {
+      commits: {
+        total: commits.length,
+        recent: commits.filter(c => {
+          const commitDate = new Date(c.commit.author.date);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return commitDate >= thirtyDaysAgo;
+        }).length
+      },
+      pullRequests: {
+        total: userPRs.length,
+        merged: userPRs.filter(pr => pr.merged_at).length,
+        open: userPRs.filter(pr => pr.state === 'open').length,
+        closed: userPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length
+      },
+      issues: {
+        total: userIssues.length,
+        open: userIssues.filter(issue => issue.state === 'open').length,
+        closed: userIssues.filter(issue => issue.state === 'closed').length
+      },
+      activityScore: calculateActivityScore(commits.length, userPRs.length, userIssues.length),
+      lastActivity: commits.length > 0 ? commits[0].commit.author.date : null,
+      collectedAt: new Date().toISOString()
+    };
+    
+    return stats;
+  } catch (error) {
+    console.error(`Error collecting activity for ${githubUsername}:`, error);
+    return {
+      error: error.message,
+      commits: { total: 0, recent: 0 },
+      pullRequests: { total: 0, merged: 0, open: 0, closed: 0 },
+      issues: { total: 0, open: 0, closed: 0 },
+      activityScore: 0,
+      lastActivity: null,
+      collectedAt: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Calculates activity score based on contributions
+ */
+function calculateActivityScore(commits, prs, issues) {
+  const commitScore = commits * 1;
+  const prScore = prs * 3;
+  const issueScore = issues * 2;
+  return commitScore + prScore + issueScore;
+}
+
 export {
   getRepositoryInfo,
   parseGitHubUrl,
   fetchTopContributors,
   validateRepositoryInfo,
-  createMockRepositoryResponse
+  createMockRepositoryResponse,
+  extractOwnerAndRepo,
+  collectMemberActivity
 }; 

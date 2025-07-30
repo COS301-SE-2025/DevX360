@@ -711,27 +711,39 @@ function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
     return {
       total_deployments: 0,
       frequency_per_day: 0,
+      frequency_per_week: 0,
+      frequency_per_month: 0,
       analysis_period_days: daysBack,
       status: 'No deployments found in analysis period'
     };
   }
 
   if (deployments.length === 1) {
+    const frequencyPerDay = (1 / daysBack).toFixed(3);
+    const frequencyPerWeek = (1 / (daysBack / 7)).toFixed(3);
+    const frequencyPerMonth = (1 / (daysBack / 30)).toFixed(3);
+    
     return {
       total_deployments: 1,
       analysis_period_days: daysBack,
-      frequency_per_day: (1 / daysBack).toFixed(3),
+      frequency_per_day: frequencyPerDay,
+      frequency_per_week: frequencyPerWeek,
+      frequency_per_month: frequencyPerMonth,
       status: 'Single deployment in analysis period'
     };
   }
 
-  // Calculate frequency based on the analysis period, not deployment time span
+  // Calculate frequency based on the analysis period
   const frequencyPerDay = (deployments.length / daysBack).toFixed(3);
+  const frequencyPerWeek = (deployments.length / (daysBack / 7)).toFixed(3);
+  const frequencyPerMonth = (deployments.length / (daysBack / 30)).toFixed(3);
 
   return {
     total_deployments: deployments.length,
     analysis_period_days: daysBack,
     frequency_per_day: frequencyPerDay,
+    frequency_per_week: frequencyPerWeek,
+    frequency_per_month: frequencyPerMonth,
     status: 'Multiple deployments in analysis period'
   };
 }
