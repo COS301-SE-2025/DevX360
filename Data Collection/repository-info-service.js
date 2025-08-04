@@ -13,7 +13,7 @@ import { Octokit } from 'octokit';
 
 // Initialize Octokit with proper rate limit handling
 const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
+  auth: process.env.GITHUB_TOKEN_1,
   throttle: {
     onRateLimit: (retryAfter, options) => {
       console.log(`Rate limit hit, waiting ${retryAfter} seconds...`);
@@ -254,26 +254,15 @@ async function getRepositoryInfo(repositoryUrl) {
     });
     await delay(1000);
 
-    // Fetch open issues (excluding PRs)
-    let issues = [];
-    let page = 1;
-
-    while (true) {
-      const { data } = await octokit.rest.issues.listForRepo({
-        owner,
-        repo,
-        state: 'open',
-        per_page: 100,
-        page
-      });
-      const filtered = data.filter(issue => !issue.pull_request);
-      issues.push(...filtered);
-      if (data.length < 100) break;
-      page++;
-      await delay(1000);
-    }
-
-    //Retrieve only the open issues (Excluding PR)
+    // Fetch open issues (excluding PRs) - limited to avoid pagination issues
+    const { data: issues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'open',
+      per_page: 100
+    });
+    
+    // Filter out PRs and get only issues
     const openIssuesOnly = issues.filter(issue => !issue.pull_request);
     console.log("OPEN ISSUES: ", openIssuesOnly.length);
     // Fetch open pull requests
@@ -596,7 +585,5 @@ export {
   parseGitHubUrl,
   fetchTopContributors,
   validateRepositoryInfo,
-  createMockRepositoryResponse,
-  extractOwnerAndRepo,
-  collectMemberActivity
+  createMockRepositoryResponse
 }; 
