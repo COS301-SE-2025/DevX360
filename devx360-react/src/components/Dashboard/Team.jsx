@@ -1,250 +1,274 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { searchTeam, createTeam, joinTeam } from '../../services/teams';
+import {Clock, GitBranch, TrendingUp, Zap} from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
+import CreateTeamModal from "./modal/CreateTeam";
+import JoinTeamModal from "./modal/JoinTeam";
+import {getMyTeams} from "../../services/profile";
+// import toast from "react-hot-toast";
+
+function TeamInfo({ teams }) {
+  if (!teams || teams.length === 0) {
+    return (
+        <div className="team-container">
+          <p>No teams available.</p>
+        </div>
+    );
+  }
+
+  console.log("Teams", teams);
+
+  return (
+      // <div className="team-container">
+      //     <div className="team-info">
+      //         <table >
+      //             <tbody>
+      //                <tr>
+      //                    <td>Team 1</td>
+      //                    <td>Created by: Some User</td>
+      //                </tr>
+      //                <tr>
+      //                    <td>10 Members</td>
+      //                </tr>
+      //             </tbody>
+      //         </table>
+      //     </div>
+      //
+      //     <div className="metrics-container">
+      //         <h2>Metrics</h2>
+      //         <div className="metrics">
+      //             <div className="metric-card">
+      //                 <h3>Deployment Frequency</h3>
+      //                 <p>Weekly Average: 5</p>
+      //             </div>
+      //             <div className="metric-card">
+      //                 <h3>Lead Time for Changes</h3>
+      //                 <p>Average: 2 days</p>
+      //             </div>
+      //             <div className="metric-card">
+      //                 <h3>Change Failure Rate</h3>
+      //                 <p>Current: 10%</p>
+      //             </div>
+      //             <div className="metric-card">
+      //                 <h3>Time to Restore Service</h3>
+      //                 <p>Average: 30 minutes</p>
+      //             </div>
+      //         </div>
+      //     </div>
+      //
+      //
+      // </div>
+
+      <div className="team-container">
+        {/*// <div className="metrics-grid" style={{ marginTop: "1rem" }}>*/}
+        {teams.map((team, index) => (
+            <div key={team._id || index} className="team-card">
+              <div className="team-header">
+                <div className="team-basic-info">
+                  <h3 className="team-name">{team.name}</h3>
+                  <p className="team-members">n Members</p>
+                </div>
+                <div className="team-creator">
+                  <span>Created by: {'Some User'}</span>
+                </div>
+              </div>
+
+              <div className="team-metrics">
+                {/*<div className="metric-card">*/}
+                {/*    <div className="metric-header">*/}
+                {/*        <GitBranch className="metric-icon" />*/}
+                {/*        <h3>Deployment Frequency</h3>*/}
+                {/*    </div>*/}
+                {/*    <div className="metric-value">*/}
+                {/*        {'0'}/day*/}
+                {/*    </div>*/}
+                {/*</div>*/}
+
+                {/*<div className="metric-card">*/}
+                {/*    <div className="metric-header">*/}
+                {/*        <Clock className="metric-icon" />*/}
+                {/*        <h3>Lead Time</h3>*/}
+                {/*    </div>*/}
+                {/*    <div className="metric-value">*/}
+                {/*        <strong>{'0.01'} days</strong>*/}
+                {/*        <br />*/}
+                {/*        <small>avg</small>*/}
+                {/*    </div>*/}
+                {/*</div>*/}
+
+                {/*<div className="metric-card">*/}
+                {/*    <div className="metric-header">*/}
+                {/*        <TrendingUp className="metric-icon" />*/}
+                {/*        <h3>Change Failure Rate</h3>*/}
+                {/*    </div>*/}
+                {/*    <div className="metric-value success">*/}
+                {/*        {'100.00%'}*/}
+                {/*    </div>*/}
+                {/*</div>*/}
+
+                {/*<div className="metric-card">*/}
+                {/*    <div className="metric-header">*/}
+                {/*        <Zap className="metric-icon" />*/}
+                {/*        <h3>MTTR</h3>*/}
+                {/*    </div>*/}
+                {/*    <div className="metric-value">*/}
+                {/*        {'0.87'} days*/}
+                {/*    </div>*/}
+                {/*</div>*/}
+
+
+
+
+                <div className="metric-card">
+                  <div className="metric-header">
+                    <GitBranch className="metric-icon" />
+                    <h3>Deployment Frequency</h3>
+                  </div>
+                  <div className="metric-value">
+                    {/*{teamData.doraMetrics.deployment_frequency.frequency_per_day}/day*/}
+                    0
+                  </div>
+                  <div className="metric-trend">
+                    {/*{teamData.doraMetrics.deployment_frequency.total_deployments}{" "}*/} 0
+                    deployments in{" "}
+                    {/*{teamData.doraMetrics.deployment_frequency.analysis_period_days}{" "}*/} 0
+                    days
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-header">
+                    <Clock className="metric-icon" />
+                    <h3>Lead Time</h3>
+                  </div>
+                  <div className="metric-value">
+                    {/*{teamData.doraMetrics.lead_time.average_days} days avg*/} 0 days avg
+                  </div>
+                  <div className="metric-trend">
+                    {/*Range: {teamData.doraMetrics.lead_time.min_days} -{" "} */}
+                    Range: 0
+                    {/*{teamData.doraMetrics.lead_time.max_days} days*/} days
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-header">
+                    <TrendingUp className="metric-icon" />
+                    <h3>Change Failure Rate</h3>
+                  </div>
+                  <div className="metric-value" style={{ color: "#10B981" }}>
+                    {/*{teamData.doraMetrics.change_failure_rate.failure_rate}*/} 0%
+                  </div>
+                  <div className="metric-trend">
+                    {/*{teamData.doraMetrics.change_failure_rate.bug_or_incident_fixes}{" "}*/} 0
+                    failures in{" "}
+                    {/*{teamData.doraMetrics.change_failure_rate.total_deployments}{" "}*/} 0
+                    deployments
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-header">
+                    <Zap className="metric-icon" />
+                    <h3>MTTR</h3>
+                  </div>
+                  <div className="metric-value">
+                    {/*{teamData.doraMetrics.mttr.average_days || 0} days*/} 0 days
+                  </div>
+                  <div className="metric-trend">
+                    Range: 0.00 - 14.30 days
+                  </div>
+                </div>
+              </div>
+            </div>
+        ))}
+      </div>
+  )}
+
+
 
 function Team() {
-  const { currentUser, setCurrentUser } = useAuth();
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
-  const [teamName, setTeamName] = useState('');
-  const [teamPassword, setTeamPassword] = useState('');
-  const [repoUrl, setRepoUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const { currentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
   const [avatar, setAvatar] = useState(defaultAvatar);
 
+  const [teams, setTeams] = useState([]);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+
   useEffect(() => {
-    if (currentUser?.avatar) {
-      const avatarUrl = currentUser.avatar.startsWith('http') 
-        ? currentUser.avatar 
-        : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
-      setAvatar(avatarUrl);
-    } else {
-      setAvatar(defaultAvatar);
-    }
+      if (currentUser?.avatar) {
+          const avatarUrl = currentUser.avatar.startsWith('http')
+              ? currentUser.avatar
+              : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
+          setAvatar(avatarUrl);
+      } else {
+          setAvatar(defaultAvatar);
+      }
+
+      // Load teams
+      const loadTeams = async () => {
+          try {
+              const userTeams = await getMyTeams();
+              setTeams(userTeams);
+          } catch (error) {
+              console.error('Error loading teams:', error);
+          }
+      };
+
+      if (currentUser) {
+          // loadTeams();
+          // console.log(teams);
+
+          (async () => {
+              await loadTeams();
+          })();
+      }
   }, [currentUser]);
 
-    //==============================================Handle Joining A Team function==============================
-  //Uses the input data from the form then uses the searchTeam function in the team.jsx which then makes the neccessary requests in order for a user to search a team
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      setSearchResult({ error: 'Please enter a team name to search.' });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await searchTeam(searchTerm);
-      setSearchResult(result);
-      setErrorMessage('');
-    } catch (error) {
-      setSearchResult({ error: error.message });
-      setErrorMessage(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  //==============================================Handle Joining A Team function==============================
-  //Uses the input data from the form then uses the createTeam function in the team.jsx which then makes the neccessary requests in order for a user to creat a team
-  const handleCreateTeam = async () => {
-    if (!teamName || !teamPassword || !repoUrl) {
-      setErrorMessage('Please fill in all fields');
-      return;
-    }
-
-    // Validate GitHub URL format
-    if (!repoUrl.startsWith('https://github.com/')) {
-      setErrorMessage('Please enter a valid GitHub repository URL');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      const result = await createTeam(teamName, teamPassword, repoUrl);
-      setSuccessMessage(`Team "${teamName}" created successfully!`);
-      setShowCreateForm(false);
-      setTeamName('');
-      setTeamPassword('');
-      setRepoUrl('');
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      setErrorMessage(error.message || 'Failed to create team');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  //==============================================Handle Joining A Team function==============================
-  //Takes in 2 parameters which are used to call the joinTeam() function in team.jsx which then makes the neccessary requests in order for a user to join a team
-  const handleJoinTeam = async (name, password) => {
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      await joinTeam(name, password);
-      setSuccessMessage(`Joined team "${name}" successfully!`);
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      setErrorMessage(error.message || 'Failed to join team');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <>
-      <header className="main-header">
-        <h1>Team Management</h1>
-        {/*<div className="user-profile">*/}
-        {/*  <div className="user-info">*/}
-        {/*    <span className="user-name">{currentUser?.name}</span>*/}
-        {/*    <span className="user-role">{currentUser?.role}</span>*/}
-        {/*  </div>*/}
-        {/*  <div className="user-avatar">*/}
-        {/*    <img */}
-        {/*      src={avatar} */}
-        {/*      alt="User Avatar" */}
-        {/*      onError={(e) => {*/}
-        {/*        e.target.src = defaultAvatar;*/}
-        {/*      }}*/}
-        {/*    />*/}
-        {/*  </div>*/}
+      <div>
+        <header className="main-header">
+          <h1>Your Teams</h1>
+          <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+        </header>
+        {/*<div className="teams-box" style={{ width: '260px' }}>*/}
+        {/*    <h2 style={{ marginBottom: '1rem' }}>Your Teams</h2>*/}
+        {/*    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>*/}
+        {/*        {teams.length > 0 ? (*/}
+        {/*            teams.map(team => (*/}
+        {/*                <li key={team._id} style={{ marginBottom: '0.5rem' }}>*/}
+        {/*                    <a href="#">{team.name}</a>*/}
+        {/*                </li>*/}
+        {/*            ))*/}
+        {/*        ) : (*/}
+        {/*            <li>No teams yet.</li>*/}
+        {/*        )}*/}
+        {/*    </ul>*/}
         {/*</div>*/}
 
-        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
-      </header>
-
-      <div className="dashboard-section active">
-        {successMessage && (
-          <div className="success-message">
-            {successMessage}
-          </div>
-        )}
-        {errorMessage && (
-          <div className="error-message">
-            {errorMessage}
-          </div>
-        )}
-
-        <div className="team-management">
-          <div className="team-search">
-            <h2>Find a Team</h2>
-            <div className="search-controls">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Enter team name"
-                className="form-input"
-              />
-              <button 
-                onClick={handleSearch} 
-                disabled={isLoading}
-                className="btn btn-primary"
-              >
-                {isLoading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-
-            {searchResult?.error && (
-              <div className="error-message">{searchResult.error}</div>
-            )}
-
-            {searchResult?.team && (
-              <div className="team-result">
-                <h3>{searchResult.team.name}</h3>
-                <p>Created by: {searchResult.team.creator?.name || 'Unknown'}</p>
-                <p>Repository: {searchResult.team.repoUrl || 'Not specified'}</p>
-                <p>Members: {searchResult.team.members?.length || 0}</p>
-                <button
-                  onClick={() => {
-                    const password = prompt('Enter team password:');
-                    if (password) {
-                      handleJoinTeam(searchResult.team.name, password);
-                    }
-                  }}
-                  disabled={isLoading}
-                  className="btn btn-secondary"
-                >
-                  {isLoading ? 'Joining...' : 'Join Team'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="team-create">
-            {!showCreateForm ? (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="btn btn-primary"
-              >
-                Create New Team
-              </button>
-            ) : (
-              <div className="create-form">
-                <div className="form-header">
-                  <h2>Create New Team</h2>
-                  <button
-                    onClick={() => {
-                      setShowCreateForm(false);
-                      setErrorMessage('');
-                    }}
-                    className="btn btn-icon"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <div className="form-group">
-                  <label>Team Name</label>
-                  <input
-                    type="text"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="Enter team name"
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>GitHub Repository URL</label>
-                  <input
-                    type="url"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                    placeholder="https://github.com/username/repo"
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Team Password</label>
-                  <input
-                    type="password"
-                    value={teamPassword}
-                    onChange={(e) => setTeamPassword(e.target.value)}
-                    placeholder="Create a password for the team"
-                    className="form-input"
-                  />
-                </div>
-                <button
-                  onClick={handleCreateTeam}
-                  disabled={isLoading}
-                  className="btn btn-primary"
-                >
-                  {isLoading ? 'Creating...' : 'Create Team'}
-                </button>
-              </div>
-            )}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem'}}>
+          <button className="btn btn-primary edit-actions-btn"  onClick={() => setShowCreateModal(true)}>
+            Create Team
+          </button>
+          <button className="btn btn-primary edit-actions-btn" onClick={() => setShowJoinModal(true)}>
+            Join Team
+          </button>
         </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <TeamInfo teams={teams} />
+        </div>
+
+
+
+
+        {showCreateModal && <CreateTeamModal onCloseCreate={() => setShowCreateModal(false)} />}
+
+        {showJoinModal && <JoinTeamModal onCloseJoin={() => setShowJoinModal(false)} />}
+
       </div>
-    </>
   );
 }
 

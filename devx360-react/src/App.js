@@ -12,6 +12,7 @@ import Metrics from './components/Dashboard/Metrics';
 import HelpMenu from './components/Dashboard/HelpMenu';
 import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth import
 import { ThemeProvider } from './context/ThemeContext';
+import { Toaster } from 'react-hot-toast';
 
 
 //ProtectedRoute, this protects all the authenticated routes
@@ -56,6 +57,7 @@ function App() {
               <Route path="help" element={<HelpMenu />} />
             </Route>
           </Routes>
+          <Toaster position="top-center" />
         </AuthProvider>
       </ThemeProvider>
     </Router>
