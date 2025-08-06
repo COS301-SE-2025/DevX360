@@ -47,7 +47,7 @@ function Register() {
   return (
     <AuthLayout>
       <div className="auth-form-container">
-        <ThemeToggle />
+        <ThemeToggle position="absolute" />
         <div className="logo">DevX360</div>
         <div className="tagline">Engineering Intelligence Platform</div>
 

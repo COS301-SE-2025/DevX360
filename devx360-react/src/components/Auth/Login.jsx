@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
 import ThemeToggle from '../common/ThemeToggle';
 
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +32,7 @@ function Login() {
   return (
     <AuthLayout>
       <div className="auth-form-container">
-        <ThemeToggle />
+        <ThemeToggle position="absolute"/>
         <div className="logo">DevX360</div>
         <div className="tagline">Manage your team's workflow efficiently</div>
 

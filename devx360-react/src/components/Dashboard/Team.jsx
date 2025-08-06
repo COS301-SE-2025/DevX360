@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { searchTeam, createTeam, joinTeam } from '../../services/teams';
+import HeaderInfo from "../common/HeaderInfo";
 
 function Team() {
   const { currentUser, setCurrentUser } = useAuth();
@@ -101,21 +102,23 @@ function Team() {
     <>
       <header className="main-header">
         <h1>Team Management</h1>
-        <div className="user-profile">
-          <div className="user-info">
-            <span className="user-name">{currentUser?.name}</span>
-            <span className="user-role">{currentUser?.role}</span>
-          </div>
-          <div className="user-avatar">
-            <img 
-              src={avatar} 
-              alt="User Avatar" 
-              onError={(e) => {
-                e.target.src = defaultAvatar;
-              }}
-            />
-          </div>
-        </div>
+        {/*<div className="user-profile">*/}
+        {/*  <div className="user-info">*/}
+        {/*    <span className="user-name">{currentUser?.name}</span>*/}
+        {/*    <span className="user-role">{currentUser?.role}</span>*/}
+        {/*  </div>*/}
+        {/*  <div className="user-avatar">*/}
+        {/*    <img */}
+        {/*      src={avatar} */}
+        {/*      alt="User Avatar" */}
+        {/*      onError={(e) => {*/}
+        {/*        e.target.src = defaultAvatar;*/}
+        {/*      }}*/}
+        {/*    />*/}
+        {/*  </div>*/}
+        {/*</div>*/}
+
+        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
       </header>
 
       <div className="dashboard-section active">

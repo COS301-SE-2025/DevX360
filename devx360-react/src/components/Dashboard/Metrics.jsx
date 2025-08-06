@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import HeaderInfo from "../common/HeaderInfo";
 
 function Metrics() {
   const { currentUser } = useAuth();
@@ -235,21 +236,23 @@ function Metrics() {
     <>
       <header className="main-header">
         <h1>DORA Metrics Dashboard</h1>
-        <div className="user-profile">
-          <div className="user-info">
-            <span className="user-name">{currentUser?.name}</span>
-            <span className="user-role">{currentUser?.role}</span>
-          </div>
-          <div className="user-avatar">
-            <img 
-              src={avatar} 
-              alt="User Avatar" 
-              onError={(e) => {
-                e.target.src = defaultAvatar;
-              }}
-            />
-          </div>
-        </div>
+        {/*<div className="user-profile">*/}
+        {/*  <div className="user-info">*/}
+        {/*    <span className="user-name">{currentUser?.name}</span>*/}
+        {/*    <span className="user-role">{currentUser?.role}</span>*/}
+        {/*  </div>*/}
+        {/*  <div className="user-avatar">*/}
+        {/*    <img */}
+        {/*      src={avatar} */}
+        {/*      alt="User Avatar" */}
+        {/*      onError={(e) => {*/}
+        {/*        e.target.src = defaultAvatar;*/}
+        {/*      }}*/}
+        {/*    />*/}
+        {/*  </div>*/}
+        {/*</div>*/}
+
+        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
       </header>
 
       <div className="metrics-container">

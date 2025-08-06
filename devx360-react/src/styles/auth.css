@@ -275,7 +275,7 @@ input:focus {
 }
 
 .theme-toggle {
-  position: absolute;
+  /*position: absolute;*/
   top: 1.5rem;
   right: 1.5rem;
   background: none;
@@ -285,8 +285,14 @@ input:focus {
   padding: 0.5rem;
   border-radius: 50%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /*align-items: center;*/
+  /*justify-content: end;*/
+}
+
+.theme-toggle-absolute {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
 }
 
 .theme-toggle:hover {

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateAvatar, getMyTeams, updateProfile } from '../../services/profile';
+import HeaderInfo from "../common/HeaderInfo";
 
 function Profile() {
  const { currentUser, setCurrentUser } = useAuth();
@@ -159,22 +160,23 @@ function Profile() {
   <>
     <header className="main-header">
       <h1>Your Profile</h1>
-      <div className="user-profile">
-        <div className="user-info">
-          <span className="user-name">{currentUser?.name}</span>
-          <span className="user-role">{currentUser?.role}</span>
-        </div>
-        <div className="user-avatar">
-          <img 
-            src={avatar} 
-            alt="User Avatar" 
-            onError={(e) => {
-              e.target.src = defaultAvatar;
-              e.target.onerror = null;
-            }}
-          />
-        </div>
-      </div>
+      {/*<div className="user-profile">*/}
+      {/*  <div className="user-info">*/}
+      {/*    <span className="user-name">{currentUser?.name}</span>*/}
+      {/*    <span className="user-role">{currentUser?.role}</span>*/}
+      {/*  </div>*/}
+      {/*  <div className="user-avatar">*/}
+      {/*    <img */}
+      {/*      src={avatar} */}
+      {/*      alt="User Avatar" */}
+      {/*      onError={(e) => {*/}
+      {/*        e.target.src = defaultAvatar;*/}
+      {/*        e.target.onerror = null;*/}
+      {/*      }}*/}
+      {/*    />*/}
+      {/*  </div>*/}
+      {/*</div>*/}
+        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
     </header>
     <div style={{ display: 'flex', gap: '15rem', alignItems: 'flex-start', width: '100%', justifyContent: 'center' }}>
       <div className="profile-content full-width-profile" style={{ flex: 2, width: '100%', maxWidth: '1200px' }}>

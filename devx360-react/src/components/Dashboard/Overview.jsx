@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatCard from '../common/StatCard';
 import { useAuth } from '../../context/AuthContext';
+import HeaderInfo from "../common/HeaderInfo";
 
 //===========================================================Overview Component Function======================================
 // The main dashboard overview page showing welcome message, platform info, and stat cards
@@ -27,21 +28,22 @@ function Overview() {
     <>
       <header className="main-header">
         <h1>Overview</h1>
-        <div className="user-profile">
-          <div className="user-info">
-            <span className="user-name">{currentUser?.name}</span>
-            <span className="user-role">{currentUser?.role}</span>
-          </div>
-          <div className="user-avatar">
-            <img 
-              src={avatar} 
-              alt="User Avatar" 
-              onError={(e) => {
-                e.target.src = defaultAvatar;
-              }}
-            />
-          </div>
-        </div>
+        {/*<div className="user-profile">*/}
+        {/*  <div className="user-info">*/}
+        {/*    <span className="user-name">{currentUser?.name}</span>*/}
+        {/*    <span className="user-role">{currentUser?.role}</span>*/}
+        {/*  </div>*/}
+        {/*  <div className="user-avatar">*/}
+        {/*    <img */}
+        {/*      src={avatar} */}
+        {/*      alt="User Avatar" */}
+        {/*      onError={(e) => {*/}
+        {/*        e.target.src = defaultAvatar;*/}
+        {/*      }}*/}
+        {/*    />*/}
+        {/*  </div>*/}
+        {/*</div>*/}
+          <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
       </header>
 
       {/* Welcome card with platform introduction */}

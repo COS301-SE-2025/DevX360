@@ -941,3 +941,10 @@
   text-align: center;
   margin-top: 0.5rem;
 }
+
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}

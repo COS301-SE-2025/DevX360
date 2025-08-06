@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import ThemeToggle from '../common/ThemeToggle';
+// import ThemeToggle from '../common/ThemeToggle';
 
 //===========================================================Sidebar Component Function======================================
 // The main navigation sidebar with links to all dashboard sections and logout functionality
@@ -87,7 +87,7 @@ function Sidebar() {
         </button>
 
       <div className="sidebar-footer">
-        <ThemeToggle />
+        {/*<ThemeToggle />*/}
         <button onClick={handleLogout} className="btn btn-logout">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
