@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { updateAvatar, getMyTeams, updateProfile } from '../../services/profile';
+import { updateAvatar, updateProfile } from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
 
 function Profile() {
  const { currentUser, setCurrentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
   const [avatar, setAvatar] = useState(defaultAvatar);
-  const [teams, setTeams] = useState([]);
+  // const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -41,7 +41,7 @@ function Profile() {
     setEditData({
       name: currentUser.name || '',
       email: currentUser.email || '',
-      role: currentUser.role || ''
+      // role: currentUser.role || '' // immutable in back-end
     });
   };
 
@@ -89,18 +89,18 @@ function Profile() {
     }
 
     // Load teams
-    const loadTeams = async () => {
-      try {
-        const userTeams = await getMyTeams();
-        setTeams(userTeams);
-      } catch (error) {
-        console.error('Error loading teams:', error);
-      }
-    };
-    
-    if (currentUser) {
-      loadTeams();
-    }
+    // const loadTeams = async () => {
+    //   try {
+    //     const userTeams = await getMyTeams();
+    //     setTeams(userTeams);
+    //   } catch (error) {
+    //     console.error('Error loading teams:', error);
+    //   }
+    // };
+    //
+    // if (currentUser) {
+    //   loadTeams();
+    // }
   }, [currentUser]);
 
   const handleAvatarChange = async (e) => {
@@ -178,7 +178,7 @@ function Profile() {
       {/*</div>*/}
         <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
     </header>
-    <div style={{ display: 'flex', gap: '15rem', alignItems: 'flex-start', width: '100%', justifyContent: 'center' }}>
+      {/* <div style={{ display: 'flex', gap: '15rem', alignItems: 'flex-start', width: '100%', justifyContent: 'center' }}>
       <div className="profile-content full-width-profile" style={{ flex: 2, width: '100%', maxWidth: '1200px' }}>
         <div className="profile-avatar-container">
           <div className="profile-avatar">
@@ -294,7 +294,7 @@ function Profile() {
                 </div>
               </div>
               
-              {/* Action buttons for edit mode */}
+              {/* Action buttons for edit mode }
               <div className="edit-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
              <button 
   onClick={handleSaveProfile} 
@@ -334,7 +334,237 @@ function Profile() {
           )}
         </ul>
       </div>
-    </div>
+    </div> */}
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', width: '60%', justifyContent: 'center' }}>
+
+          <div className="profile-content full-width-profile" style={{ flex: 2, width: '100%', maxWidth: '1200px', gap: '1rem' }}>
+
+              <div className="profile-wrapper">
+
+                  <div className="profile-left">
+                      <div className="profile-avatar-container">
+                          {/*added*/}
+                          <div className="avatar-wrap">
+                              <div className="profile-avatar">
+                                  <img
+                                      src={avatar}
+                                      alt="Profile"
+                                      onError={(e) => {
+                                          e.target.src = defaultAvatar;
+                                          e.target.onerror = null;
+                                      }}
+                                  />
+                                  {isLoading && (
+                                      <div className="avatar-loading-overlay">
+                                          <div className="loading-spinner"></div>
+                                      </div>
+                                  )}
+                              </div>
+
+                              {/*add button stuff*/}
+                              <button
+                                  onClick={triggerFileInput}
+                                  className="edit-btn btn-secondary"
+                                  disabled={isLoading}
+                              >
+                                  {isLoading ? 'Uploading...' : 'Edit'}
+                              </button>
+                              {/*ADD BUTTON STUFF*/}
+
+                              <input
+                                  type="file"
+                                  ref={fileInputRef}
+                                  onChange={handleAvatarChange}
+                                  accept="image/*"
+                                  style={{ display: 'none' }}
+                              />
+
+                          </div>
+                      </div>
+                      {/*<div className="field-row">*/}
+                      {!isEditing ? (
+                          <>
+                              <div className="detail-group member-since">
+                                  <label>Member Since</label>
+                                  <div className="detail-value">
+                                      {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}
+                                  </div>
+                              </div>
+                          </>
+                      ) : (
+                          <div className="detail-group member-since">
+                              <label>Member Since</label>
+                              <div className="detail-value">
+                                  {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}
+                              </div>
+                          </div>
+                      )}
+
+                      {/*</div>*/}
+                  </div>
+
+                  <div className="profile-right">
+                      {!isEditing ? (
+                          // View mode
+                          <>
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Full Name</label>
+                                      <div className="detail-value">{currentUser?.name}</div>
+                                  </div>
+                              </div>
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Username</label>
+                                      {/*<div className="detail-value">{currentUser?.email}</div>*/}
+                                      <div className="detail-value">To do</div>
+                                  </div>
+                                  <div className="detail-group">
+                                      <label>Role</label>
+                                      <div className="detail-value">{currentUser?.role}</div>
+                                  </div>
+                              </div>
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Email</label>
+                                      <div className="detail-value">{currentUser?.email}</div>
+                                  </div>
+                                  <div className="detail-group">
+                                      <label>Last Login</label>
+                                      <div className="detail-value">
+                                          {currentUser?.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Never'}
+                                      </div>
+                                  </div>
+                              </div>
+                          </>
+                      ) : (
+                          // Edit mode
+                          <>
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Full Name</label>
+                                      <input
+                                          type="text"
+                                          name="name"
+                                          value={editData.name || ''}
+                                          onChange={handleInputChange}
+                                          className="form-input"
+                                      />
+                                  </div>
+                              </div>
+
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Username</label>
+                                      <input
+                                          type="text"
+                                          name="username"
+                                          value={editData.username || ''}
+                                          onChange={handleInputChange}
+                                          className="form-input"
+                                      />
+                                  </div>
+                                  <div className="detail-group">
+                                      <label>Role</label>
+                                      <input
+                                          type="text"
+                                          name="role"
+                                          value={editData.role}
+                                          onChange={handleInputChange}
+                                          className="form-input"
+                                      />
+                                  </div>
+                              </div>
+
+                              <div className="field-row">
+                                  <div className="detail-group">
+                                      <label>Email</label>
+                                      <input
+                                          type="email"
+                                          name="email"
+                                          value={editData.email || ''}
+                                          onChange={handleInputChange}
+                                          className="form-input"
+                                      />
+                                  </div>
+
+                                  <div className="detail-group">
+                                      <label>Last Login</label>
+                                      <div className="detail-value">
+                                          {currentUser?.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Never'}
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {/*<div className="detail-group">*/}
+                              {/*    <label>Member Since</label>*/}
+                              {/*    <div className="detail-value">*/}
+                              {/*        {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}*/}
+                              {/*    </div>*/}
+                              {/*</div>*/}
+
+
+                          </>
+                      )}
+                  </div>
+              </div>
+
+
+              {!isEditing ? (
+                  <div className="edit-actions">
+                      <button
+                          className="btn btn-primary edit-actions-btn"
+                          onClick={handleEditProfile}
+                      >
+                          Edit Profile
+                      </button>
+                  </div>
+              ) : (
+                  // Action buttons for edit mode
+                  <div className="edit-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+                      <button
+                          onClick={handleSaveProfile}
+                          className="btn btn-primary edit-actions-btn"
+                          disabled={isLoading}
+                      >
+                          {isLoading ? (
+                              <>
+                                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                  Saving...
+                              </>
+                          ) : 'Save Changes'}
+                      </button>
+                      <button
+                          onClick={handleCancelEdit}
+                          className="btn btn-secondary edit-actions-btn"
+                          disabled={isLoading}
+                      >
+                          Cancel
+                      </button>
+                  </div>
+
+              )}
+
+
+          </div>
+
+
+          {/*<div className="teams-box" style={{ width: '260px' }}>*/}
+          {/*  <h2 style={{ marginBottom: '1rem' }}>Your Teams</h2>*/}
+          {/*  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>*/}
+          {/*    {teams.length > 0 ? (*/}
+          {/*      teams.map(team => (*/}
+          {/*        <li key={team._id} style={{ marginBottom: '0.5rem' }}>*/}
+          {/*          <a href="#">{team.name}</a>*/}
+          {/*        </li>*/}
+          {/*      ))*/}
+          {/*    ) : (*/}
+          {/*      <li>No teams yet.</li>*/}
+          {/*    )}*/}
+          {/*  </ul>*/}
+          {/*</div>*/}
+      </div>
   </>
 );
 }

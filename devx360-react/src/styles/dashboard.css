@@ -219,11 +219,66 @@
 
 .profile-content {
   display: flex;
-  gap: 3rem;
+  gap: 2rem;
   background-color: var(--bg-container);
   border-radius: 12px;
   padding: 2rem;
   box-shadow: var(--shadow);
+
+  flex-direction: column;
+
+
+  width: 100%;
+  max-width: 1200px;
+}
+
+.profile-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 5rem;
+  /*justify-content: space-between;*/
+  /*align-items: stretch;*/
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.profile-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5em;
+  min-width: 120px;
+
+  /*flex-shrink: 0;*/
+  justify-content: space-between;
+  /*align-content: stretch;*/
+  /*height: 100%;*/
+}
+
+.profile-left .field-row {
+  flex: 1;
+}
+
+.profile-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+  /*max-width: 600px;*/
+  min-width: 300px;
+  /*height: 100%;*/
+}
+
+.field-row {
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.avatar-wrap{
+  position: relative;
+  display: inline-block;
 }
 
 .profile-avatar-container {
@@ -254,8 +309,19 @@
   gap: 1.5rem;
 }
 
+.form-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .detail-group {
   margin-bottom: 1rem;
+}
+
+.field-row .detail-group {
+  flex: 1;
+  min-width: 150px;
 }
 
 .detail-group label {
@@ -271,6 +337,8 @@
   border-bottom: 1px solid var(--border);
 }
 
+
+/*
 .team-block {
   background: var(--bg-container);
   padding: 1.25rem 1.5rem;
@@ -300,7 +368,7 @@
   border-radius: 6px;
 }
 
-/* Add to dashboard.css */
+/* Add to dashboard.css
 .teams-box {
   background: var(--bg-container);
   border-radius: 12px;
@@ -329,7 +397,7 @@
   border-radius: 6px;
 }
 
-/* Teams Section */
+/* Teams Section
 .team-section {
   background-color: var(--bg-container);
   border-radius: 12px;
@@ -379,6 +447,7 @@
   font-size: 0.9rem;
   color: var(--text);
 }
+*/
 
 /* Search Results */
 .search-result-container {
