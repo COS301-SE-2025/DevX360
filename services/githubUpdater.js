@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import User from "../api/models/User.js";
 import { Octokit } from "octokit";
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN_1 });
