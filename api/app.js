@@ -11,6 +11,8 @@ import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
 import { authorizeTeamAccess } from "../api/middlewares/authorizeTeamAccess.js";
+import cron from "node-cron";
+import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
@@ -105,6 +107,12 @@ app.get("/api/health", async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+});
+
+//GitHub username sync daily at 1:00 AM
+cron.schedule("0 1 * * *", async () => {
+  console.log("⏰ Running daily GitHub username sync...");
+  await refreshGithubUsernames();
 });
 
 //Need a way to connect a users github id to their profile during registration
