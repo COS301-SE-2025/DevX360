@@ -5,7 +5,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
+import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
@@ -74,7 +74,9 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Routes
+// --------------------------------------------------------------------------
+// Health Check Endpoint
+// --------------------------------------------------------------------------
 app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
@@ -165,6 +167,85 @@ app.post("/api/register", async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal server error during registration" });
+  }
+});
+
+// Redirect user to GitHub
+app.get("/auth/github", (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user`;
+  res.redirect(redirectUrl);
+});
+
+// GitHub callback
+app.get("/auth/github/callback", async (req, res) => {
+  const code = req.query.code;
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  try {
+    // Exchange code for access token
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    // Fetch user info from GitHub
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const githubUser = await userRes.json();
+
+    // Check if user already exists
+    let user = await User.findOne({ githubId: githubUser.id });
+
+    // If not, register a new user
+    if (!user) {
+      user = new User({
+        name: githubUser.name || githubUser.login,
+        email: githubUser.email || `${githubUser.login}@users.noreply.github.com`,
+        githubId: githubUser.id,
+        githubUsername: githubUser.login,
+        isEmailVerified: true,
+        password: await hashPassword(crypto.randomUUID()), // random unusable password
+      });
+
+      await user.save();
+    }
+
+    // Generate token and set cookie
+    const token = generateToken({
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Redirect to frontend or profile
+    res.redirect("/profile");
+  } catch (error) {
+    console.error("GitHub OAuth error:", error);
+    res.status(500).json({ message: "GitHub login failed" });
   }
 });
 
@@ -424,11 +505,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
       await team.save();
     }
 
-    //extractOwnerAndRepo and collectMemberActivity To be used when the required functions are implemented in data collection
-    //or perhaps another file
-    //Also when the connection with a user through their github profile is finalized
-
-    /*const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId);
     if (user.githubUsername) {
       const repoData = await RepoMetrics.findOne({ teamId: team._id });
       if (repoData && repoData.repositoryInfo?.url) {
@@ -443,7 +520,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
           await repoData.save();
         }
       }
-    }*/
+    }
 
     res.json({ message: "Joined team", teamId: team._id });
   } catch (error) {

@@ -22,6 +22,8 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true, minlength: 6 },
   role: { type: String, required: true, trim: true },
+  githubId: { type: String, unique: true, sparse: true, default: null },
+  githubUsername: {type: String, default: null},
   isEmailVerified: { type: Boolean, default: false },
   inviteCode: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
