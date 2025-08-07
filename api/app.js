@@ -111,7 +111,7 @@ app.get("/api/health", async (req, res) => {
 
 //GitHub username sync daily at 1:00 AM
 cron.schedule("0 1 * * *", async () => {
-  console.log("⏰ Running daily GitHub username sync...");
+  console.log("Running daily GitHub username sync...");
   await refreshGithubUsernames();
 });
 
