@@ -2,6 +2,7 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--bg);
+  transition: all 0.3s ease;
 }
 
 .sidebar {
@@ -11,6 +12,112 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
+   position: relative;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar.minimized {
+  width: 80px;
+  padding: 1.5rem 0.75rem;
+}
+
+/* Toggle Button - 3 lines (hamburger menu) */
+.sidebar-toggle {
+  position: absolute;
+  top: 1rem;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--bg-container);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  color: var(--text-light);
+}
+
+/* When sidebar is minimized, adjust main content */
+.sidebar.minimized ~ .main-content {
+  margin-left: 0;
+}
+
+/* Logo adjustments for minimized state */
+.sidebar.minimized .logo-container {
+  text-align: center;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar.minimized .logo {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar.minimized .tagline {
+  display: none;
+}
+
+/* Navigation adjustments */
+.sidebar.minimized .nav-item {
+  padding: 0.75rem;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.minimized .nav-item span {
+  display: none;
+}
+
+.sidebar.minimized .btn-logout span {
+  display: none;
+}
+
+.sidebar.minimized .btn-logout {
+  padding: 0.75rem;
+  justify-content: center;
+}
+
+/* Tooltips for minimized state */
+.sidebar.minimized .nav-item:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 10px);
+  background-color: var(--text);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.2s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hide toggle on mobile */
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: none;
+  }
+  
+  .sidebar.minimized {
+    width: 100%;
+    padding: 1rem;
+  }
+  
+  .sidebar.minimized ~ .main-content {
+    margin-left: 0;
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1200px) {
@@ -22,12 +129,25 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  transition: margin-left 0.3s ease;
 }
 
 .logo-container {
-  margin-bottom: 2rem;
+    margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.logo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sidebar.minimized .logo-header {
+  justify-content: center;
 }
 
 .logo {
@@ -35,6 +155,7 @@
   font-weight: 700;
   color: var(--primary);
   margin-bottom: 0.25rem;
+  transition: font-size 0.3s ease;
 }
 
 .tagline {
@@ -1042,3 +1163,5 @@
   align-items: center;
   gap: 1rem;
 }
+
+
