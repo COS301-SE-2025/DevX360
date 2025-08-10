@@ -28,7 +28,16 @@
   padding: 0;
   box-sizing: border-box;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: 
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.main-content > * {
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
 body {
@@ -45,11 +54,30 @@ body {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
+    position: relative;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .btn-primary {
   background-color: var(--primary);
   color: white;
+}
+
+.btn-primary:hover::after {
+  opacity: 0.9;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(99, 102, 241, 0.2);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .btn-primary:hover {
@@ -63,7 +91,8 @@ body {
 }
 
 .btn-secondary:hover {
-  background-color: var(--border);
+background-color: var(--border);
+  color: var(--text);
 }
 
 .theme-toggle {
@@ -88,4 +117,9 @@ body {
   .graphic-side {
     display: flex;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
