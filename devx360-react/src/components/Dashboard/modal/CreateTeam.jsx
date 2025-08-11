@@ -78,7 +78,6 @@ function CreateTeamModal({onCloseCreate}) {
 
 
         setIsLoading(true);
-        // setErrorMessage('');
         clearErrors();
 
         try {
