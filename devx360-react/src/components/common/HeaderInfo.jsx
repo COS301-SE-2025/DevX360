@@ -1,5 +1,5 @@
 import ThemeToggle from "./ThemeToggle";
-import ProfileIcon from "./Profile";
+import ProfileIcon from "./ProfileIcon";
 import React from "react";
 
 function HeaderInfo({ currentUser, avatar, defaultAvatar }) {

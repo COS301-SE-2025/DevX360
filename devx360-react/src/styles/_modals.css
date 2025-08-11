@@ -1,0 +1,68 @@
+
+.modal-section {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+
+.modal {
+    background-color: var(--bg-container);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 28rem;
+    width: 100%;
+    z-index: 10001;
+    border: 1px solid var(--border);
+}
+
+
+.modal-header {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.modal-info {
+    display: flex;
+    align-items: center;
+        /*justify-content: space-between;*/
+        /*margin-bottom: 0.5rem;*/
+    gap: 0.75rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.search-input-group .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-input-group .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}

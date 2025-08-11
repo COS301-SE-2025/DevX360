@@ -57,7 +57,17 @@ function App() {
               <Route path="help" element={<HelpMenu />} />
             </Route>
           </Routes>
-          <Toaster position="top-center" />
+          <Toaster position="top-center"
+          toastOptions={{
+            style: {
+              background: 'var(--bg-container)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow)',
+              zIndex: 100002,
+            }
+          }}
+          />
         </AuthProvider>
       </ThemeProvider>
     </Router>
