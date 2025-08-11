@@ -80,12 +80,6 @@ function JoinTeamModal({onCloseJoin}) {
         setErrorMessage('');
     };
 
-    const handleKeyPress = (e, action) => {
-        if (e.key === 'Enter') {
-            action();
-        }
-    };
-
     const modalRef = React.useRef(null);
     const closeModal = (e) => {
         if(e.target === modalRef.current) {
@@ -371,7 +365,8 @@ function JoinTeamModal({onCloseJoin}) {
                                             setErrorMessage('');
                                         }
                                     }}
-                                    onKeyPress={(e) => handleKeyPress(e, handleJoinTeam)}
+                                    // onKeyPress={(e) => handleKeyPress(e, handleJoinTeam)}
+                                    onKeyDown={handleKeyDown}
                                     placeholder="Enter the team password"
                                 />
                             </div>
