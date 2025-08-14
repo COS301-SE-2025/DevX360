@@ -179,14 +179,16 @@ app.post("/api/register", async (req, res) => {
 });
 
 // Redirect user to GitHub
-app.get("/auth/github", (req, res) => {
+app.get("/api/auth/github", (req, res) => {
+  console.log("GITHUB OAUTH ENDPOINT");
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user`;
   res.redirect(redirectUrl);
 });
 
 // GitHub callback
-app.get("/auth/github/callback", async (req, res) => {
+app.get("/api/auth/github/callback", async (req, res) => {
+    console.log("GITHUB OAUTH ENDPOINT 2");
   const code = req.query.code;
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
@@ -521,7 +523,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
         if (owner && repo) {
           const stats = await collectMemberActivity(owner, repo, user.githubUsername);
           repoData.memberStats = repoData.memberStats || {};
-          repoData.memberStats[userId] = {
+          repoData.memberStats[req.user.userId] = {
             githubUsername: user.githubUsername,
             ...stats,
           };
@@ -548,7 +550,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
     lastUpdated: repoData?.lastUpdated || null,
   };
 
-  if (req.user.id === team.creator) {
+  if (req.user.userId === team.creator.toString()) {
     await team.populate("creator", "name");
     await team.populate("members", "name email");
     return res.json({
@@ -637,6 +639,11 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
 });
 
 //Error handling
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  next();
+});
+
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Something went wrong!" });

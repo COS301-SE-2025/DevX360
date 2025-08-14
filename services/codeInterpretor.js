@@ -1,5 +1,11 @@
+import OpenAI from "openai";
+import 'dotenv/config';
 import { getNextOctokit } from './tokenManager.js';
 import { concurrentMap } from '../api/utils/concurrentMap.js';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 const DORA_ANALYSIS_PATTERNS = {
   deployment_frequency: {
@@ -424,24 +430,16 @@ Structure your response like this:
 `;
 
   try {
-    const res = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "mistral:instruct",
-        prompt,
-        stream: false,
-        options: {
-          temperature: 0.3,
-          num_predict: 1500,
-          num_ctx: 2048
-        }
-      })
+    const response = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: prompt,
+      temperature: 0.3,
+      max_output_tokens: 1500
     });
 
-    const data = await res.json();
     console.log("Generated Dora Insights");
-    return data.response;
+    console.log("Insight: ", response.output_text);
+    return response.output_text;
   } catch (error) {
     throw new Error(`DORA analysis failed: ${error.message}`);
   }
