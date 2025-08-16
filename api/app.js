@@ -538,6 +538,34 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------
+// Check Team Membership
+// --------------------------------------------------------------------------
+app.get("/api/teams/:teamId/membership", authenticateToken, async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(teamId)) {
+      return res.status(400).json({ message: "Invalid team ID format" });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    const isMember = team.members.some(memberId => 
+      memberId.toString() === userId.toString()
+    );
+
+    res.json({ isMember });
+  } catch (error) {
+    console.error("Membership check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // TEAM DETAILS WITH RBAC
 app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
   const team = req.team;
