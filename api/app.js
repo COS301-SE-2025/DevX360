@@ -303,18 +303,35 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
-    const teams = await Team.find({ members: user._id }).select("name");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    const teams = await Team.find({ members: user._id })
+      .populate("creator", "name email")
+      .populate("members", "name email");
+
+    const teamsWithMetrics = await Promise.all(
+      teams.map(async (team) => {
+        const repoData = await RepoMetrics.findOne({ teamId: team._id });
+        return {
+          id: team._id,
+          name: team.name,
+          creator: team.creator,
+          members: team.members,
+          doraMetrics: repoData?.metrics || null,
+          repositoryInfo: repoData?.repositoryInfo || null,
+        };
+      })
+    );
+
     const userObj = user.toObject();
-    userObj.teams = teams;
+    userObj.teams = teamsWithMetrics;
     if (user.avatar) {
       userObj.avatar = `/uploads/${user.avatar}`;
     }
     res.json({ user: userObj });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Profile fetch error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -438,8 +455,6 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       members: [req.user.userId]
     });
 
-    await team.save();
-
     let metrics;
     let repositoryInfo;
     try {
@@ -454,6 +469,8 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
         suggestion: "Check repository accessibility or try again later",
       });
     }
+
+    await team.save();
 
     await RepoMetrics.create({
       teamId: team._id,
@@ -562,6 +579,22 @@ app.get("/api/teams/:teamId/membership", authenticateToken, async (req, res) => 
     res.json({ isMember });
   } catch (error) {
     console.error("Membership check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/teams/search", authenticateToken, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.status(400).json({ message: "Query parameter 'q' is required" });
+
+    const teams = await Team.find({ 
+      name: { $regex: q, $options: "i" } 
+    }).select("name creator members");
+
+    res.json({ results: teams });
+  } catch (error) {
+    console.error("Team search error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
