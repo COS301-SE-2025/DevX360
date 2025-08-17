@@ -221,9 +221,26 @@ app.get("/api/auth/github/callback", async (req, res) => {
     const githubUser = await userRes.json();
 
     // Check if user already exists
-    let user = await User.findOne({ githubId: githubUser.id });
+    let conditions = [];
 
-    // If not, register a new user
+    if (githubUser.id) {
+      conditions.push({ githubId: githubUser.id });
+    }
+
+    // Fallback to username
+    if (githubUser.login) {
+      conditions.push({ githubUsername: githubUser.login });
+    }
+
+    // Fallback to email
+    if (githubUser.email) {
+      conditions.push({ email: githubUser.email });
+    }
+
+    let user = conditions.length > 0 
+      ? await User.findOne({ $or: conditions }) 
+      : null;
+
     if (!user) {
       user = new User({
         name: githubUser.name || githubUser.login,
@@ -251,8 +268,13 @@ app.get("/api/auth/github/callback", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    res.json({
+        message: "GitHub OAuth successful",
+        user,
+      })
+
     // Redirect to frontend or profile
-    res.redirect("/profile");
+    //res.redirect("/profile");
   } catch (error) {
     console.error("GitHub OAuth error:", error);
     res.status(500).json({ message: "GitHub login failed" });
@@ -533,18 +555,30 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
     }
 
     const user = await User.findById(req.user.userId);
+    console.log("Join team for user:", user._id, "githubUsername:", user.githubUsername);
+
     if (user.githubUsername) {
       const repoData = await RepoMetrics.findOne({ teamId: team._id });
+      if (!repoData) {
+        console.warn("No repoData found for team", team._id);
+      } else {
+        console.log("Found repoData with URL:", repoData.repositoryInfo?.url);
+      }
       if (repoData && repoData.repositoryInfo?.url) {
         const [owner, repo] = extractOwnerAndRepo(repoData.repositoryInfo.url);
+        console.log("Extracted owner/repo:", owner, repo);
         if (owner && repo) {
-          const stats = await collectMemberActivity(owner, repo, user.githubUsername);
-          repoData.memberStats = repoData.memberStats || {};
-          repoData.memberStats[req.user.userId] = {
-            githubUsername: user.githubUsername,
-            ...stats,
-          };
-          await repoData.save();
+          try{
+            const stats = await collectMemberActivity(owner, repo, user.githubUsername);
+            repoData.memberStats.set(req.user.userId.toString(), {
+              githubUsername: user.githubUsername,
+              ...stats,
+            });
+            await repoData.save();
+            console.log("Saved memberStats:");
+          } catch (err){
+            console.error("Error collecting member stats:", err);
+          }
         }
       }
     }

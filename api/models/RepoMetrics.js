@@ -19,12 +19,27 @@ const RepoMetricsSchema = new mongoose.Schema({
   },
   memberStats: {
     type: Map,
-    of: {
+    of: new mongoose.Schema({
       githubUsername: String,
-      commits: Number,
-      prs: Number,
-      issuesOpened: Number
-    },
+      commits: {
+        total: Number,
+        recent: Number
+      },
+      pullRequests: {
+        total: Number,
+        merged: Number,
+        open: Number,
+        closed: Number
+      },
+      issues: {
+        total: Number,
+        open: Number,
+        closed: Number
+      },
+      activityScore: Number,
+      lastActivity: Date,
+      collectedAt: Date
+    }),
     default: {}
   },
   analysisStatus: {
