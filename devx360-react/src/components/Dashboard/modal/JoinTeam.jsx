@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {X, Search, Users, Lock, ArrowLeft, AlertCircle} from 'lucide-react';
-import {joinTeam, searchTeam} from "../../../services/teams";
+import {checkMembership, joinTeam, searchTeams} from "../../../services/teams";
 import toast from 'react-hot-toast';
 
 
 function JoinTeamModal({onCloseJoin}) {
     const [currentStep, setCurrentStep] = useState('searching'); // 'searching', 'enteringPassword', 'alreadyJoined'
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchResult, setSearchResult] = useState(null);
+    const [searchResult, setSearchResult] = useState([]);
     const [selectedTeam, setSelectedTeam] = useState(null);
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -15,30 +15,64 @@ function JoinTeamModal({onCloseJoin}) {
     // const [successMessage, setSuccessMessage] = useState('');
 
     const handleSearch = async () => {
+        if (isLoading) {
+            return;
+        }
+
         if (!searchTerm.trim()) {
-            setSearchResult({ error: 'Please enter a team name to search.' });
+            // setSearchResult({ error: 'Please enter a team name to search.' });
+            setErrorMessage('Please enter a team name to search.');
+            setSearchResult([]);
             return;
         }
 
         setIsLoading(true);
         try {
-            const result = await searchTeam(searchTerm);
+            const result = await searchTeams(searchTerm);
             console.log(result);
-            setSearchResult(result);
-            setErrorMessage('');
+            setSearchResult(result || []);
+
+
+            result.length === 0 ? setErrorMessage('No teams found.') : setErrorMessage('');
+            // setErrorMessage('');
         } catch (error) {
             console.log(error);
             // setSearchResult({ error: error.message });
             setErrorMessage(error.message);
+            setSearchResult([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleTeamSelect = (team) => {
+    const handleTeamSelect = async (team) => {
+        if (isLoading) {
+            return;
+        }
+
         setSelectedTeam(team);
-        setCurrentStep('enteringPassword');
+        // setCurrentStep('enteringPassword');
         setErrorMessage('');
+        setIsLoading(true);
+
+        try {
+            const isMember = await checkMembership(team._id);
+
+            console.log(isMember);
+
+            if (isMember) {
+                toast.success(`Already joined "${team.name}".`);
+                //change to redirect TODO
+                onCloseJoin();
+            } else {
+                setCurrentStep('enteringPassword');
+            }
+        } catch (error) {
+            console.error('Error checking membership:', error);
+            setErrorMessage('Failed to check team membership. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleJoinTeam = async () => {
@@ -96,8 +130,6 @@ function JoinTeamModal({onCloseJoin}) {
             }
         }
     }
-
-    console.log("hello world");
 
     return (
         <div
@@ -223,26 +255,29 @@ function JoinTeamModal({onCloseJoin}) {
 
 
                             {/* Search Results */}
-                            {searchResult && (
+                            {searchResult && searchResult.length > 0 && (
                                 <div className="form-group">
                                     <label className="form-label">
-                                        Search Results
+                                        Search Results ({searchResult.length} team{searchResult.length > 1 ? 's' : ''} found)
                                     </label>
 
                                     <div className="search-results-container" style={{
                                         border: '1px solid var(--border)',
                                         borderRadius: '8px',
                                         overflow: 'hidden',
-                                        backgroundColor: 'var(--bg-container)'
+                                        backgroundColor: 'var(--bg-container)',
+                                        maxHeight: '300px',
+                                        overflowY: 'auto',
                                     }}>
+                                        {searchResult.map((team, index) => (
                                          <div
-                                             // key={index}
-                                                onClick={() => handleTeamSelect(searchResult.team)}
+                                                key={team._id || index}
+                                                onClick={() => handleTeamSelect(team)}
                                                 style={{
                                                     padding: '1rem',
                                                     cursor: 'pointer',
                                                     transition: 'background-color 0.2s ease',
-                                                    borderRadius: '8px'
+                                                    borderBottom: index < searchResult.length - 1 ? '1px solid var(--border)' : 'none'
                                                 }}
                                                 className="team-search-item"
                                                 onMouseEnter={(e) => {
@@ -258,7 +293,6 @@ function JoinTeamModal({onCloseJoin}) {
                                                     alignItems: 'center',
                                                     gap: '12px'
                                                 }}>
-
                                                 <div style={{
                                                     backgroundColor: 'var(--border)',
                                                     borderRadius: '50%',
@@ -275,17 +309,21 @@ function JoinTeamModal({onCloseJoin}) {
                                                         color: 'var(--text)',
                                                         marginBottom: '4px'
                                                     }}>
-                                                        {searchResult.team.name}
+                                                        {/*{searchResult.team.name}*/}
+                                                        {team.name}
                                                     </div>
                                                     <div style={{
                                                         fontSize: '0.75rem',
                                                         color: 'var(--text-light)'
                                                     }}>
-                                                        {searchResult.team.members?.length || 0} members • Created by {searchResult.team.creator.name || 'Unknown'}
+                                                        {team.members?.length || 0} members • Created by {team.creator?.name || 'Unknown'}
                                                     </div>
                                                 </div>
                                              </div>
                                         </div>
+
+                                        ))}
+
                                     </div>
                                 </div>
                             )}
@@ -332,13 +370,13 @@ function JoinTeamModal({onCloseJoin}) {
                                                 color: 'var(--text)',
                                                 marginBottom: '4px'
                                             }}>
-                                                {searchResult.team.name}
+                                                {selectedTeam.name}
                                             </div>
                                             <div style={{
                                                 fontSize: '0.75rem',
                                                 color: 'var(--text-light)'
                                             }}>
-                                                {searchResult.team.members?.length || 0} members • Created by {searchResult.team.creator.name || 'Unknown'}
+                                                {selectedTeam.members?.length || 0} members • Created by {searchResult.creator?.name || 'Unknown'}
                                             </div>
                                         </div>
                                     </div>

@@ -2,16 +2,36 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 //============================================================search for a team Function======================================
 //Sends a GET request to the api server and loooks for a teams name in the database, it need the JWT token to do that to know who is making that request
-export async function searchTeam(name) {
-  const response = await fetch(`${API_BASE_URL}/api/teams/${name}`, {
-    credentials: 'include', // Auto-sends cookies
+// export async function searchTeam(name, teamId) {
+//   const response = await fetch(`${API_BASE_URL}/api/teams/${name}`, {
+//     credentials: 'include', // Auto-sends cookies
+//   });
+//
+//   const data = await response.json();
+//   if (!response.ok) {
+//     throw new Error(data.message || 'Failed to search team');
+//   }
+//   return data;
+// }
+
+
+//=============================================================search for a team Function======================================
+//This function searches for teams by a search term, it sends a GET request to the API
+//It returns an array of teams that match the search term
+export async function searchTeams(searchTerm) {
+  const url = new URL(`${API_BASE_URL}/api/teams/search`);
+  url.searchParams.append("q", searchTerm);
+
+  const response = await fetch(url, {
+    credentials: 'include',
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to search team');
+    throw new Error(data.message || 'Failed to search teams');
   }
-  return data;
+  console.log("resp", data);
+  return data.results; // Returns the teams array
 }
 
 //============================================================creat a new team Function======================================
@@ -49,3 +69,19 @@ export async function joinTeam(name, password) {
   return data;
 }
 
+export async function checkMembership(teamId) {
+  if (!teamId) {
+    throw new Error('Team ID is required');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/membership`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to check team membership');
+  }
+  return data.isMember; //Returns true or false
+}
