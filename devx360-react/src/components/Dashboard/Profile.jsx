@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateAvatar, updateProfile } from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
+import {AlertCircle} from 'lucide-react';
+import toast from "react-hot-toast";
 
 function Profile() {
  const { currentUser, setCurrentUser } = useAuth();
@@ -13,8 +15,8 @@ function Profile() {
   const [editData, setEditData] = useState({
     name: '',
     email: '',
-    role: ''
   });
+  const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -22,7 +24,6 @@ function Profile() {
       setEditData({
         name: currentUser.name || '',
         email: currentUser.email || '',
-        role: currentUser.role || ''
       });
     }
   }, [currentUser]);
@@ -54,23 +55,34 @@ function Profile() {
   };
 
   const handleSaveProfile = async () => {
-      if (!editData.name || !editData.email) {
-    alert('Name and email are required');
-    return;
-  }
+    // if (!editData.name ) { //|| !editData.email) {
+    //   // alert('Name and email are required');
+    //
+    //
+    //   return;
+    // }
     try {
       setIsLoading(true);
       const result = await updateProfile(editData);
+      // console.log('Profile update result:', result);
 
       if (result.user) {
-        setCurrentUser(result.user);
+        // setCurrentUser(result.user);
+        setCurrentUser(prevUser => ({
+          ...result.user,
+          avatar: prevUser.avatar
+        }));
         setIsEditing(false);
 
-        alert('Profile updated successfully!');
+        // alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
       }
     } catch (error) {
       console.error('Profile update failed:', error);
-      alert(`Failed to update profile: ${error.message}`);
+      // alert(`Failed to update profile: ${error.message}`); /
+      // toast.error(`${error.message}`);
+
+        setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +118,12 @@ function Profile() {
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !currentUser) return;
+
+    if (!file.type.startsWith('image/')) {
+      // alert('Please select a valid image file');
+      toast.error('Please select a valid image file');
+      return;
+    }
 
     setIsLoading(true);
 
@@ -146,7 +164,8 @@ function Profile() {
       }
 
       // Show error message to user (you might want to add a toast notification here)
-      alert('Failed to upload avatar. Please try again.');
+      // alert('Failed to upload avatar. Please try again.');
+      toast.error('Failed to upload avatar. Please try again.');
     } finally {
       setIsLoading(false);
       // Clear the file input
@@ -154,6 +173,10 @@ function Profile() {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const formatDate = (dateString) => {
+    return dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
   };
 
   return (
@@ -164,9 +187,7 @@ function Profile() {
     </header>
       <div style={{ display: 'flex', alignItems: 'center',  width: '60%', justifyContent: 'center', margin: '0 auto' }}>
           <div className="profile-content full-width-profile" style={{ flex: 2, width: '100%', maxWidth: '1200px', gap: '1rem' }}>
-
-              <div className="profile-wrapper">
-
+            <div className="profile-wrapper">
                   <div className="profile-left">
                       <div className="profile-avatar-container">
                           {/*added*/}
@@ -213,7 +234,7 @@ function Profile() {
                               <div className="detail-group member-since">
                                   <label>Member Since</label>
                                   <div className="detail-value">
-                                      {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}
+                                    {formatDate(currentUser?.createdAt)}
                                   </div>
                               </div>
                           </>
@@ -221,7 +242,7 @@ function Profile() {
                           <div className="detail-group member-since">
                               <label>Member Since</label>
                               <div className="detail-value">
-                                  {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}
+                                {formatDate(currentUser?.createdAt)}
                               </div>
                           </div>
                       )}
@@ -236,14 +257,19 @@ function Profile() {
                               <div className="field-row">
                                   <div className="detail-group">
                                       <label>Full Name</label>
-                                      <div className="detail-value">{currentUser?.name}</div>
+                                      <div className="detail-value" >
+                                        {currentUser?.name || 'Not provided'}
+                                        {/*<button onClick={handleEditName} title="Edit" className="btn-cancel">*/}
+                                        {/*  <Pen size={16} />*/}
+                                        {/*</button>*/}
+                                      </div>
+
                                   </div>
                               </div>
                               <div className="field-row">
                                   <div className="detail-group">
                                       <label>Username</label>
-                                      {/*<div className="detail-value">{currentUser?.email}</div>*/}
-                                      <div className="detail-value">To do</div>
+                                      <div className="detail-value">{currentUser?.githubUsername || "-"}</div>
                                   </div>
                                   <div className="detail-group">
                                       <label>Role</label>
@@ -258,7 +284,7 @@ function Profile() {
                                   <div className="detail-group">
                                       <label>Last Login</label>
                                       <div className="detail-value">
-                                          {currentUser?.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Never'}
+                                        {formatDate(currentUser?.lastLogin) || 'Never'}
                                       </div>
                                   </div>
                               </div>
@@ -273,23 +299,21 @@ function Profile() {
                                           type="text"
                                           name="name"
                                           value={editData.name || ''}
-                                          onChange={handleInputChange}
+                                          onChange={(e) => {
+                                            handleInputChange(e)
+                                            errorMessage && setErrorMessage('')
+                                          }}
                                           className="form-input"
                                       />
                                   </div>
                               </div>
 
+
                               <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Username</label>
-                                      <input
-                                          type="text"
-                                          name="username"
-                                          value={editData.username || ''}
-                                          onChange={handleInputChange}
-                                          className="form-input"
-                                      />
-                                  </div>
+                                <div className="detail-group">
+                                  <label>Username</label>
+                                  <div className="detail-value">{currentUser?.githubUsername || "-"}</div>
+                                </div>
                                   <div className="detail-group">
                                       <label>Role</label>
                                       <div className="detail-value" style={{textTransform: 'capitalize'}}>{currentUser?.role}</div>
@@ -297,21 +321,25 @@ function Profile() {
                               </div>
 
                               <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Email</label>
-                                      <input
-                                          type="email"
-                                          name="email"
-                                          value={editData.email || ''}
-                                          onChange={handleInputChange}
-                                          className="form-input"
-                                      />
-                                  </div>
+                                <div className="detail-group">
+                                  <label>Email</label>
+                                  {/*<div className="detail-value">{currentUser?.email}</div>*/}
+                                  <input
+                                      type="email"
+                                      name="email"
+                                      value={editData.email || ''}
+                                      onChange={(e) => {
+                                        handleInputChange(e)
+                                        errorMessage && setErrorMessage('')
+                                      }}
+                                      className="form-input"
+                                  />
+                                </div>
 
                                   <div className="detail-group">
                                       <label>Last Login</label>
                                       <div className="detail-value">
-                                          {currentUser?.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Never'}
+                                        {formatDate(currentUser?.lastLogin) || 'Never'}
                                       </div>
                                   </div>
                               </div>
@@ -330,6 +358,27 @@ function Profile() {
               </div>
 
 
+            {errorMessage && (
+                <div className="error-message"
+                     style={{display: 'flex',
+                       gap: '0.25rem',
+                       alignItems: 'center',
+                       padding: '0.3rem',}}
+                >
+                  <AlertCircle size={16} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '0.125rem' }} />
+                  <div
+                      style={{
+                        color: 'var(--secondary)',
+                        fontSize: '0.75rem',
+                        marginTop: '0.125rem',
+                      }}
+                  >
+                    {errorMessage}
+                  </div>
+                </div>
+            )}
+
+
               {!isEditing ? (
                   <div className="edit-actions">
                       <button
@@ -343,7 +392,10 @@ function Profile() {
                   // Action buttons for edit mode
                   <div className="edit-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
                       <button
-                          onClick={handleCancelEdit}
+                          onClick={(e) => {
+                            handleCancelEdit(e)
+                            errorMessage && setErrorMessage('')// Clear error message on cancel
+                          }}
                           className="btn btn-secondary edit-actions-btn"
                           disabled={isLoading}
                       >
@@ -352,7 +404,11 @@ function Profile() {
                       <button
                           onClick={handleSaveProfile}
                           className="btn btn-primary edit-actions-btn"
-                          disabled={isLoading}
+                          disabled={isLoading || !editData.name || !editData.email} // Disable if name or email is empty
+                          style={{
+                            cursor: isLoading || !editData.name || !editData.email ? 'not-allowed' : 'pointer',
+                            opacity: isLoading || !editData.name || !editData.email ? 0.6 : 1
+                          }}
                       >
                           {isLoading ? (
                               <>
@@ -362,9 +418,7 @@ function Profile() {
                           ) : 'Save Changes'}
                       </button>
                   </div>
-
               )}
-
           </div>
       </div>
   </>

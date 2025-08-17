@@ -1,7 +1,7 @@
 import React from "react";
 
 function ProfileIcon({ currentUser, avatar, defaultAvatar }) {
-    console.log(currentUser);
+    // console.log(currentUser);
     return (
         <div className="user-profile">
             <div className="user-avatar">
