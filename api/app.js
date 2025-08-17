@@ -657,7 +657,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
     });
   }
 
-  const userStats = repoData?.memberStats?.[req.user.userId] || {};
+  const userStats = repoData?.memberStats?.get(req.user.userId.toString()) || {};
   res.json({
     ...base,
     myStats: userStats,
