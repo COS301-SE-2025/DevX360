@@ -1,6 +1,6 @@
 # DORA Metrics Repository Analyzer
 
-This project provides a GitHub repository analysis tool that evaluates a codebase for DevOps performance using **DORA Metrics**. It scans the structure and metadata of the repository to identify process strengths and weaknesses, and then generates detailed, actionable recommendations using a local LLM (e.g., [Ollama](https://ollama.com/)).
+This project provides a GitHub repository analysis tool that evaluates a codebase for DevOps performance using **DORA Metrics**. It scans the structure and metadata of the repository to identify process strengths and weaknesses, and then generates detailed, actionable recommendations using a local LLM.
 
 ---
 
