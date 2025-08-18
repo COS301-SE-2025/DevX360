@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth 
 import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './components/LandingPage';
 import { Toaster } from 'react-hot-toast';
+import Admin from "./components/Dashboard/Admin";
 
 
 
@@ -57,20 +58,27 @@ function App() {
               <Route path="overview" element={<Overview />} />
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
+              <Route path="admin" element={<Admin />} />
               <Route path="metrics" element={<Metrics />} />
               <Route path="help" element={<HelpMenu />} />
             </Route>
           </Routes>
           <Toaster position="top-center"
-          toastOptions={{
-            style: {
-              background: 'var(--bg-container)',
-              color: 'var(--text)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow)',
-              zIndex: 100002,
-            }
-          }}
+             toastOptions={{
+               style: {
+                 background: 'var(--bg-container)',
+                 color: 'var(--text)',
+                 border: '1px solid var(--border)',
+                 boxShadow: 'var(--shadow)',
+                 zIndex: 10002,
+               },
+               custom: {
+                 duration: 6000,
+               }
+             }}
+             containerStyle={{
+               zIndex: 10002
+             }}
           />
         </AuthProvider>
       </ThemeProvider>

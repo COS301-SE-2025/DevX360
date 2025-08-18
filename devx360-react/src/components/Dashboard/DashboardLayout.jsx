@@ -5,6 +5,7 @@ import '../../styles/_profile.css';
 import '../../styles/_modals.css';
 import '../../styles/_teams.css';
 import '../../styles/dashboard.css';
+import '../../styles/_admin.css';
 
 
 //===========================================================Dashboard Layout Function======================================

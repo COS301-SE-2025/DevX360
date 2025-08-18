@@ -1,95 +1,95 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*@tailwind base;*/
+/*@tailwind components;*/
+/*@tailwind utilities;*/
 
-@layer base {
-  * {
-    @apply m-0 p-0 box-border font-sans;
-    transition:
-            background-color 0.3s ease,
-            border-color 0.3s ease,
-            color 0.3s ease,
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
-  }
+/*@layer base {*/
+/*  * {*/
+/*    @apply m-0 p-0 box-border font-sans;*/
+/*    transition:*/
+/*            background-color 0.3s ease,*/
+/*            border-color 0.3s ease,*/
+/*            color 0.3s ease,*/
+/*            transform 0.2s ease,*/
+/*            box-shadow 0.2s ease;*/
+/*  }*/
 
-  body {
-    @apply bg-bg text-text min-h-screen;
-    /* Dark mode styles will be handled by Tailwind's dark: prefix */
-  }
+/*  body {*/
+/*    @apply bg-bg text-text min-h-screen;*/
+/*    !* Dark mode styles will be handled by Tailwind's dark: prefix *!*/
+/*  }*/
 
-  /* Dark mode styles using Tailwind's dark mode */
-  .dark body {
-    @apply bg-bg-dark text-text-dark;
-  }
+/*  !* Dark mode styles using Tailwind's dark mode *!*/
+/*  .dark body {*/
+/*    @apply bg-bg-dark text-text-dark;*/
+/*  }*/
 
-  .main-content > * {
-    @apply animate-fadeIn;
-  }
-}
+/*  .main-content > * {*/
+/*    @apply animate-fadeIn;*/
+/*  }*/
+/*}*/
 
-@layer components {
-  /* button components converted to Tailwind */
-  .btn {
-    @apply px-3 py-3 border-none rounded-custom font-semibold text-base cursor-pointer relative overflow-hidden z-10;
-    @apply transition-colors-transform duration-200;
-  }
+/*@layer components {*/
+/*  !* button components converted to Tailwind *!*/
+/*  .btn {*/
+/*    @apply px-3 py-3 border-none rounded-custom font-semibold text-base cursor-pointer relative overflow-hidden z-10;*/
+/*    @apply transition-colors-transform duration-200;*/
+/*  }*/
 
-  .btn-primary {
-    @apply bg-primary text-white;
-  }
+/*  .btn-primary {*/
+/*    @apply bg-primary text-white;*/
+/*  }*/
 
-  .btn-primary::after {
-    @apply content-[''] absolute top-0 left-0 w-full h-full rounded-custom opacity-0 transition-opacity duration-200;
-    background-color: rgba(99, 102, 241, 0.2);
-  }
+/*  .btn-primary::after {*/
+/*    @apply content-[''] absolute top-0 left-0 w-full h-full rounded-custom opacity-0 transition-opacity duration-200;*/
+/*    background-color: rgba(99, 102, 241, 0.2);*/
+/*  }*/
 
-  .btn-primary:hover {
-    @apply bg-primary-dark;
-  }
+/*  .btn-primary:hover {*/
+/*    @apply bg-primary-dark;*/
+/*  }*/
 
-  .btn-primary:hover::after {
-    @apply opacity-90;
-  }
+/*  .btn-primary:hover::after {*/
+/*    @apply opacity-90;*/
+/*  }*/
 
-  .btn-secondary {
-    @apply bg-bg text-text border border-border;
-  }
+/*  .btn-secondary {*/
+/*    @apply bg-bg text-text border border-border;*/
+/*  }*/
 
-  .btn-secondary:hover {
-    @apply bg-border text-text;
-  }
+/*  .btn-secondary:hover {*/
+/*    @apply bg-border text-text;*/
+/*  }*/
 
-  /* Dark mode button styles */
-  .dark .btn-secondary {
-    @apply bg-bg-dark text-text-dark border-border-dark;
-  }
+/*  !* Dark mode button styles *!*/
+/*  .dark .btn-secondary {*/
+/*    @apply bg-bg-dark text-text-dark border-border-dark;*/
+/*  }*/
 
-  .dark .btn-secondary:hover {
-    @apply bg-border-dark text-text-dark;
-  }
+/*  .dark .btn-secondary:hover {*/
+/*    @apply bg-border-dark text-text-dark;*/
+/*  }*/
 
-  .theme-toggle {
-    @apply bg-transparent border-none cursor-pointer text-text-light p-2 rounded-full;
-    @apply flex items-center justify-center;
-  }
+/*  .theme-toggle {*/
+/*    @apply bg-transparent border-none cursor-pointer text-text-light p-2 rounded-full;*/
+/*    @apply flex items-center justify-center;*/
+/*  }*/
 
-  .theme-toggle:hover {
-    @apply text-primary;
-    background-color: rgba(99, 102, 241, 0.1);
-  }
+/*  .theme-toggle:hover {*/
+/*    @apply text-primary;*/
+/*    background-color: rgba(99, 102, 241, 0.1);*/
+/*  }*/
 
-  .dark .theme-toggle {
-    @apply text-text-dark-light;
-  }
-}
+/*  .dark .theme-toggle {*/
+/*    @apply text-text-dark-light;*/
+/*  }*/
+/*}*/
 
-/* Responsive utilities */
-@layer utilities {
-  .graphic-side {
-    @apply hidden md:flex;
-  }
-}
+/*!* Responsive utilities *!*/
+/*@layer utilities {*/
+/*  .graphic-side {*/
+/*    @apply hidden md:flex;*/
+/*  }*/
+/*}*/
 
 
 
