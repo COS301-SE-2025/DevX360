@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true, minlength: 6 },
   role: { type: String, required: true, default: "user" },
-  githubId: { type: String, unique: true, sparse: true, default: null },
+  githubId: { type: String, unique: true, sparse: true, default: undefined },
   githubUsername: {type: String, default: null},
   isEmailVerified: { type: Boolean, default: false },
   inviteCode: { type: String, default: null },

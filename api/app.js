@@ -192,6 +192,7 @@ app.get("/api/auth/github/callback", async (req, res) => {
   const code = req.query.code;
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
   try {
     // Exchange code for access token
@@ -252,6 +253,20 @@ app.get("/api/auth/github/callback", async (req, res) => {
       });
 
       await user.save();
+    } else {
+      // Update existing user's GitHub info if needed
+      let needsUpdate = false;
+      if (!user.githubId && githubUser.id) {
+        user.githubId = githubUser.id;
+        needsUpdate = true;
+      }
+      if (!user.githubUsername && githubUser.login) {
+        user.githubUsername = githubUser.login;
+        needsUpdate = true;
+      }
+      if (needsUpdate) {
+        await user.save();
+      }
     }
 
     // Generate token and set cookie
@@ -268,16 +283,13 @@ app.get("/api/auth/github/callback", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({
-        message: "GitHub OAuth successful",
-        user,
-      })
-
     // Redirect to frontend or profile
-    //res.redirect("/profile");
+    // Redirect with success parameter
+    //const redirectUrl = `${frontendUrl}/dashboard?auth=success${isNewUser ? '&new=true' : ''}`;
+    //res.redirect(redirectUrl);
   } catch (error) {
     console.error("GitHub OAuth error:", error);
-    res.status(500).json({ message: "GitHub login failed" });
+    res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
   }
 });
 
@@ -424,6 +436,39 @@ app.get("/api/users", authenticateToken, async (req, res) => {
     const users = await User.find({}).select("-password");
     res.json({ users });
   } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE user by ID (admin only)
+app.delete("/api/users/:id", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent deleting other admins (optional safeguard)
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "Cannot delete an admin user" });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Delete user error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -575,7 +620,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
               ...stats,
             });
             await repoData.save();
-            console.log("Saved memberStats:");
+            console.log("Saved memberStats");
           } catch (err){
             console.error("Error collecting member stats:", err);
           }
@@ -667,7 +712,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
 
 // DELETE TEAM (by name, creator only)
 app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
-  if (req.user.teamRole !== "creator") {
+  if (req.user.teamRole !== "creator" || req.user.role !== "admin") {
     return res.status(403).json({ message: "Only the team creator can delete the team" });
   }
 
@@ -678,6 +723,23 @@ app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (re
   } catch (error) {
     console.error("Delete team error:", error);
     res.status(500).json({ message: "Failed to delete team" });
+  }
+});
+
+app.get("/api/teams", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const teams = await Team.find({})
+      .populate("creator", "name email")
+      .populate("members", "name email");
+
+    res.json({ teams });
+  } catch (error) {
+    console.error("Fetch teams error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
