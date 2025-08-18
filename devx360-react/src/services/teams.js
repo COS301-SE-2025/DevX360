@@ -88,8 +88,8 @@ export async function checkMembership(teamId) {
 
 //============================================================delete a team Function======================================
 //Sends a DELETE request to the API to delete a team by its name
-export const deleteTeam = async (teamName) => {
-  const response = await fetch(`${API_BASE_URL}/api/teams/${teamName}`, {
+export const deleteTeam = async (teamName, teamId) => {
+  const response = await fetch(`${API_BASE_URL}/api/teams/${encodeURIComponent(teamName)}?teamId=${teamId}`, {
     method: 'DELETE',
     credentials: 'include',
   });

@@ -230,7 +230,7 @@ function Team() {
 
     setIsDeleting(true);
     try {
-      await deleteTeam(teamToDelete.name); //might need to change to id?
+      await deleteTeam(teamToDelete.name, teamToDelete.id);
 
       // Remove from local state
       setTeams(teams.filter(team => team.id !== teamToDelete.id));
