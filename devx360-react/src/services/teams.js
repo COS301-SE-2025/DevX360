@@ -85,3 +85,20 @@ export async function checkMembership(teamId) {
   }
   return data.isMember; //Returns true or false
 }
+
+//============================================================delete a team Function======================================
+//Sends a DELETE request to the API to delete a team by its name
+export const deleteTeam = async (teamName) => {
+  const response = await fetch(`${API_BASE_URL}/api/teams/${teamName}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    console.log("error", response);
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete team');
+  }
+
+  return response.json();
+};
