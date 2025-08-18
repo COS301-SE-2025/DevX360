@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/main.css';
+import './styles/tailwind.css';
 
 // Get the root element
 const container = document.getElementById('root');
