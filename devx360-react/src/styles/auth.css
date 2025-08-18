@@ -48,7 +48,68 @@
   max-width: 500px;
 }
 
+/* Updated GitHub button styles for full width */
+.social-logins {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%; /* Ensure container takes full width */
+}
 
+/* Override the grid layout from the original CSS */
+.social-logins {
+  display: flex !important; /* Override any grid display */
+  grid-template-columns: none !important; /* Remove grid columns */
+}
+
+.github-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  width: 100% !important; /* Force full width */
+  max-width: none; /* Remove any max-width constraints */
+  background-color: #24292e;
+  color: white !important; /* Force white text in both themes */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0.5rem 0;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.github-btn:hover {
+  background-color: #1a1f24;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.github-btn span {
+  color: white !important; /* Ensure text stays white */
+  font-weight: 500;
+}
+
+.social-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1); /* Ensure GitHub logo is always white */
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/* Override any conflicting social-btn styles for github-btn */
+.social-btn.github-btn {
+  background-color: #24292e !important;
+  color: white !important;
+  border: none !important;
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+.social-btn.github-btn:hover {
+  background-color: #1a1f24 !important;
+}
 
 .graphic-side h1 {
   font-size: 2.5rem;

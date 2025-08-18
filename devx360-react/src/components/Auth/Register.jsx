@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import AuthLayout from './AuthLayout';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 function Register() {
   const [name, setName] = useState('');
@@ -158,15 +159,18 @@ function Register() {
           <div className="divider">or sign up with</div>
           
           <div className="social-logins">
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" className="social-icon" alt="Google" />
-            </div>
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg" className="social-icon" alt="Facebook" />
-            </div>
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/discord/discord-original.svg" className="social-icon" alt="Discord" />
-            </div>
+            <button 
+              type="button" 
+              className="github-btn"
+              onClick={() => window.location.href = `${API_BASE_URL}/api/auth/github`}
+            >
+              <img 
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" 
+                className="social-icon" 
+                alt="GitHub" 
+              />
+              <span>Continue with GitHub</span>
+            </button>
           </div>
           
           <div className="auth-footer">
