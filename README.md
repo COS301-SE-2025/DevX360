@@ -54,6 +54,7 @@ We use a collaborative workflow to manage progress and documentation.
 
 [📋 Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
+[📄 View our Coding Standards Document (PDF)](https://drive.google.com/file/d/1LvG5J76JxCvjuzRgUhquXqaB4VFkFs7U/view?usp=drive_link)
 
 ## 👥 Team DOSKS
 
