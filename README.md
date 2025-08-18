@@ -50,7 +50,7 @@ We use a collaborative workflow to manage progress and documentation.
 
 [📄 View our updated SRS Document (PDF)](https://drive.google.com/file/d/1m3yFXeIlVjC0f6EHdCso6CjbHlNgnjCR/view?usp=drive_link)
 
-
+[📄 View our Project Planning and Role Allocation (PDF)](https://drive.google.com/file/d/18-nal_Oj2sOhXFHNqB_7Nzh1QbDW9IOX/view?usp=drive_link)
 
 [📋 Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
