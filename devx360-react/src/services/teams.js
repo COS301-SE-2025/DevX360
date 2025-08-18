@@ -23,6 +23,7 @@ export async function searchTeams(searchTerm) {
   url.searchParams.append("q", searchTerm);
 
   const response = await fetch(url, {
+    method: 'GET',
     credentials: 'include',
   });
 
