@@ -370,14 +370,14 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 
 app.put("/api/profile", authenticateToken, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, githubUsername, githubId } = req.body;
     const updates = {};
 
-    if (!name && !email && !password) {
+    if (!name && !email && !password && !githubUsername && !githubId) {
       return res
         .status(400)
         .json({
-          message: "At least one field (name, email, or password) is required",
+          message: "At least one field (name, email, password, githubUsername, or githubId) is required",
         });
     }
 
@@ -409,6 +409,31 @@ app.put("/api/profile", authenticateToken, async (req, res) => {
           .json({ message: "Password must be at least 6 characters" });
       }
       updates.password = await hashPassword(password);
+    }
+
+    // GitHub ID
+    if (githubId) {
+      const githubIdExists = await User.findOne({ githubId });
+      if (githubIdExists && githubIdExists._id.toString() !== req.user.userId) {
+        return res
+          .status(400)
+          .json({ message: "GitHub ID already linked to another account" });
+      }
+      updates.githubId = githubId;
+    }
+
+    // GitHub Username
+    if (githubUsername) {
+      const githubUsernameExists = await User.findOne({ githubUsername });
+      if (
+        githubUsernameExists &&
+        githubUsernameExists._id.toString() !== req.user.userId
+      ) {
+        return res
+          .status(400)
+          .json({ message: "GitHub username already in use by another account" });
+      }
+      updates.githubUsername = githubUsername.trim();
     }
 
     const updatedUser = await User.findByIdAndUpdate(
