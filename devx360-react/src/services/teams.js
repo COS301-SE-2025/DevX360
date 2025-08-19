@@ -23,6 +23,7 @@ export async function searchTeams(searchTerm) {
   url.searchParams.append("q", searchTerm);
 
   const response = await fetch(url, {
+    method: 'GET',
     credentials: 'include',
   });
 
@@ -93,6 +94,8 @@ export const deleteTeam = async (teamName, teamId) => {
     method: 'DELETE',
     credentials: 'include',
   });
+
+  console.log("Deleting team:", teamName, "with ID:", teamId);
 
   if (!response.ok) {
     console.log("error", response);

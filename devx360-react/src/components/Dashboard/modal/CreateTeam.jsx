@@ -19,7 +19,6 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
 
   const isFormValid = teamName.trim() && repoUrl.trim() && teamPassword.trim();
 
-
   const closeModal = (e) => {
     if(e.target === modalRef.current) {
       onCloseCreate();
@@ -33,12 +32,10 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
     }
   };
 
-
   // const showCustomToast = () => {
   //     toast.custom(<WarningToast message={"Team created, but repository analysis failed!"} />,  {
   //         duration: 6000
   //     });
-  //
   // };
 
   const clearErrors = () => {
@@ -54,7 +51,6 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
     }
 
     const loadingToast = toast.loading('Creating team...');
-
 
     setIsLoading(true);
     clearErrors();
@@ -89,226 +85,156 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
     }
   };
 
-
   return (
-    <div ref={modalRef} onClick={closeModal} className="modal-section">
-
       <div
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-        className="modal"
-        tabIndex={-1}
+          ref={modalRef}
+          onClick={closeModal}
+          className="fixed inset-0 z-[10000] bg-[rgba(0,0,0,0.4)] backdrop-blur-sm flex justify-center items-center p-4"
       >
-
-        {/* header */}
-        <div className="modal-header" >
-          <div className="modal-header-content">
-            <div className="modal-info">
-              <div className="metric-icon"
-                style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              >
-                <Users size={18} className="social-icon" />
-              </div>
-              <h2
-                style={{
-                margin: 0,
-                fontSize: '1.25rem',
-                fontWeight: '600',
-              }}
-              >
-                Create New Team
-              </h2>
-            </div>
-            <button className="btn-cancel"
-              aria-label="Close"
-              onClick={onCloseCreate}
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <p style={{
-            margin: 0,
-            color: '#6b7280',
-            fontSize: '0.875rem',
-            paddingBottom: '1rem',
-          }}>
-            Set up a new team to start tracking DORA metrics and developer performance.
-          </p>
-        </div>
-
-        {/* body */}
-        <div className="modal-body"
+        <div
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
+            className="bg-[var(--bg-container)] rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] w-full max-w-[28rem] z-[10001] border border-[var(--border)]"
+            tabIndex={-1}
         >
-
-          {/* Team Name Field */}
-          <div className="form-group" style={{marginBottom: '1rem'}}>
-            <label className="form-label"
-            >
-              Team Name *
-            </label>
-            <input
-              type="text"
-              className="form-input"
-              value={teamName}
-              onChange={(e) => {
-                setTeamName(e.target.value);
-                clearErrors()
-              }}
-              placeholder="Enter team name"
-            />
-
-              {nameError && (
-                <div className="error-message"
-                   style={{display: 'flex',
-                  gap: '0.25rem',
-                  alignItems: 'center',
-                  padding: '0.3rem',}}
-                >
-                  <AlertCircle size={16} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '0.125rem' }} />
-                  <div
-                    style={{
-                    color: 'var(--secondary)',
-                    fontSize: '0.75rem',
-                    marginTop: '0.125rem',
-                  }}
-                  >
-                    {nameError}
-                  </div>
+          {/* header */}
+          <div className="px-6 pt-6 pb-0 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Users size={18} className="text-[var(--primary)]" />
                 </div>
-              )}
-          </div>
-
-          {/* GitHub Repository Field */}
-          <div className="form-group" style={{marginBottom: '1rem'}}>
-            <label className="form-label"
-              style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
+                <h2 className="text-lg font-medium text-[var(--text)] m-0">
+                  Create Team
+                </h2>
+              </div>
+              <button
+                  className="bg-transparent border-none rounded-md p-2 cursor-pointer text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)] transition-all"
+                  aria-label="Close"
+                  onClick={onCloseCreate}
               >
-                <Github size={16} />
-                GitHub Repository URL *
-              </label>
-              <input
-                type="url"
-                className="form-input"
-                value={repoUrl}
-                onChange={(e) => {
-                  setRepoUrl(e.target.value)
-                  clearErrors()
-                }}
-                placeholder="https://github.com/username/repository"
-              />
-
-              {urlError && (
-                <div className="error-message"
-                 style={{display: 'flex',
-                   gap: '0.25rem',
-                   alignItems: 'center',
-                   padding: '0.3rem',}}
-                >
-                  <AlertCircle size={16} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '0.125rem' }} />
-                  <div style={{
-                    color: 'var(--secondary)',
-                    fontSize: '0.75rem',
-                    marginTop: '0.125rem',
-                  }}>
-                    {urlError}
-                  </div>
-                </div>
-              )}
-
-              <p
-                  style={{
-                  margin: '0.5rem 0 0 0',
-                  fontSize: '0.75rem',
-                      textAlign: 'left',
-                  color: '#6b7280',
-              }}
-              >
-                  This will be used to collect data for DORA metrics.
-              </p>
-          </div>
-
-          {/* Team Password Field */}
-          <div className="form-group" style={{marginBottom: '1rem'}}>
-            <label className="form-label"
-              style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-            >
-              <Lock size={16} />
-              Team Password *
-            </label>
-            <input
-              type="password"
-              className="form-input"
-              value={teamPassword}
-              onChange={(e) => setTeamPassword(e.target.value)}
-              placeholder="Create a secure password"
-            />
-            <p style={{
-              margin: '0.5rem 0 0 0',
-              fontSize: '0.75rem',
-              color: '#6b7280',
-            }}>
-              Team members will need this password to join and view metrics.
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-[var(--text-light)] mb-0 pb-4">
+              Set up a new team to start tracking DORA metrics and developer performance.
             </p>
           </div>
 
-          {/* Info Box */}
-          <div
-            className="info-box"
-          >
-            <AlertCircle size={16} className="info-alert-icon" />
-            <div className="info-alert-content">
-              <p
-                className="info-alert-title"
-              >
-                Getting Started
-              </p>
-              <p className="info-alert-text">
-                Once created, your team will start collecting DORA metrics automatically.
+          {/* body */}
+          <div className="p-6 flex flex-col gap-5">
+
+            {/* Team Name Field */}
+            <div className="mb-1">
+              <label className="block text-sm font-medium text-[var(--text)]">
+                Team Name *
+              </label>
+              <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-[var(--primary)] focus:border-[var(--primary)] focus:outline-none"
+                  value={teamName}
+                  onChange={(e) => {
+                    setTeamName(e.target.value);
+                    clearErrors()
+                  }}
+                  placeholder="Enter team name"
+              />
+
+              {nameError && (
+                  <div className="flex gap-1 items-center px-1 py-1">
+                    <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                    <div className="text-[var(--secondary)] text-xs mt-0.5">
+                      {nameError}
+                    </div>
+                  </div>
+              )}
+            </div>
+
+            {/* GitHub Repository Field */}
+            <div className="mb-1">
+              <label className=" text-sm font-medium text-[var(--text)] flex items-center gap-2">
+                <Github size={16} className="text-[var(--primary)]" />
+                GitHub Repository URL *
+              </label>
+              <input
+                  type="url"
+                  className="w-full px-3 py-2 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-[var(--primary)] focus:border-[var(--primary)] focus:outline-none"
+                  value={repoUrl}
+                  onChange={(e) => {
+                    setRepoUrl(e.target.value)
+                    clearErrors()
+                  }}
+                  placeholder="https://github.com/username/repository"
+              />
+
+              {urlError && (
+                  <div className="flex gap-1 items-center px-1 py-1">
+                    <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                    <div className="text-[var(--secondary)] text-xs mt-0.5">
+                      {urlError}
+                    </div>
+                  </div>
+              )}
+
+              <p className="text-xs text-[var(--text-light)] mt-2 text-left">
+                This will be used to collect data for DORA metrics and AI analysis.
               </p>
             </div>
+
+            {/* Team Password Field */}
+            <div className="mb-1">
+              <label className="text-sm font-medium text-[var(--text)] flex items-center gap-2">
+                <Lock size={16} className="text-[var(--primary)]" />
+                Team Password *
+              </label>
+              <input
+                  type="password"
+                  className="w-full px-3 py-2 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-[var(--primary)] focus:border-[var(--primary)] focus:outline-none"
+                  value={teamPassword}
+                  onChange={(e) => setTeamPassword(e.target.value)}
+                  placeholder="Create a secure password"
+              />
+              <p className="text-xs text-[var(--text-light)] mt-2">
+                Team members will need this password to join and view metrics.
+              </p>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 flex gap-3">
+              <AlertCircle size={16} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-[var(--text)] mb-1">
+                  Getting Started
+                </p>
+                <p className="text-xs text-[var(--text-light)]">
+                  Once created, your team will start collecting DORA metrics and AI-powered insights automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* footer */}
+          <div className="px-6 pb-6 flex gap-3 justify-end">
+            <button
+                onClick={onCloseCreate}
+                className="px-4 py-2 rounded-lg bg-transparent text-[var(--text)] hover:bg-[var(--bg)] transition-colors border border-[var(--border)]"
+            >
+              Cancel
+            </button>
+            <button
+                onClick={handleCreateTeam}
+                disabled={isLoading || !teamName || !repoUrl || !teamPassword}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                    isLoading || !teamName.trim() || !repoUrl || !teamPassword.trim()
+                        ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
+                        : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white'
+                }`}
+            >
+              {isLoading ? 'Creating...' : 'Create Team'}
+            </button>
           </div>
         </div>
-
-        {/* footer */}
-        <div style={{
-          padding: '0 1.5rem 1.5rem 1.5rem',
-          display: 'flex',
-          gap: '0.75rem',
-          justifyContent: 'flex-end',
-        }}>
-          <button
-            onClick={onCloseCreate}
-            className="btn btn-secondary edit-actions-btn"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateTeam}
-            disabled={isLoading || !teamName || !repoUrl || !teamPassword}
-            style={{
-              width: "auto",
-              cursor: isLoading || !teamName.trim() || !repoUrl || !teamPassword.trim() ? 'not-allowed' : 'pointer',
-              opacity: isLoading || !teamName.trim() || !repoUrl || !teamPassword.trim() ? 0.6 : 1,
-            }}
-            className={`btn ${!teamName.trim() || !repoUrl || !teamPassword.trim() ? 'btn-secondary' : 'btn-primary'}`}
-          >
-            {isLoading ? ( 'Creating...') : 'Create Team'}
-          </button>
-        </div>
       </div>
-    </div>
   );
 }
 

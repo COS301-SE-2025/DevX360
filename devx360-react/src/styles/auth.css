@@ -330,6 +330,20 @@ input:focus {
   color: var(--text) ;
 }
 
+.btn-danger {
+  background-color: var(--secondary);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626; /* Darker red for hover */
+}
+
+.btn-danger:disabled {
+  background-color: #fca5a5; /* Lighter red when disabled */
+  cursor: not-allowed;
+}
+
 /*.team-action-btn {*/
 /*  padding: 0.75rem;*/
 /*  border: none;*/
