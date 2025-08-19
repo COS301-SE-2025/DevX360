@@ -146,8 +146,17 @@ AI provides recommendations on:
 - Team workflow suggestions
 
 ---
+## 6. Help Menu
+Click on the Question mark on right botton corner
+<img width="77" height="80" alt="image" src="https://github.com/user-attachments/assets/beb845ea-e596-442d-9b3b-eeed4fe237e0" />
 
-## 6. Troubleshooting
+### Shows you a variety of Help Navigations that may help you
+<img width="1898" height="892" alt="image" src="https://github.com/user-attachments/assets/711c3d80-f25d-4264-b2e0-9c50c035ac63" />
+
+
+---
+
+## 7. Troubleshooting
 
 ### Common Issues
 **Problem**: Can't see team metrics  
