@@ -1,8 +1,7 @@
 export default {
   testEnvironment: 'node',
   testMatch: [
-    '**/__tests__/**/*.test.js',
-    '**/?(*.)+(spec|test).js'
+    '**/__tests__/**/*.test.js'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',

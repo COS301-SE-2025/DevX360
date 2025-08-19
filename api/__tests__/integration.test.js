@@ -28,6 +28,7 @@ jest.unstable_mockModule('octokit', () => ({
       repos: {
         get: jest.fn(),
         listLanguages: jest.fn(),
+        listCommits: jest.fn(),
         listContributors: jest.fn(),
       },
       issues: {
@@ -40,34 +41,11 @@ jest.unstable_mockModule('octokit', () => ({
   })),
 }));
 
-// Mock global fetch for Ollama health check and repository-info-service
+// Mock global fetch for Ollama health check
 global.fetch = jest.fn().mockImplementation((url) => {
   // Mock for Ollama health check
   if (url === 'http://localhost:11434') {
     return Promise.resolve({ status: 200 });
-  }
-  
-  // Mock for GitHub API calls in repository-info-service
-  if (url.includes('api.github.com')) {
-    return Promise.resolve({
-      status: 200,
-      headers: new Map([
-        ['x-ratelimit-remaining', '1000'],
-        ['x-ratelimit-reset', '1234567890']
-      ]),
-      json: () => Promise.resolve({
-        name: 'test-repo',
-        description: 'Test repository',
-        language: 'JavaScript',
-        stargazers_count: 25,
-        forks_count: 5,
-        html_url: 'https://github.com/test/repo',
-        open_issues_count: 3,
-        default_branch: 'main',
-        created_at: '2023-01-01T00:00:00Z',
-        updated_at: '2023-12-01T00:00:00Z'
-      })
-    });
   }
   
   // Default mock
@@ -127,6 +105,7 @@ describe('API Integration Tests', () => {
     mockOctokitInstance.rest.repos.listLanguages.mockResolvedValue({ 
       data: { JavaScript: 1000, TypeScript: 500 }
     });
+    mockOctokitInstance.rest.repos.listCommits.mockResolvedValue({ data: [] });
     mockOctokitInstance.rest.repos.listContributors.mockResolvedValue({ 
       data: [
         { login: 'user1', contributions: 100 },
@@ -196,7 +175,7 @@ describe('API Integration Tests', () => {
       beforeEach(async () => {
         // Register a user before each login test
         const hashedPassword = await bcrypt.hash(testUser.password, 10);
-        registeredUser = await User.create({ ...testUser, password: hashedPassword });
+        registeredUser = await User.create({ ...testUser, password: hashedPassword, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
       });
 
       test('should log in a registered user and return a token', async () => {
@@ -366,6 +345,8 @@ describe('API Integration Tests', () => {
           email: 'conflicting@example.com',
           password: conflictingUserHashedPassword,
           role: 'user',
+          githubId: 'conflict-'+Date.now(),
+          githubUsername: 'conflictuser'
         });
 
         const res = await request(app)
@@ -439,7 +420,7 @@ describe('API Integration Tests', () => {
     beforeEach(async () => {
       // Register and log in a user to get an auth token
       const hashedPassword = await bcrypt.hash(testUser.password, 10);
-      await User.create({ ...testUser, password: hashedPassword });
+      await User.create({ ...testUser, password: hashedPassword, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
 
       const loginRes = await request(app)
         .post('/api/login')
@@ -483,7 +464,7 @@ describe('API Integration Tests', () => {
     beforeEach(async () => {
       // Register and log in an admin user
       const hashedPasswordAdmin = await bcrypt.hash(testAdmin.password, 10);
-      await User.create({ ...testAdmin, password: hashedPasswordAdmin });
+      await User.create({ ...testAdmin, password: hashedPasswordAdmin, githubId: 'admin-'+Date.now(), githubUsername: 'adminuser' });
       const adminLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testAdmin.email, password: testAdmin.password });
@@ -492,7 +473,7 @@ describe('API Integration Tests', () => {
 
       // Register and log in a regular user
       const hashedPasswordUser = await bcrypt.hash(testUser.password, 10);
-      await User.create({ ...testUser, password: hashedPasswordUser });
+      await User.create({ ...testUser, password: hashedPasswordUser, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
       const userLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testUser.email, password: testUser.password });
@@ -542,18 +523,18 @@ describe('API Integration Tests', () => {
     let testRepoMetrics;
 
     beforeEach(async () => {
-      // Create admin user
+      // Create admin user (ensure githubId uniqueness)
       const hashedPasswordAdmin = await bcrypt.hash(testAdmin.password, 10);
-      adminUser = await User.create({ ...testAdmin, password: hashedPasswordAdmin });
+      adminUser = await User.create({ ...testAdmin, password: hashedPasswordAdmin, githubId: 'admin-'+Date.now(), githubUsername: 'adminuser' });
       const adminLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testAdmin.email, password: testAdmin.password });
       const adminCookieHeader = adminLoginRes.headers['set-cookie'][0];
       adminToken = adminCookieHeader.split('token=')[1].split(';')[0];
 
-      // Create regular user
+      // Create regular user (ensure githubId uniqueness)
       const hashedPasswordUser = await bcrypt.hash(testUser.password, 10);
-      regularUser = await User.create({ ...testUser, password: hashedPasswordUser });
+      regularUser = await User.create({ ...testUser, password: hashedPasswordUser, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
       const userLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testUser.email, password: testUser.password });
@@ -856,7 +837,7 @@ describe('API Integration Tests', () => {
     beforeEach(async () => {
       // Create admin user
       const hashedPasswordAdmin = await bcrypt.hash(testAdmin.password, 10);
-      adminUser = await User.create({ ...testAdmin, password: hashedPasswordAdmin });
+      adminUser = await User.create({ ...testAdmin, password: hashedPasswordAdmin, githubId: 'admin-'+Date.now(), githubUsername: 'adminuser' });
       const adminLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testAdmin.email, password: testAdmin.password });
@@ -865,7 +846,7 @@ describe('API Integration Tests', () => {
 
       // Create regular user
       const hashedPasswordUser = await bcrypt.hash(testUser.password, 10);
-      regularUser = await User.create({ ...testUser, password: hashedPasswordUser });
+      regularUser = await User.create({ ...testUser, password: hashedPasswordUser, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
       const userLoginRes = await request(app)
         .post('/api/login')
         .send({ email: testUser.email, password: testUser.password });
@@ -1007,7 +988,7 @@ describe('API Integration Tests', () => {
     beforeEach(async () => {
       // Register and log in a user to get an auth token
       const hashedPassword = await bcrypt.hash(testUser.password, 10);
-      registeredUser = await User.create({ ...testUser, password: hashedPassword });
+      registeredUser = await User.create({ ...testUser, password: hashedPassword, githubId: 'user-'+Date.now(), githubUsername: 'regularuser' });
 
       const loginRes = await request(app)
         .post('/api/login')

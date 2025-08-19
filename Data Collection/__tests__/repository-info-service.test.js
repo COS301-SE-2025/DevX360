@@ -2,6 +2,7 @@ import { jest, describe, beforeEach, test, expect } from '@jest/globals';
 
 const mockGet = jest.fn();
 const mockListLanguages = jest.fn();
+const mockListCommits = jest.fn();
 const mockListContributors = jest.fn();
 const mockListForRepo = jest.fn();
 const mockPullsList = jest.fn();
@@ -12,6 +13,7 @@ jest.unstable_mockModule('octokit', () => ({
       repos: {
         get: mockGet,
         listLanguages: mockListLanguages,
+        listCommits: mockListCommits,
         listContributors: mockListContributors,
       },
       issues: {
@@ -31,6 +33,8 @@ describe('RepositoryInfoService', () => {
   beforeEach(() => {
     mockGet.mockClear();
     mockListLanguages.mockClear();
+    mockListCommits.mockClear();
+    mockListCommits.mockResolvedValue({ data: [] });
     mockListContributors.mockClear();
     mockListForRepo.mockClear();
     mockPullsList.mockClear();
@@ -114,6 +118,7 @@ describe('RepositoryInfoService', () => {
 
       mockGet.mockResolvedValue({ data: repoData });
       mockListLanguages.mockResolvedValue({ data: languagesData });
+      mockListCommits.mockResolvedValue({ data: [] });
       mockListContributors.mockResolvedValue({ data: contributorsData });
       mockListForRepo.mockResolvedValue({ data: issuesData });
       mockPullsList.mockResolvedValue({ data: pullsData });
@@ -124,7 +129,7 @@ describe('RepositoryInfoService', () => {
       expect(result.stars).toBe(10);
       expect(result.primary_language).toBe('JavaScript');
       expect(result.contributors[0].username).toBe('user1');
-    });
+    }, 15000);
 
     test('should handle repository not found error', async () => {
       mockGet.mockRejectedValue({ status: 404 });

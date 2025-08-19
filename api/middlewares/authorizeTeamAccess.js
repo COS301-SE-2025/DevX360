@@ -2,10 +2,17 @@ import Team from "../models/Team.js";
 
 export const authorizeTeamAccess = async (req, res, next) => {
   try {
-    const teamId = req.params.id || req.body.teamId || req.query.teamId;
-    if (!teamId) return res.status(400).json({ message: "Team ID required" });
+    // Support lookup by teamId or by team name from route param
+    const teamId = req.params.teamId || req.params.id || req.body.teamId || req.query.teamId;
+    const teamName = req.params.name;
 
-    const team = await Team.findById(teamId);
+    let team = null;
+    if (teamId) {
+      team = await Team.findById(teamId);
+    } else if (teamName) {
+      team = await Team.findOne({ name: teamName });
+    }
+    if (!teamId && !teamName) return res.status(400).json({ message: "Team identifier required" });
     if (!team) return res.status(404).json({ message: "Team not found" });
 
     req.team = team;

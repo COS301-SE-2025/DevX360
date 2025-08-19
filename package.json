@@ -34,6 +34,7 @@
     "start": "node api/server.js",
     "dev": "nodemon api/server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js mcp/__tests__/mcp-server.e2e.test.js --runInBand --testTimeout=30000",
     "reset": "rm -rf node_modules package-lock.json && npm install",
     "mcp": "node mcp-server.js",
     "demo": "node demo-scenarios.js",

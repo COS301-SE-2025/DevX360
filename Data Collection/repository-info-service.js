@@ -274,6 +274,15 @@ async function getRepositoryInfo(repositoryUrl) {
     });
     await delay(1000);
     
+    // Fetch recent commits for deployment detection
+    const { data: commits } = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      per_page: 100,
+      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // Last 30 days
+    });
+    await delay(1000);
+    
     // Fetch top contributors with accuracy metrics
     const contributorData = await fetchTopContributors(owner, repo, 30, 10);
     
@@ -585,5 +594,8 @@ export {
   parseGitHubUrl,
   fetchTopContributors,
   validateRepositoryInfo,
-  createMockRepositoryResponse
+  createMockRepositoryResponse,
+  // Already exported individually above:
+  // extractOwnerAndRepo,
+  // collectMemberActivity
 }; 
