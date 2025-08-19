@@ -621,6 +621,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
       team.members.push(req.user.userId);
       await team.save();
     }
+
     const user = await User.findById(req.user.userId);
     console.log("Join team for user:", user._id, "githubUsername:", user.githubUsername);
 
@@ -705,21 +706,9 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   const team = req.team;
   const repoData = await RepoMetrics.findOne({ teamId: team._id });
 
-  // Format DORA metrics to match MCP server response
-  const formattedMetrics = repoData?.metrics ? {
-    ...repoData.metrics,
-    deployment_frequency: {
-      ...(repoData.metrics.deployment_frequency || {}),
-      perDay: repoData.metrics.deployment_frequency?.perDay || [],
-      perWeek: repoData.metrics.deployment_frequency?.perWeek || [],
-      perMonth: repoData.metrics.deployment_frequency?.perMonth || [],
-      months: repoData.metrics.deployment_frequency?.months || []
-    }
-  } : null;
-
   const base = {
     team: { id: team._id, name: team.name, members: team.members || [] },
-    doraMetrics: formattedMetrics,
+    doraMetrics: repoData?.metrics || null,
     repositoryInfo: repoData?.repositoryInfo || null,
     lastUpdated: repoData?.lastUpdated || null,
   };
@@ -729,7 +718,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
     await team.populate("members", "name email");
     return res.json({
       ...base,
-      members: team.members || [],
+      members: team.members,
       creator: team.creator,
       memberStats: repoData?.memberStats || {},
       permissions: "full",
