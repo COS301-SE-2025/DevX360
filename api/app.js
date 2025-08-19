@@ -735,7 +735,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
 
 // DELETE TEAM (by name, creator only)
 app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
-  if (req.user.teamRole !== "creator" || req.user.role !== "admin") {
+  if (req.user.teamRole !== "creator" && req.user.role !== "admin") {
     return res.status(403).json({ message: "Only the team creator can delete the team" });
   }
 
