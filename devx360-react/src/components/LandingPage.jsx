@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, BarChart3, Zap, Shield, Users, Github, TrendingUp, Brain, Clock, Target, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);

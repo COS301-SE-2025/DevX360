@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, Bell } from 'lucide-react';
+import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, Bell, X, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import HeaderInfo from "../common/HeaderInfo";
 
@@ -22,6 +22,11 @@ function Metrics() {
   const [timeRange, setTimeRange] = useState('30');
   const [environment, setEnvironment] = useState('all');
   const [expandedInsights, setExpandedInsights] = useState({});
+  
+  // New states for member stats popup
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [memberStatsLoading, setMemberStatsLoading] = useState(false);
+  const [showMemberStatsModal, setShowMemberStatsModal] = useState(false);
 
   useEffect(() => {
     if (currentUser?.avatar) {
@@ -39,7 +44,7 @@ function Metrics() {
   }, [currentUser, selectedTeamId]);
 
   const fetchTeamMetrics = async (teamId = null) => {
-    if (!Array.isArray(currentUser?.teams) || currentUser.teams.length === 0) {
+    if (!selectedTeamId || !currentUser?.teams) {
       setError('No team assigned to user');
       setLoading(false);
       return;
@@ -49,7 +54,8 @@ function Metrics() {
       setLoading(true);
       setError(null);
       
-      const targetTeamId = teamId || selectedTeamId || currentUser.teams[0].id;
+      const targetTeamId = selectedTeamId;
+      console.log('Fetching metrics for team:', targetTeamId);
       const targetTeam = currentUser.teams.find(team => team.id === targetTeamId);
       if (!targetTeam) {
         throw new Error('Selected team not found');
@@ -88,6 +94,69 @@ function Metrics() {
     setAiError(null);
     setAiStatus('checking');
     setAiProgress(0);
+  };
+
+  // Check if current user is the creator of the selected team
+  const isTeamCreator = () => {
+    return teamData?.creator?._id === currentUser?._id;
+  };
+
+  // Handle member click
+const handleMemberClick = (member) => {
+  // Only allow access to own stats or if user is team creator
+  if (!isTeamCreator() && member._id !== currentUser?._id) {
+ return
+  }
+
+  //if user is not team creator but is the current user and is memeber show the stats but not the edit options
+  if (!isTeamCreator() && member._id === currentUser?._id) {
+    setSelectedMember(member);
+    setShowMemberStatsModal(true);
+    return;
+  }
+  
+  setSelectedMember(member);
+  setShowMemberStatsModal(true);
+  
+  // Fetch member stats if not already available
+  if (!teamData.memberStats?.[member._id]) {
+    fetchMemberStats(member._id);
+  }
+};
+
+  // Fetch individual member stats
+  const fetchMemberStats = async (memberId) => {
+
+
+    setMemberStatsLoading(true);
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}/members/${memberId}/stats`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const memberStats = await response.json();
+        // Update teamData with new member stats
+        setTeamData(prev => ({
+          ...prev,
+          memberStats: {
+            ...prev.memberStats,
+            [memberId]: memberStats
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching member stats:', err);
+    } finally {
+      setMemberStatsLoading(false);
+    }
+  };
+
+  // Close member stats modal
+  const closeMemberStatsModal = () => {
+    setShowMemberStatsModal(false);
+    setSelectedMember(null);
   };
 
   // Fixed AI feedback useEffect
@@ -239,6 +308,293 @@ function Metrics() {
     );
   };
 
+  // Member Stats Modal Component
+  const MemberStatsModal = () => {
+    if (!showMemberStatsModal || !selectedMember) return null;
+
+    const memberStats = teamData.memberStats?.[selectedMember._id];
+    const isCurrentUser = selectedMember._id === currentUser?._id;
+
+    return (
+      <>
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          {/* Modal */}
+          <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-semibold text-lg">
+                    {selectedMember.name ? selectedMember.name.charAt(0).toUpperCase() : 'M'}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-[var(--text)]">
+                    {selectedMember.name || 'Team Member'} 
+                    {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-2">(You)</span>}
+                  </h2>
+                  <p className="text-[var(--text-light)]">{selectedMember.email || 'No email provided'}</p>
+                </div>
+              </div>
+              <button
+                onClick={closeMemberStatsModal}
+                className="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-[var(--text-light)]" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              {memberStatsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-8 h-8 text-[var(--primary)] animate-spin" />
+                  <span className="ml-3 text-[var(--text)]">Loading member stats...</span>
+                </div>
+              ) : memberStats ? (
+                <div className="space-y-6">
+                  {/* GitHub Profile Info */}
+                  {memberStats.githubUsername && (
+                    <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                      <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                        <GitBranch className="w-4 h-4 mr-2" />
+                        GitHub Profile
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-[var(--text-light)]">Username</span>
+                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.githubUsername}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-[var(--text-light)]">Activity Score</span>
+                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-[var(--text-light)]">Last Activity</span>
+                          <span className="text-sm font-medium text-[var(--text)]">
+                            {memberStats.lastActivity ? new Date(memberStats.lastActivity).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-[var(--text-light)]">Data Collected</span>
+                          <span className="text-sm font-medium text-[var(--text)]">
+                            {memberStats.collectedAt ? new Date(memberStats.collectedAt).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pull Requests Stats */}
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                      <GitPullRequest className="w-4 h-4 mr-2" />
+                      Pull Requests
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{memberStats.pullRequests?.merged || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Merged</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{memberStats.pullRequests?.open || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Open</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-600">{memberStats.pullRequests?.closed || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Closed</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Issues Stats */}
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                      <Bug className="w-4 h-4 mr-2" />
+                      Issues
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{memberStats.issues?.open || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Open</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{memberStats.issues?.closed || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Closed</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Metrics */}
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Performance
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-[var(--text-light)]">Activity Score</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min((memberStats.activityScore || 0) / 100 * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-[var(--text-light)]">PR Success Rate</span>
+                        <span className="text-sm font-medium text-[var(--text)]">
+                          {memberStats.pullRequests?.total > 0 
+                            ? `${Math.round((memberStats.pullRequests.merged / memberStats.pullRequests.total) * 100)}%`
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-[var(--text-light)]">Issue Resolution Rate</span>
+                        <span className="text-sm font-medium text-[var(--text)]">
+                          {memberStats.issues?.total > 0 
+                            ? `${Math.round((memberStats.issues.closed / memberStats.issues.total) * 100)}%`
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-[var(--text)] mb-2">No Stats Available</h3>
+                  <p className="text-[var(--text-light)]">
+                    {isCurrentUser ? 'Your stats will appear here once you start contributing.' : 'Member stats are being collected.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  // Render member card with access control
+const renderMemberCard = (member, isCreator = false) => {
+  // Show all members, but only allow clicking if user is creator OR it's their own card
+  const canViewStats = isTeamCreator() || member._id === currentUser?._id;
+  const memberStats = teamData.memberStats?.[member._id];
+  const isCurrentUser = member._id === currentUser?._id;
+
+  return (
+    <div 
+      key={member._id} 
+      className={`bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] transition-all duration-200 ${
+        canViewStats 
+          ? 'hover:shadow-md hover:border-[var(--primary)] cursor-pointer' 
+          : 'cursor-default' // Remove opacity reduction - show all members normally
+      }`}
+      onClick={() => canViewStats && handleMemberClick(member)}
+    >
+      <div className="flex items-center space-x-3">
+        <div className={`w-12 h-12 ${
+          isCreator 
+            ? 'bg-gradient-to-br from-purple-500 to-pink-600' 
+            : 'bg-gradient-to-br from-blue-500 to-green-600'
+        } rounded-full flex items-center justify-center flex-shrink-0 relative`}>
+          <span className="text-white font-semibold text-sm">
+            {member.name ? member.name.charAt(0).toUpperCase() : (isCreator ? 'C' : 'M')}
+          </span>
+          {/* Only show lock icon for non-clickable members (not creator, not current user) */}
+          {!canViewStats && (
+            <div className="absolute inset-0 bg-black bg-opacity-20 rounded-full flex items-center justify-center">
+              <Lock className="w-4 h-4 text-white opacity-60" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2">
+            <p className="font-medium text-[var(--text)] truncate">
+              {member.name || (isCreator ? 'Team Creator' : 'Team Member')}
+              {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-1">(You)</span>}
+            </p>
+            {canViewStats && (
+              <ExternalLink className="w-3 h-3 text-[var(--text-light)]" />
+            )}
+          </div>
+          <p className="text-sm text-[var(--text-light)] truncate">
+            {member.email || 'No email provided'}
+          </p>
+          <div className="flex items-center space-x-2 mt-2">
+            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+              isCreator
+                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+            }`}>
+              {isCreator ? 'Creator' : 'Member'}
+            </span>
+            {memberStats && canViewStats && (
+              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                Active
+              </span>
+            )}
+            {!canViewStats && !isCurrentUser && (
+              <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 flex items-center">
+                <Users className="w-3 h-3 mr-1" />
+                Teammate
+              </span>
+            )}
+          </div>
+          
+          {/* Show appropriate content based on access level */}
+          {canViewStats && memberStats ? (
+            // Full stats preview for accessible members (creator view or own stats)
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div className="bg-[var(--bg-container)] rounded p-2">
+                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
+                <div className="text-xs text-[var(--text-light)]">PRs</div>
+              </div>
+              <div className="bg-[var(--bg-container)] rounded p-2">
+                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
+                <div className="text-xs text-[var(--text-light)]">Issues</div>
+              </div>
+              <div className="bg-[var(--bg-container)] rounded p-2">
+                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.activityScore || 0}</div>
+                <div className="text-xs text-[var(--text-light)]">Score</div>
+              </div>
+            </div>
+          ) : canViewStats && !memberStats ? (
+            // Loading state for accessible members without stats
+            <div className="mt-3 text-center">
+              <div className="bg-[var(--bg-container)] rounded p-2">
+                <div className="text-xs text-[var(--text-light)]">Click to view stats</div>
+              </div>
+            </div>
+          ) : !canViewStats && !isCurrentUser ? (
+            // Show basic team member info for non-accessible members (other teammates)
+            <div className="mt-3 text-center">
+              <div className="bg-[var(--bg-container)] rounded p-2 flex items-center justify-center space-x-2">
+                <Users className="w-4 h-4 text-[var(--text-light)]" />
+                <div className="text-xs text-[var(--text-light)]">Team Member - Stats Private</div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
@@ -303,8 +659,6 @@ function Metrics() {
           0)
     }));
 
-    
-
   // Get metric statuses with safe fallbacks
   const deploymentStatus = getDeploymentStatus(parseFloat(deploymentFreq.frequency_per_day) || 0);
   const leadTimeStatus = getLeadTimeStatus(leadTime.average_days || 0);
@@ -312,6 +666,9 @@ function Metrics() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      {/* Member Stats Modal */}
+      <MemberStatsModal />
+      
       {/* Header */}
       <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] py-4 sticky top-0 z-50">
         <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -725,122 +1082,97 @@ function Metrics() {
           </div>
         </section>
 
-       {/* Team Members - Full Width */}
-        <section className="mb-8">
-          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)]">
-            <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
-              <button className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
-                Manage Team
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {/* Team Creator */}
-                {teamData.creator && (
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-semibold text-sm">
-                          {teamData.creator.name ? teamData.creator.name.charAt(0).toUpperCase() : 'C'}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[var(--text)] truncate">
-                          {teamData.creator.name || 'Team Creator'}
-                        </p>
-                        <p className="text-sm text-[var(--text-light)] truncate">
-                          {teamData.creator.email || 'No email provided'}
-                        </p>
-                        <span className="inline-block px-2 py-1 text-xs rounded-full mt-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          Creator
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        {/* Team Members Section - Updated JSX */}
+<section className="mb-8">
+  <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)]">
+    <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
+        {isTeamCreator() && (
+          <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+            Creator Access
+          </span>
+        )}
+        {!isTeamCreator() && (
+          <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300">
+            <Users className="w-3 h-3 inline mr-1" />
+            Member View
+          </span>
+        )}
+      </div>
+      {isTeamCreator() && (
+        <button className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
+          Manage Team
+        </button>
+      )}
+    </div>
+    <div className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Team Creator - Always show */}
+        {teamData.creator && renderMemberCard(teamData.creator, true)}
 
-                {/* Team Members */}
-                {teamData.members && teamData.members.length > 0 ? (
-                  teamData.members.map((member, index) => (
-                    <div key={member._id || index} className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] hover:shadow-md transition-shadow">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-semibold text-sm">
-                            {member.name ? member.name.charAt(0).toUpperCase() : 'M'}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-[var(--text)] truncate">
-                            {member.name || 'Team Member'}
-                          </p>
-                          <p className="text-sm text-[var(--text-light)] truncate">
-                            {member.email || 'No email provided'}
-                          </p>
-                          <span className="inline-block px-2 py-1 text-xs rounded-full mt-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                            Member
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  // Show placeholder if no members (excluding creator)
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Users className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[var(--text-light)]">No Members Yet</p>
-                        <p className="text-sm text-[var(--text-light)]">Invite team members</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Add Member Placeholders - only show a few if there are existing members */}
-                {Array.from({ length: Math.max(2, 4 - (teamData.members?.length || 0) - 1) }).map((_, index) => (
-                  <div key={`placeholder-${index}`} className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Users className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[var(--text-light)]">Add Member</p>
-                        <p className="text-sm text-[var(--text-light)]">Invite team member</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Team Stats Summary */}
-              <div className="mt-6 pt-6 border-t border-[var(--border)]">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                  <div className="bg-[var(--bg)] rounded-lg p-4">
-                    <div className="text-2xl font-bold text-[var(--text)]">
-                      {(teamData.members?.length || 0) + (teamData.creator ? 1 : 0)}
-                    </div>
-                    <div className="text-sm text-[var(--text-light)]">Total Members</div>
-                  </div>
-                  <div className="bg-[var(--bg)] rounded-lg p-4">
-                    <div className="text-2xl font-bold text-[var(--text)]">
-                      {teamData.creator ? 1 : 0}
-                    </div>
-                    <div className="text-sm text-[var(--text-light)]">Creator</div>
-                  </div>
-                  <div className="bg-[var(--bg)] rounded-lg p-4">
-                    <div className="text-2xl font-bold text-[var(--text)]">
-                      {teamData.members?.length || 0}
-                    </div>
-                    <div className="text-sm text-[var(--text-light)]">Active Members</div>
-                  </div>
+        {/* All Team Members - Show all, but limit interaction based on permissions */}
+        {teamData.members && teamData.members.length > 0 ? (
+          teamData.members.map((member) => renderMemberCard(member, false))
+        ) : (
+          // Show placeholder only if you're the creator and there are no members
+          isTeamCreator() && (
+            <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Users className="w-6 h-6 text-gray-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[var(--text-light)]">No Members Yet</p>
+                  <p className="text-sm text-[var(--text-light)]">Invite team members</p>
                 </div>
               </div>
             </div>
+          )
+        )}
+
+        {/* Add Member Placeholders - only show for creators */}
+        {isTeamCreator() && Array.from({ length: Math.max(1, 3 - (teamData.members?.length || 0)) }).map((_, index) => (
+          <div key={`placeholder-${index}`} className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                <Users className="w-6 h-6 text-gray-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-[var(--text-light)]">Add Member</p>
+                <p className="text-sm text-[var(--text-light)]">Invite team member</p>
+              </div>
+            </div>
           </div>
-        </section>
+        ))}
+      </div>
+      
+      {/* Team Stats Summary */}
+      <div className="mt-6 pt-6 border-t border-[var(--border)]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="bg-[var(--bg)] rounded-lg p-4">
+            <div className="text-2xl font-bold text-[var(--text)]">
+              {(teamData.members?.length || 0) + (teamData.creator ? 1 : 0)}
+            </div>
+            <div className="text-sm text-[var(--text-light)]">Total Members</div>
+          </div>
+          <div className="bg-[var(--bg)] rounded-lg p-4">
+            <div className="text-2xl font-bold text-[var(--text)]">
+              {teamData.creator ? 1 : 0}
+            </div>
+            <div className="text-sm text-[var(--text-light)]">Creator</div>
+          </div>
+          <div className="bg-[var(--bg)] rounded-lg p-4">
+            <div className="text-2xl font-bold text-[var(--text)]">
+              {teamData.members?.length || 0}
+            </div>
+            <div className="text-sm text-[var(--text-light)]">Active Members</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
         
         {/* AI Analysis - Full Width */}
         <section className="pb-8">

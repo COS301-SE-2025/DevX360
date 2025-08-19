@@ -13,6 +13,7 @@ import HelpMenu from './components/Dashboard/HelpMenu';
 import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth import
 import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './components/LandingPage';
+import FAQPage from './components/Dashboard/FAQPage';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -59,6 +60,7 @@ function App() {
               <Route path="team" element={<Team />} />
               <Route path="metrics" element={<Metrics />} />
               <Route path="help" element={<HelpMenu />} />
+                <Route path="faqpage" element={<FAQPage />} /> 
             </Route>
           </Routes>
           <Toaster position="top-center"

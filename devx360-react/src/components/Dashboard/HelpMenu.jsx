@@ -1,7 +1,15 @@
 import React from 'react';
-import { BookOpen, FileText, Video, Zap, ExternalLink, Sparkles, HelpCircle, MessageCircle, Users } from 'lucide-react';
+import { BookOpen, FileText, Video, Zap, ExternalLink, Sparkles, HelpCircle, MessageCircle, Users, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-function HelpMenu() {
+function HelpMenu({ onClose }) {
+  const navigate = useNavigate();
+
+  const handleNavigateToFAQ = () => {
+    navigate('/dashboard/FAQpage');
+    if (onClose) onClose(); // Close the help menu if onClose is provided
+  };
+
   const helpContent = [
     {
       title: 'Getting Started',
@@ -12,12 +20,14 @@ function HelpMenu() {
         {
           title: 'User Guide',
           description: 'Complete setup and usage instructions',
-          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md'
+          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md',
+          type: 'external'
         },
         {
           title: 'API Documentation',
           description: 'Technical reference for developers',
-          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/api/README.md'
+          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/api/README.md',
+          type: 'external'
         }
       ]
     },
@@ -30,7 +40,8 @@ function HelpMenu() {
         {
           title: 'Common Questions & Solutions',
           description: 'Troubleshooting and best practices',
-          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Frequently%20Asked%20Questions.pdf'
+          onClick: handleNavigateToFAQ,
+          type: 'internal'
         }
       ]
     },
@@ -43,12 +54,14 @@ function HelpMenu() {
         {
           title: 'SRS Document',
           description: 'Software Requirements Specification',
-          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.3.1.pdf'
+          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.3.1.pdf',
+          type: 'external'
         },
         {
           title: 'System Architecture',
           description: 'Architectural requirements and design',
-          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Architectural%20Requirements%20V3.1.pdf'
+          link: 'https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Architectural%20Requirements%20V3.1.pdf',
+          type: 'external'
         }
       ]
     },
@@ -61,19 +74,90 @@ function HelpMenu() {
         {
           title: 'Demo 1 - Platform Overview',
           description: 'Introduction to core features',
-          link: 'https://drive.google.com/file/d/1MDIwWnNAUEV2ejQbL9K-zq6jvtjVqSEl/view?usp=sharing'
+          link: 'https://drive.google.com/file/d/1MDIwWnNAUEV2ejQbL9K-zq6jvtjVqSEl/view?usp=sharing',
+          type: 'external'
         },
         {
           title: 'Demo 2 - Advanced Features',
           description: 'Deep dive into advanced functionality',
-          link: 'https://drive.google.com/file/d/1pbYanadFWiOqrrFJEYWaOpSvrdY5NNx0/view?usp=sharing'
+          link: 'https://drive.google.com/file/d/1pbYanadFWiOqrrFJEYWaOpSvrdY5NNx0/view?usp=sharing',
+          type: 'external'
         }
       ]
     }
   ];
 
+  const renderMenuItem = (item, itemIndex) => {
+    const baseClasses = "help-menu-link group/link relative flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-md cursor-pointer";
+    const baseStyle = { background: 'var(--bg-secondary)' };
+
+    if (item.type === 'internal' && item.onClick) {
+      // Internal navigation (FAQ)
+      return (
+        <div
+          key={itemIndex}
+          onClick={item.onClick}
+          className={baseClasses}
+          style={baseStyle}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-gray-900 group-hover/link:text-blue-600 transition-colors">
+                {item.title}
+              </h3>
+              <div className="text-gray-400 group-hover/link:text-blue-500 transition-all duration-200 group-hover/link:translate-x-0.5">
+                →
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              {item.description}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // External links
+    return (
+      <a
+        key={itemIndex}
+        href={item.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={baseClasses}
+        style={baseStyle}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-gray-900 group-hover/link:text-blue-600 transition-colors">
+              {item.title}
+            </h3>
+            <ExternalLink 
+              size={16} 
+              className="text-gray-400 group-hover/link:text-blue-500 transition-all duration-200 group-hover/link:translate-x-0.5" 
+            />
+          </div>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {item.description}
+          </p>
+        </div>
+      </a>
+    );
+  };
+
   return (
     <div className="help-menu-container">
+      {/* Close button if onClose is provided */}
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close help menu"
+        >
+          <X size={20} />
+        </button>
+      )}
+
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
@@ -130,33 +214,7 @@ function HelpMenu() {
             {/* Card Content with Enhanced Links */}
             <div className="px-6 pb-6">
               <div className="space-y-2">
-                {section.items.map((item, itemIndex) => (
-                  <a
-                    key={itemIndex}
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="help-menu-link group/link relative flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-md"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                    }}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 group-hover/link:text-blue-600 transition-colors">
-                          {item.title}
-                        </h3>
-                        <ExternalLink 
-                          size={16} 
-                          className="text-gray-400 group-hover/link:text-blue-500 transition-all duration-200 group-hover/link:translate-x-0.5" 
-                        />
-                      </div>
-                      <p className="text-sm text-gray-500 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  </a>
-                ))}
+                {section.items.map((item, itemIndex) => renderMenuItem(item, itemIndex))}
               </div>
             </div>
           </div>
