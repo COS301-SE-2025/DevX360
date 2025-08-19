@@ -45,14 +45,6 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
             <p className="text-[var(--text-light)] mb-6 max-w-md mx-auto">
               Get started by creating a new team or joining an existing one. Teams help you track your development metrics.
             </p>
-            <div className="flex items-center justify-center space-x-4">
-              <button className="px-6 py-3 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors duration-200">
-                Create Your First Team
-              </button>
-              <button className="px-6 py-3 border border-[var(--border)] text-[var(--text)] rounded-lg font-medium hover:bg-[var(--bg)] transition-colors duration-200">
-                Join Existing Team
-              </button>
-            </div>
           </div>
         </div>
     );

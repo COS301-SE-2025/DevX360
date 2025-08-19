@@ -13,7 +13,7 @@ export async function getUsers() {
     throw new Error(data.message || 'Failed to fetch users');
   }
 
-  console.log("data", data);
+  // console.log("data", data);
 
   return data.users;
 }
