@@ -95,6 +95,8 @@ export const deleteTeam = async (teamName, teamId) => {
     credentials: 'include',
   });
 
+  console.log("Deleting team:", teamName, "with ID:", teamId);
+
   if (!response.ok) {
     console.log("error", response);
     const error = await response.json();

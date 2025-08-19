@@ -64,7 +64,7 @@ function JoinTeamModal({onCloseJoin, onTeamJoined}) {
       if (isMember) {
         toast.success(`Already joined "${team.name}".`);
         onCloseJoin();
-        navigate(`/dashboard/metrics?teamName=${team.name}`);
+        navigate(`/dashboard/metrics`);
       } else {
         setCurrentStep('enteringPassword');
       }

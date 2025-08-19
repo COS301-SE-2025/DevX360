@@ -22,9 +22,17 @@ function Overview() {
   return (
     <div className="p-6 space-y-10 bg-gradient-to-b from-gray-50 via-white to-gray-100 min-h-screen">
       {/* Header (keep original styling) */}
-      <header className="main-header">
-        <h1>Overview</h1>
-        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+      <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] sticky top-0 z-50">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <h1 className="text-2xl font-bold text-[var(--text)]">DevX360</h1>
+              <div className="h-6 w-px bg-[var(--border)]"></div>
+              <p className="text-lg font-medium text-[var(--text-light)]">Overview</p>
+            </div>
+            <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+          </div>
+        </div>
       </header>
 
       {/* Welcome card */}

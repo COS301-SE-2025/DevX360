@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import {Clock, GitBranch, TrendingUp, Zap, MoreVertical, Trash2, Search, Users, Calendar, Github, ExternalLink, Crown} from "lucide-react";
+import {
+  Clock,
+  GitBranch,
+  TrendingUp,
+  Zap,
+  MoreVertical,
+  Trash2,
+  Search,
+  Users,
+  Calendar,
+  Github,
+  ExternalLink,
+  Crown,
+  Loader
+} from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
 import CreateTeamModal from "./modal/CreateTeam";
 import JoinTeamModal from "./modal/JoinTeam";
@@ -282,7 +296,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
                         </div>
                     )}
 
-                    <Link to={`/dashboard/metrics?teamName=${team.name}`} className="text-xs font-medium text-[var(--text)] hover:text-[var(--primary-dark)] transition-colors">
+                    <Link to={`/dashboard/metrics`} className="text-xs font-medium text-[var(--text)] hover:text-[var(--primary-dark)] transition-colors">
                       <div className="w-4 h-4 bg-[var(--primary)] rounded-full flex items-center justify-center">
                         <TrendingUp className="w-2.5 h-2.5 text-white" />
                       </div>
@@ -313,23 +327,27 @@ function Team() {
   const [showJoinModal, setShowJoinModal] = useState(false);
 
   const [teamToDelete, setTeamToDelete] = useState(null); // for confirmation modal
-  const [isDeleting, setIsDeleting] = useState(false); // for loading state
+  const [isDeleting, setIsDeleting] = useState(false); // for deleting state
+  const [isLoading, setIsLoading] = useState(false); // for loading state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  const refreshTeams = async () => {
+  const loadTeams = async () => {
     try {
+      setIsLoading(true);
       const userTeams = await getMyTeams();
       setTeams(userTeams);
     } catch (error) {
       console.error('Error refreshing teams:', error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   const handleCreateTeam = async () => {
     try {
-      await refreshTeams();
+      await loadTeams();
       setShowCreateModal(false);
     } catch (error) {
       console.error('Error refreshing teams:', error);
@@ -339,7 +357,7 @@ function Team() {
 
   const handleJoinTeam = async () => {
     try {
-      await refreshTeams();
+      await loadTeams();
       setShowJoinModal(false);
     } catch (error) {
       console.error('Error refreshing teams:', error);
@@ -358,7 +376,7 @@ function Team() {
     setIsDeleting(true);
     try {
       await deleteTeam(teamToDelete.name, teamToDelete.id);
-      await refreshTeams();
+      await loadTeams();
       setShowDeleteModal(false);
       setTeamToDelete(null);
       toast.success(`Team ${teamToDelete.name} deleted successfully!`);
@@ -385,16 +403,6 @@ function Team() {
       setAvatar(defaultAvatar);
     }
 
-    // Load teams
-    const loadTeams = async () => {
-      try {
-        const userTeams = await getMyTeams();
-        setTeams(userTeams);
-      } catch (error) {
-        console.error('Error loading teams:', error);
-      }
-    };
-
     if (currentUser) {
       (async () => {
         await loadTeams();
@@ -402,6 +410,19 @@ function Team() {
     }
   }, [currentUser]);
 
+  if (isLoading) {
+    return (
+        <div className="min-h-screen bg-[var(--bg)]">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader className="w-12 h-12 animate-spin text-[var(--primary)] mx-auto mb-4"/>
+              <p className="text-lg font-medium text-[var(--text)]">Loading teams...</p>
+              <p className="text-sm text-[var(--text-light)] mt-2">Please wait while we fetch the data</p>
+            </div>
+          </div>
+        </div>
+    );
+  }
   return (
       <div className="min-h-screen bg-[var(--bg)]">
         {/* Header - Full width */}
@@ -411,7 +432,7 @@ function Team() {
               <div className="flex items-center space-x-6">
                 <h1 className="text-2xl font-bold text-[var(--text)]">Your Teams</h1>
                 <div className="h-6 w-px bg-[var(--border)]"></div>
-                <p className="text-[var(--text-light)]">Manage and monitor your development teams</p>
+                <p className="text-lg font-medium text-[var(--text-light)]">Manage and monitor your development teams</p>
               </div>
               <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
             </div>
@@ -419,9 +440,13 @@ function Team() {
         </header>
 
         {/* Main content with proper padding */}
-        <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className="max-w-7xl mx-auto px-6 py-8">
+
+          <div className="mb-8">
           {/* Controls section */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-6">
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             {/* Search*/}
             <div className="w-full md:w-auto md:flex-1 md:max-w-md">
               <div className="relative">
@@ -436,6 +461,7 @@ function Team() {
               </div>
             </div>
 
+            {/*buttons*/}
             <div className="flex gap-4 w-full md:w-auto">
               <button
                   className="w-full md:w-auto px-6 py-3 rounded-lg font-medium text-lg cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"
@@ -450,10 +476,15 @@ function Team() {
                 Join Team
               </button>
             </div>
+
+            </div>
+
+          </div>
+
           </div>
 
           {/* Team content - centered and constrained */}
-          <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
             <TeamInfo
                 teams={filteredTeams}
                 currentUser={currentUser}

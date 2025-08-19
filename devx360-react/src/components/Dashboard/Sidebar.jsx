@@ -69,8 +69,8 @@ function Sidebar() {
           {!isMinimized && <span>Profile</span>}
         </NavLink>
 
-        {!isAdmin && ( <NavLink
-          to="/dashboard/team" 
+        <NavLink
+          to="/dashboard/team"
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           title={isMinimized ? 'Team' : ''}
         >
@@ -82,7 +82,6 @@ function Sidebar() {
           </svg>
           {!isMinimized && <span>Team</span>}
         </NavLink>
-        )}
 
         {isAdmin && (
           <NavLink

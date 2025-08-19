@@ -30,9 +30,9 @@ function DeleteConfirmationModal({
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="flex flex-col gap-1">
           <span>This will permanently delete the user account:</span>
-          <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '8px' }}>
+          <div className="flex flex-col ml-2">
             {userId && <span>• ID: {userId}</span>}
             {email && <span>• Email: {email}</span>}
           </div>
@@ -42,54 +42,43 @@ function DeleteConfirmationModal({
   };
 
   return (
-      <div ref={modalRef} onClick={closeModal} className="modal-section" style={{ backdropFilter: 'none' }}>
-        <div onClick={(e) => e.stopPropagation()} className="modal" style={{ maxWidth: '420px' }}>
-          <div className="modal-header">
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '16px',
-              marginBottom: '10px'
-            }}>
-              <AlertTriangle size={22} style={{ color: '#DC2626', flexShrink: 0 }} />
-              <h2 className="metric-title" style={{ margin: '0 0 8px 0', fontSize: '19px' }}>
+      <div
+          ref={modalRef}
+          onClick={closeModal}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      >
+        <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[var(--bg-container)] rounded-xl shadow-[var(--shadow)] w-full max-w-[420px] mx-4 border border-[var(--border)]"
+        >
+          <div className="p-6 border-b border-[var(--border)]">
+            <div className="flex items-start gap-4">
+              <AlertTriangle size={22} className="text-[#DC2626] flex-shrink-0" />
+              <h2 className="text-[19px] font-semibold text-[var(--text)]">
                 {getTitle()}
               </h2>
             </div>
           </div>
-          <div className="modal-body" style={{ padding: '24px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '16px',
-              marginBottom: '3px'
-            }}>
-              <div style={{ margin: 0, color: '#6b7280', fontSize: '16px', lineHeight: '1.5' }}>
+
+          <div className="p-6">
+            <div className="flex items-start gap-4 mb-1">
+              <div className="text-[var(--text-light)] text-base leading-relaxed">
                 {getDescription()}
               </div>
             </div>
 
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem',
-              justifyContent: 'flex-end',
-            }}>
+            <div className="flex gap-3 justify-end mt-6">
               <button
                   onClick={onCloseDelete}
-                  className="btn btn-secondary edit-actions-btn"
+                  className="px-4 py-2 rounded-lg bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors"
                   disabled={isDeleting}
               >
                 Cancel
               </button>
               <button
                   onClick={onConfirm}
-                  className="btn btn-danger"
+                  className="px-4 py-2 rounded-lg bg-[var(--secondary)] text-white hover:brightness-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   disabled={isDeleting}
-                  style={{
-                    width: 'auto',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer',
-                    opacity: isDeleting ? 0.6 : 1
-                  }}
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>

@@ -180,183 +180,188 @@ function Profile() {
   };
 
   return (
-  <>
-    <header className="main-header">
-      <h1>Your Profile</h1>
-        <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
-    </header>
-      <div style={{ display: 'flex', alignItems: 'center',  width: '60%', justifyContent: 'center', margin: '0 auto' }}>
-          <div className="profile-content full-width-profile" style={{ flex: 2, width: '100%', maxWidth: '1200px', gap: '1rem' }}>
-            <div className="profile-wrapper">
-                  <div className="profile-left">
-                      <div className="profile-avatar-container">
-                          {/*added*/}
-                          <div className="avatar-wrap">
-                              <div className="profile-avatar">
-                                  <img
-                                      src={avatar}
-                                      alt="Profile"
-                                      onError={(e) => {
-                                          e.target.src = defaultAvatar;
-                                          e.target.onerror = null;
-                                      }}
-                                  />
-                                  {isLoading && (
-                                      <div className="avatar-loading-overlay">
-                                          <div className="loading-spinner"></div>
-                                      </div>
-                                  )}
-                              </div>
+    <div className="min-h-screen bg-[var(--bg)]">
+      <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] sticky top-0 z-50">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <h1 className="text-2xl font-bold text-[var(--text)]">Your Profile</h1>
+              <div className="h-6 w-px bg-[var(--border)]"></div>
+              <p className="text-lg font-medium text-[var(--text-light)]">Manage your profile</p>
+            </div>
+            <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+          </div>
+        </div>
+      </header>
 
-                              {/*add button stuff*/}
-                              <button
-                                  onClick={triggerFileInput}
-                                  className="edit-btn btn-secondary"
-                                  disabled={isLoading}
-                              >
-                                  {isLoading ? 'Uploading...' : 'Edit'}
-                              </button>
-                              {/*ADD BUTTON STUFF*/}
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 bg-[var(--bg-container)] rounded-xl p-8 w-full"
+             style={{ boxShadow: 'var(--shadow)' }}>
 
-                              <input
-                                  type="file"
-                                  ref={fileInputRef}
-                                  onChange={handleAvatarChange}
-                                  accept="image/*"
-                                  style={{ display: 'none' }}
-                              />
-
-                          </div>
+          {/*profile wrapper*/}
+          <div className="flex flex-row gap-20 flex-wrap w-full">
+            {/*profile left*/}
+            <div className="flex flex-col items-center gap-6 min-w-[120px] justify-between">
+              {/*avatar container*/}
+              <div className="flex flex-col items-center gap-4">
+                {/*avatar wrap*/}
+                <div className="relative inline-block">
+                  <div className="w-[150px] h-[150px] rounded-full overflow-hidden bg-[var(--border)]">
+                    <img
+                      src={avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                          e.target.src = defaultAvatar;
+                          e.target.onerror = null;
+                      }}
+                    />
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      {/*<div className="field-row">*/}
-                      {!isEditing ? (
-                          <>
-                              <div className="detail-group member-since">
-                                  <label>Member Since</label>
-                                  <div className="detail-value">
-                                    {formatDate(currentUser?.createdAt)}
+                    )}
+                </div>
+
+                {/*add button stuff*/}
+                <button
+                  onClick={triggerFileInput}
+                  className="absolute bottom-1 right-1 w-auto px-2.5 py-1.5 text-xs rounded-md min-w-[40px]
+                    bg-[var(--bg-container)] text-[var(--text)] border border-[var(--border)]
+                    hover:bg-[var(--border)] hover:border-[var(--gray)]
+                    transition-colors duration-150"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Uploading...' : 'Edit'}
+                </button>
+                {/*ADD BUTTON STUFF*/}
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                      </div>
+              </div>
+                {/*<div className="field-row">*/}
+                <div className="flex-1">
+                  <div className="mb-4">
+                    <label className="block text-sm text-[var(--text-light)] mb-1">Member Since</label>
+                    <div className="font-medium py-2 border-b border-[var(--border)]">
+                      {formatDate(currentUser?.createdAt)}
+                    </div>
+                  </div>
+                </div>
+                {/*</div>*/}
+              </div>
+
+            {/*profile right*/}
+              <div className="flex flex-col gap-6 flex-1 min-w-[300px]">
+                  {!isEditing ? (
+                      // View mode
+                      <>
+                          <div className="flex gap-8 justify-between flex-wrap">
+                              <div className="flex-1 min-w-[150px] mb-4">
+                                  <label className="block text-sm text-[var(--text-light)] mb-1">Full Name</label>
+                                  <div className="font-medium py-2 border-b border-[var(--border)]" >
+                                    {currentUser?.name || 'Not provided'}
+                                    {/*<button onClick={handleEditName} title="Edit" className="btn-cancel">*/}
+                                    {/*  <Pen size={16} />*/}
+                                    {/*</button>*/}
                                   </div>
-                              </div>
-                          </>
-                      ) : (
-                          <div className="detail-group member-since">
-                              <label>Member Since</label>
-                              <div className="detail-value">
-                                {formatDate(currentUser?.createdAt)}
                               </div>
                           </div>
-                      )}
-
-                      {/*</div>*/}
-                  </div>
-
-                  <div className="profile-right">
-                      {!isEditing ? (
-                          // View mode
-                          <>
-                              <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Full Name</label>
-                                      <div className="detail-value" >
-                                        {currentUser?.name || 'Not provided'}
-                                        {/*<button onClick={handleEditName} title="Edit" className="btn-cancel">*/}
-                                        {/*  <Pen size={16} />*/}
-                                        {/*</button>*/}
-                                      </div>
-
+                          <div className="flex gap-8 justify-between flex-wrap">
+                              <div className="flex-1 min-w-[150px] mb-4">
+                                  <label className="block text-sm text-[var(--text-light)] mb-1">Username</label>
+                                  <div className="font-medium py-2 text-[var(--gray)] italic border-b border-[var(--border)]">{currentUser?.githubUsername || 'Not connected'}</div>
+                              </div>
+                              <div className="flex-1 min-w-[150px] mb-4">
+                                  <label className="block text-sm text-[var(--text-light)] mb-1">Role</label>
+                                  <div className="font-medium py-2 border-b border-[var(--border)] capitalize">{currentUser?.role}</div>
+                              </div>
+                          </div>
+                          <div className="flex gap-8 justify-between flex-wrap">
+                              <div className="flex-1 min-w-[150px] mb-4">
+                                  <label  className="block text-sm text-[var(--text-light)] mb-1">Email</label>
+                                  <div className="font-medium py-2 border-b border-[var(--border)]">{currentUser?.email}</div>
+                              </div>
+                              <div className="flex-1 min-w-[150px] mb-4">
+                                  <label className="block text-sm text-[var(--text-light)] mb-1">Last Login</label>
+                                  <div className="font-medium py-2 border-b border-[var(--border)]">
+                                    {formatDate(currentUser?.lastLogin) || 'Never'}
                                   </div>
                               </div>
-                              <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Username</label>
-                                      <div className="detail-value">{currentUser?.githubUsername || "-"}</div>
-                                  </div>
-                                  <div className="detail-group">
-                                      <label>Role</label>
-                                      <div className="detail-value" style={{textTransform: 'capitalize'}}>{currentUser?.role}</div>
-                                  </div>
-                              </div>
-                              <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Email</label>
-                                      <div className="detail-value">{currentUser?.email}</div>
-                                  </div>
-                                  <div className="detail-group">
-                                      <label>Last Login</label>
-                                      <div className="detail-value">
-                                        {formatDate(currentUser?.lastLogin) || 'Never'}
-                                      </div>
-                                  </div>
-                              </div>
-                          </>
-                      ) : (
-                          // Edit mode
-                          <>
-                              <div className="field-row">
-                                  <div className="detail-group">
-                                      <label>Full Name</label>
-                                      <input
-                                          type="text"
-                                          name="name"
-                                          value={editData.name || ''}
-                                          onChange={(e) => {
-                                            handleInputChange(e)
-                                            errorMessage && setErrorMessage('')
-                                          }}
-                                          className="form-input"
-                                      />
-                                  </div>
-                              </div>
-
-
-                              <div className="field-row">
-                                <div className="detail-group">
-                                  <label>Username</label>
-                                  <div className="detail-value">{currentUser?.githubUsername || "-"}</div>
-                                </div>
-                                  <div className="detail-group">
-                                      <label>Role</label>
-                                      <div className="detail-value" style={{textTransform: 'capitalize'}}>{currentUser?.role}</div>
-                                  </div>
-                              </div>
-
-                              <div className="field-row">
-                                <div className="detail-group">
-                                  <label>Email</label>
-                                  {/*<div className="detail-value">{currentUser?.email}</div>*/}
+                          </div>
+                      </>
+                  ) : (
+                      // Edit mode
+                      <>
+                        <div className="flex gap-8 justify-between flex-wrap">
+                          <div className="flex-1 min-w-[150px] mb-4">
+                            <label className="block text-sm text-[var(--text-light)] mb-1">Full Name</label>
                                   <input
-                                      type="email"
-                                      name="email"
-                                      value={editData.email || ''}
+                                      type="text"
+                                      name="name"
+                                      value={editData.name || ''}
                                       onChange={(e) => {
                                         handleInputChange(e)
                                         errorMessage && setErrorMessage('')
                                       }}
-                                      className="form-input"
+                                      className="w-full max-w-full box-border p-2 border border-[var(--border)] rounded-md bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                                   />
-                                </div>
-
-                                  <div className="detail-group">
-                                      <label>Last Login</label>
-                                      <div className="detail-value">
-                                        {formatDate(currentUser?.lastLogin) || 'Never'}
-                                      </div>
-                                  </div>
                               </div>
-
-                              {/*<div className="detail-group">*/}
-                              {/*    <label>Member Since</label>*/}
-                              {/*    <div className="detail-value">*/}
-                              {/*        {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}*/}
-                              {/*    </div>*/}
-                              {/*</div>*/}
+                          </div>
 
 
-                          </>
-                      )}
-                  </div>
+                        <div className="flex gap-8 justify-between flex-wrap">
+                          <div className="flex-1 min-w-[150px] mb-4">
+                            <label className="block text-sm text-[var(--text-light)] mb-1">Username</label>
+                            <div className="font-medium py-2 text-[var(--gray)] italic border-b border-[var(--border)]">{currentUser?.githubUsername || 'Not connected'}</div>
+                          </div>
+                          <div className="flex-1 min-w-[150px] mb-4">
+                            <label className="block text-sm text-[var(--text-light)] mb-1">Role</label>
+                            <div className="font-medium py-2 border-b border-[var(--border)] capitalize">{currentUser?.role}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-8 justify-between flex-wrap">
+                          <div className="flex-1 min-w-[150px] mb-4">
+                            <label className="block text-sm text-[var(--text-light)] mb-1">Email</label>
+                              {/*<div className="detail-value">{currentUser?.email}</div>*/}
+                              <input
+                                type="email"
+                                name="email"
+                                value={editData.email || ''}
+                                onChange={(e) => {
+                                  handleInputChange(e)
+                                  errorMessage && setErrorMessage('')
+                                }}
+                                className="w-full max-w-full box-border p-2 border border-[var(--border)] rounded-md bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                              />
+                            </div>
+
+                            <div className="flex-1 min-w-[150px] mb-4">
+                              <label className="block text-sm text-[var(--text-light)] mb-1">Last Login</label>
+                              <div className="font-medium py-2 border-b border-[var(--border)]">
+                                {formatDate(currentUser?.lastLogin) || 'Never'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/*<div className="detail-group">*/}
+                          {/*    <label>Member Since</label>*/}
+                          {/*    <div className="detail-value">*/}
+                          {/*        {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}*/}
+                          {/*    </div>*/}
+                          {/*</div>*/}
+                      </>
+                  )}
               </div>
-
+            </div>
 
             {errorMessage && (
                 <div className="error-message"
@@ -420,8 +425,9 @@ function Profile() {
                   </div>
               )}
           </div>
-      </div>
-  </>
+        </div>
+      </main>
+  </div>
 );
 }
 

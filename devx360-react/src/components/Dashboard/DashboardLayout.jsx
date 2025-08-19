@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import '../../styles/_profile.css';
 import '../../styles/dashboard.css';
 
 

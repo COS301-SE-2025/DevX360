@@ -105,7 +105,7 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
                   <Users size={18} className="text-[var(--primary)]" />
                 </div>
                 <h2 className="text-lg font-medium text-[var(--text)] m-0">
-                  Create New Team
+                  Create Team
                 </h2>
               </div>
               <button

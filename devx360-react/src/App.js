@@ -37,6 +37,8 @@ const ProtectedRoute = ({ children }) => {
 //This is where the all the aplication routes are 
 //For example: /login and /register for authentication and then /dashboard with nested routes for Overview, Metrics, Team, and Profile
 function App() {
+  const { currentUser, loading } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   return (
     <Router>
       <ThemeProvider>
@@ -58,7 +60,7 @@ function App() {
               <Route path="overview" element={<Overview />} />
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
-              <Route path="admin" element={<Admin />} />
+              {isAdmin && ( <Route path="admin" element={<Admin />} />)}
               <Route path="metrics" element={<Metrics />} />
               <Route path="help" element={<HelpMenu />} />
             </Route>
