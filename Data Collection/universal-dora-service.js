@@ -558,7 +558,7 @@ async function fetchRepositoryMetrics(owner, repo) {
         start_date: dateThreshold.toISOString(),
         end_date: new Date().toISOString()
       },
-      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30),
+      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30, commits),
       lead_time: calculateLeadTime(pullRequests, commits),
       mttr: calculateMTTR(issues),
       change_failure_rate: calculateUniversalChangeFailureRate(releases, issues, commits),
@@ -699,12 +699,13 @@ async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
   }
 }
 
-// DORA Metrics Calculation Functions (keeping your existing logic)
-function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
+/**
+ * Calculates deployment frequency with enhanced accuracy
+ */
+function calculateDeploymentFrequency(releases, tags, daysBack = 30, commits = []) {
   // Filter out draft and pre-release releases to count only actual deployments
-  const deployments = releases
-    .filter(r => !r.draft && !r.prerelease)
-    .map(r => new Date(r.created_at))
+  const deployments = detectDeployments(releases, commits)
+    .map(d => new Date(d.date))
     .sort((a, b) => a - b);
 
   // Helper: get start date
@@ -756,6 +757,11 @@ function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
 
   const totalDeployments = deployments.length;
 
+  // Scalar frequencies for API consumers
+  const frequency_per_day = (totalDeployments / daysBack).toFixed(3);
+  const frequency_per_week = perWeek.length ? (totalDeployments / perWeek.length).toFixed(3) : '0.000';
+  const frequency_per_month = perMonth.length ? (totalDeployments / perMonth.length).toFixed(3) : '0.000';
+
   return {
     total_deployments: totalDeployments,
     analysis_period_days: daysBack,
@@ -769,6 +775,10 @@ function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
         : totalDeployments === 1
         ? 'Single deployment in analysis period'
         : 'Multiple deployments in analysis period',
+    // New scalar frequency fields (restore/extend old behavior)
+    frequency_per_day,
+    frequency_per_week,
+    frequency_per_month,
   };
 }
 

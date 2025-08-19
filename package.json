@@ -36,6 +36,9 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "reset": "rm -rf node_modules package-lock.json && npm install",
     "mcp": "node mcp-server.js",
-    "demo": "node demo-scenarios.js"
+    "demo": "node demo-scenarios.js",
+    "test:mcp": "node test-mcp-agent.js",
+    "test:mcp:interactive": "node test-mcp-interactive-fixed.js",
+    "demo:mcp": "node mcp-agent-demo.js"
   }
 }

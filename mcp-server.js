@@ -2,7 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-// Import your existing services (NO CHANGES NEEDED)
+// Import existing services (NO CHANGES NEEDED)
 import { getDORAMetrics } from './Data Collection/universal-dora-service.js';
 import { getRepositoryInfo } from './Data Collection/repository-info-service.js';
 import { analyzeRepository } from './services/metricsService.js';
@@ -66,6 +66,18 @@ class DevX360MCPServer {
       const leadTimeTrend = this.calculateTrend([metrics.lead_time.average_days]);
       const mttrTrend = this.calculateTrend([metrics.mttr.average_days]);
       
+      // Scalar deployment frequencies (prefer Data Collection fields; fallback to computed)
+      const df = metrics.deployment_frequency || {};
+      const avgPerDay = df.frequency_per_day ?? (
+        (df.total_deployments / (df.analysis_period_days || (df.perDay?.length || 1))).toFixed(2)
+      );
+      const avgPerWeek = df.frequency_per_week ?? (
+        df.perWeek?.length ? (df.total_deployments / df.perWeek.length).toFixed(2) : '0.00'
+      );
+      const avgPerMonth = df.frequency_per_month ?? (
+        df.perMonth?.length ? (df.total_deployments / df.perMonth.length).toFixed(2) : '0.00'
+      );
+
       // Generate insights
       const insights = this.generateInsights(metrics, repoInfo);
       
@@ -75,9 +87,10 @@ class DevX360MCPServer {
             type: 'text',
             text: `📊 **DORA Analysis for ${repoInfo.name}**\n\n` +
                   `🚀 **Deployment Frequency:**\n` +
-                  `   • Total: ${metrics.deployment_frequency.total_deployments} deployments\n` +
+                  `   • Total: ${df.total_deployments} deployments\n` +
                   `   • Weekly Trend: ${deploymentTrend}\n` +
-                  `   • Per Week: [${metrics.deployment_frequency.perWeek.join(', ')}]\n\n` +
+                  `   • Freq: ${avgPerDay}/day | ${avgPerWeek}/week | ${avgPerMonth}/month\n` +
+                  `   • Per Week: [${(df.perWeek || []).join(', ')}]\n\n` +
                   `⏱️ **Lead Time for Changes:**\n` +
                   `   • Average: ${metrics.lead_time.average_days} days\n` +
                   `   • Trend: ${leadTimeTrend}\n` +
