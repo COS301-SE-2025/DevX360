@@ -19,6 +19,11 @@ export const authorizeTeamAccess = async (req, res, next) => {
 
     const userId = req.user.userId;
 
+    if (req.user.role === "admin") {
+      req.user.teamRole = "admin";
+      return next();
+    }
+    
     if (team.creator.toString() === userId) {
       req.user.teamRole = "creator"; // team manager
     } else if (team.members.some(memberId => memberId.toString() === userId)) {
