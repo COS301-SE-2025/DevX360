@@ -9,7 +9,6 @@ import toast from "react-hot-toast";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import ModalPortal from "./modal/ModalPortal";
 import {useNavigate} from "react-router-dom";
-import {stringify} from "postcss";
 
 function Admin() {
   const { currentUser } = useAuth();
