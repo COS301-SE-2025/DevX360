@@ -283,10 +283,8 @@ app.get("/api/auth/github/callback", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Redirect to frontend or profile
-    // Redirect with success parameter
-    //const redirectUrl = `${frontendUrl}/dashboard?auth=success${isNewUser ? '&new=true' : ''}`;
-    //res.redirect(redirectUrl);
+    const redirectUrl = `${frontendUrl}/dashboard/overview`;
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error("GitHub OAuth error:", error);
     res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
