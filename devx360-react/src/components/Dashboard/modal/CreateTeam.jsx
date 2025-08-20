@@ -16,8 +16,9 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
 
   const [nameError, setNameError] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-  const isFormValid = teamName.trim() && repoUrl.trim() && teamPassword.trim();
+  const isFormValid = teamName.trim() && repoUrl.trim() && teamPassword.trim() && teamPassword.length >= 6;
 
   const closeModal = (e) => {
     if(e.target === modalRef.current) {
@@ -41,12 +42,27 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
   const clearErrors = () => {
     setNameError('');
     setUrlError('');
+    setPasswordError('');
+  }
+
+  const validatePassword = (password) => {
+    if (password.length > 0 && password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long');
+      return false;
+    }
+    setPasswordError('');
+    return true;
   }
 
   const handleCreateTeam = async () => {
     // Validate GitHub URL format
     if (!repoUrl.startsWith('https://github.com/')) {
       setUrlError('Please enter a valid GitHub repository URL');
+      return;
+    }
+
+    // Validate password
+    if (!validatePassword(teamPassword)) {
       return;
     }
 
@@ -57,7 +73,7 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
 
     try {
       const createdTeam = await createTeam(teamName, teamPassword, repoUrl);
-      console.log("createdTEam", createdTeam);
+      // console.log("createdTEam", createdTeam);
       toast.success(`Team "${teamName}" created successfully!`, { id: loadingToast });
 
       setTeamName('');
@@ -191,11 +207,28 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
                   type="password"
                   className="w-full px-3 py-2 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-[var(--primary)] focus:border-[var(--primary)] focus:outline-none"
                   value={teamPassword}
-                  onChange={(e) => setTeamPassword(e.target.value)}
+                  onChange={(e) => {
+                    setTeamPassword(e.target.value);
+                    if (e.target.value.length > 0) {
+                      validatePassword(e.target.value);
+                    } else {
+                      setPasswordError('');
+                    }
+                  }}
                   placeholder="Create a secure password"
               />
+
+              {passwordError && (
+                  <div className="flex gap-1 items-center px-1 py-1">
+                    <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                    <div className="text-[var(--secondary)] text-xs mt-0.5">
+                      {passwordError}
+                    </div>
+                  </div>
+              )}
+
               <p className="text-xs text-[var(--text-light)] mt-2">
-                Team members will need this password to join and view metrics.
+                Team members will need this password to join and view metrics. Must be at least 6 characters long.
               </p>
             </div>
 
@@ -223,9 +256,9 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
             </button>
             <button
                 onClick={handleCreateTeam}
-                disabled={isLoading || !teamName || !repoUrl || !teamPassword}
+                disabled={isLoading || !teamName || !repoUrl || !teamPassword || teamPassword.length < 6}
                 className={`px-4 py-2 rounded-lg transition-colors ${
-                    isLoading || !teamName.trim() || !repoUrl || !teamPassword.trim()
+                    isLoading || !teamName.trim() || !repoUrl || !teamPassword.trim() || teamPassword.length < 6
                         ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
                         : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white'
                 }`}

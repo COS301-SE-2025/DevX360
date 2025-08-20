@@ -30,6 +30,7 @@ function Admin() {
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  console.log(users);
 
   const fetchData = async () => {
     try {
@@ -162,6 +163,7 @@ function Admin() {
   }, []);
 
   useEffect(() => {
+    console.log(currentUser);
     if (currentUser?.avatar) {
       const avatarUrl = currentUser.avatar.startsWith('http')
           ? currentUser.avatar
@@ -365,19 +367,27 @@ function Admin() {
                               <td className="px-6 py-4">
                                 <div className="flex items-center justify-end space-x-2">
                                   <button
-                                      onClick={() => handleEditUser(user._id)}
+                                      onClick={() => {
+                                        if (currentUser._id === user._id) {
+                                          navigate('/dashboard/profile');
+                                        } else {
+                                          handleEditUser(user._id);
+                                        }
+                                      }}
                                       className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
-                                      title="Edit user"
+                                      title={currentUser._id === user._id ? "Edit your profile" : "Edit user"}
                                   >
                                     <Edit className="w-4 h-4" />
                                   </button>
-                                  <button
+                                  {currentUser._id !== user._id ? (
+                                    <button
                                       onClick={() => handleDeleteUser(user.name, user._id, user.email)}
                                       className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
                                       title="Delete user"
-                                  >
+                                    >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
+                                  ) : null}
                                 </div>
                               </td>
                             </tr>
@@ -549,7 +559,7 @@ function Admin() {
           {teamToDelete ? (
             <DeleteConfirmationModal
               type="team"
-              team={teamToDelete?.name} //or id?
+              name={teamToDelete?.name} //or id?
               onConfirm={confirmDeleteTeam}
               onCloseDelete={() => {
                 setShowDeleteModal(false)
