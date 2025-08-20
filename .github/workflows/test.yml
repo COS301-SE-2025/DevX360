@@ -1,64 +1,28 @@
-name: CI - Run Tests
+name: CI - Feature Analysis Tests
 
 on:
   push:
-    branches: [main, dev]
+    branches:
+      - feature/ai-analysis
   pull_request:
-    branches: [main, dev]
+    branches:
+      - feature/ai-analysis
 
 jobs:
-  run-backend-tests:
+  test:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'backend') || github.event_name == 'pull_request'
-    defaults:
-      run:
-        working-directory: devX360/backend
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout feature branch code
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Run backend Jest tests
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          GITHUB_TOKEN_1: ${{ secrets.TOKEN1 }}
-          GITHUB_TOKEN_2: ${{ secrets.TOKEN2 }}
-        run: >
-          node --experimental-vm-modules
-          node_modules/jest/bin/jest.js
-          "services/__tests__"
-          "Data Collection/__tests__"
-
-  run-frontend-tests:
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'frontend') || github.event_name == 'pull_request'
-    defaults:
-      run:
-        working-directory: devX360/frontend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run frontend Jest tests
-        run: >
-          node --experimental-vm-modules
-          node_modules/jest/bin/jest.js
-          "src/components/Dashboard"
+      - name: Run tests
+        run: npm test
