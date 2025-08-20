@@ -30,5 +30,7 @@ jobs:
         run: npm install
 
       # Step 4. Run tests
+        env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI }}   # <-- add this line
       - name: Run tests
         run: npm test
