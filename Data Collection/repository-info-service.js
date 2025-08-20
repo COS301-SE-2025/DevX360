@@ -255,24 +255,74 @@ async function getRepositoryInfo(repositoryUrl) {
     await delay(1000);
 
     // Fetch open issues (excluding PRs) - limited to avoid pagination issues
-    const { data: issues } = await octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: 'open',
-      per_page: 100
-    });
-    
-    // Filter out PRs and get only issues
-    const openIssuesOnly = issues.filter(issue => !issue.pull_request);
+    let allIssues = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      try {
+        const { data: issues } = await octokit.rest.issues.listForRepo({
+          owner,
+          repo,
+          state: 'open',
+          per_page: 100,
+          page: page
+        });
+
+        if (issues.length === 0) {
+          hasMore = false;
+        } else {
+          allIssues = allIssues.concat(issues);
+          page++;
+          
+          // Respect rate limits
+          if (issues.length < 100) {
+            hasMore = false;
+          }
+          
+          await delay(1000);
+        }
+      } catch (error) {
+        console.error(`Error fetching issues page ${page}:`, error.message);
+        hasMore = false;
+      }
+    }
+
+    // Filter out PRs to get only issues
+    const openIssuesOnly = allIssues.filter(issue => !issue.pull_request);
     console.log("OPEN ISSUES: ", openIssuesOnly.length);
     // Fetch open pull requests
-    const { data: pullRequests } = await octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: 'open',
-      per_page: 100
-    });
-    await delay(1000);
+    let openPRs = [];
+    page = 1;
+    hasMore = true;
+
+    while (hasMore) {
+      try {
+        const { data: prs } = await octokit.rest.pulls.list({
+          owner,
+          repo,
+          state: 'open',  // Only fetch open PRs
+          per_page: 100,
+          page: page
+        });
+
+        if (prs.length === 0) {
+          hasMore = false;
+        } else {
+          openPRs = openPRs.concat(prs);
+          page++;
+          
+          if (prs.length < 100) {
+            hasMore = false;
+          }
+          
+          await delay(1000);
+        }
+      } catch (error) {
+        console.error(`Error fetching open PRs page ${page}:`, error.message);
+        hasMore = false;
+      }
+    }
     
     // Fetch recent commits for deployment detection
     const { data: commits } = await octokit.rest.repos.listCommits({
@@ -313,7 +363,7 @@ async function getRepositoryInfo(repositoryUrl) {
       forks: statsAnalysis.statistics.forks,
       watchers: statsAnalysis.statistics.watchers,
       open_issues: openIssuesOnly.length,
-      open_pull_requests: pullRequests.length,
+      open_pull_requests: openPRs.length,
       size: statsAnalysis.statistics.size,
       
       // Enhanced programming languages with analysis
