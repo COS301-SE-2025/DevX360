@@ -6,6 +6,34 @@
   background-color: var(--bg);
 }
 
+/* Add to auth.css */
+.auth-form-container {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.85); /* Light semi-transparent */
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .auth-form-container {
+  background-color: rgba(30, 41, 59, 0.85); /* Dark semi-transparent */
+}
+
+.auth-tab {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-tab:hover:not(.active) {
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.social-btn {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
 .graphic-side {
   flex: 1;
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -20,7 +48,68 @@
   max-width: 500px;
 }
 
+/* Updated GitHub button styles for full width */
+.social-logins {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%; /* Ensure container takes full width */
+}
 
+/* Override the grid layout from the original CSS */
+.social-logins {
+  display: flex !important; /* Override any grid display */
+  grid-template-columns: none !important; /* Remove grid columns */
+}
+
+.github-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  width: 100% !important; /* Force full width */
+  max-width: none; /* Remove any max-width constraints */
+  background-color: #24292e;
+  color: white !important; /* Force white text in both themes */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0.5rem 0;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.github-btn:hover {
+  background-color: #1a1f24;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.github-btn span {
+  color: white !important; /* Ensure text stays white */
+  font-weight: 500;
+}
+
+.social-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1); /* Ensure GitHub logo is always white */
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/* Override any conflicting social-btn styles for github-btn */
+.social-btn.github-btn {
+  background-color: #24292e !important;
+  color: white !important;
+  border: none !important;
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+.social-btn.github-btn:hover {
+  background-color: #1a1f24 !important;
+}
 
 .graphic-side h1 {
   font-size: 2.5rem;
@@ -199,6 +288,72 @@ input:focus {
   background-color: var(--border);
 }
 
+.edit-btn {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: auto;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  min-width: 40px;
+}
+
+.edit-actions-btn {
+  width: auto;
+}
+
+.edit-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: right;
+
+
+  flex-wrap: wrap;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.2s;
+
+  margin-right: 0.25rem;
+}
+
+.btn-cancel:hover {
+  background-color: var(--bg);
+  color: var(--text) ;
+}
+
+.btn-danger {
+  background-color: var(--secondary);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626; /* Darker red for hover */
+}
+
+.btn-danger:disabled {
+  background-color: #fca5a5; /* Lighter red when disabled */
+  cursor: not-allowed;
+}
+
+/*.team-action-btn {*/
+/*  padding: 0.75rem;*/
+/*  border: none;*/
+/*  border-radius: 8px;*/
+/*  font-weight: 600;*/
+/*  font-size: 1rem;*/
+/*  cursor: pointer;*/
+/*  transition: all 0.2s;*/
+/*}*/
+
 .divider {
   display: flex;
   align-items: center;
@@ -264,18 +419,18 @@ input:focus {
   font-weight: 500;
 }
 
-.error-message {
-  color: #ef4444;
-  background-color: #fee2e2;
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  text-align: center;
-}
+/*.error-message {*/
+/*  color: #ef4444;*/
+/*  background-color: #fee2e2;*/
+/*  padding: 0.75rem;*/
+/*  border-radius: 8px;*/
+/*  margin-bottom: 1rem;*/
+/*  font-size: 0.9rem;*/
+/*  text-align: center;*/
+/*}*/
 
 .theme-toggle {
-  position: absolute;
+  /*position: absolute;*/
   top: 1.5rem;
   right: 1.5rem;
   background: none;
@@ -285,8 +440,14 @@ input:focus {
   padding: 0.5rem;
   border-radius: 50%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /*align-items: center;*/
+  /*justify-content: end;*/
+}
+
+.theme-toggle-absolute {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
 }
 
 .theme-toggle:hover {
@@ -614,14 +775,14 @@ input:focus {
   to { transform: rotate(360deg); }
 }
 
-.error-message {
-  color: #ef4444;
-  background-color: #fee2e2;
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
+/*.error-message {*/
+/*  color: #ef4444;*/
+/*  background-color: #fee2e2;*/
+/*  padding: 0.75rem;*/
+/*  border-radius: 8px;*/
+/*  margin-top: 1rem;*/
+/*  font-size: 0.9rem;*/
+/*}*/
 
 .analysis-results {
   margin-top: 2rem;
@@ -686,4 +847,39 @@ input:focus {
 
 .back-btn:hover {
   background-color: var(--border);
+}
+
+
+.info-box {
+  background-color: var(--primary);
+  /*border: 1px solid;*/
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.info-alert-icon {
+  color: white;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.info-alert-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-alert-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.info-alert-text {
+  margin: 0;
+  font-size: 0.75rem;
+  color: white;
+  line-height: 1.4;
 }
