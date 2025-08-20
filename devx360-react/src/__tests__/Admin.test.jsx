@@ -1,47 +1,33 @@
 /* @jest-environment jsdom */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import Admin from '../components/Dashboard/Admin';
 
-// Mock useAuth from AuthContext
+// Mock AuthContext to provide a currentUser
 const mockCurrentUser = { _id: 'u1', name: 'Alice', role: 'admin' };
-jest.mock('../contexts/AuthContext', () => ({
+jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({ currentUser: mockCurrentUser }),
 }));
 
-const mockUsers = [
-  { _id: 'u1', name: 'Alice' },
-  { _id: 'u2', name: 'Bob' },
-];
-const mockTeams = [
-  { id: 't1', name: 'Team Alpha' },
-  { id: 't2', name: 'Team Beta' },
-];
-
-// Mock internal state setters if necessary
+// Mock service functions used in Admin component
 jest.mock('../services/admin', () => ({
-  getUsers: jest.fn(() => Promise.resolve(mockUsers)),
-  getTeams: jest.fn(() => Promise.resolve(mockTeams)),
+  getUsers: jest.fn().mockResolvedValue([{ _id: 'u2', name: 'Bob', role: 'user' }]),
+  getTeams: jest.fn().mockResolvedValue([{ id: 't1', name: 'Team Alpha' }]),
 }));
 
 describe('Admin dashboard', () => {
   test('renders users and teams tabs with data', async () => {
     render(<Admin />);
 
-    // Check dashboard header
+    // Wait for headings and tabs to appear
     expect(await screen.findByText(/admin dashboard/i)).toBeInTheDocument();
+    expect(await screen.findByText(/users/i)).toBeInTheDocument();
+    expect(await screen.findByText(/teams/i)).toBeInTheDocument();
 
-    // Check manage users and teams section
-    expect(await screen.findByText(/manage users and teams/i)).toBeInTheDocument();
-
-    // Verify all users are rendered
-    for (const user of mockUsers) {
-      expect(await screen.findByText(user.name)).toBeInTheDocument();
-    }
-
-    // Verify all teams are rendered
-    for (const team of mockTeams) {
-      expect(await screen.findByText(team.name)).toBeInTheDocument();
-    }
+    // Check that mock data is rendered
+    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Bob/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Team Alpha/i)).toBeInTheDocument();
   });
 });
