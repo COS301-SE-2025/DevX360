@@ -62,6 +62,8 @@ We use a collaborative workflow to manage progress and documentation.
 
 [📄 View our Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)
 
+[📄 View our Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)
+
 
 
 
