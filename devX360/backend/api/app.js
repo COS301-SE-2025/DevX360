@@ -5,11 +5,14 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import mongoose from "mongoose";
-import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
+import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
+import { authorizeTeamAccess } from "../api/middlewares/authorizeTeamAccess.js";
+import cron from "node-cron";
+import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
@@ -73,7 +76,9 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Routes
+// --------------------------------------------------------------------------
+// Health Check Endpoint
+// --------------------------------------------------------------------------
 app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
@@ -104,6 +109,13 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+//GitHub username sync daily at 1:00 AM
+cron.schedule("0 1 * * *", async () => {
+  console.log("Running daily GitHub username sync...");
+  await refreshGithubUsernames();
+});
+
+//Need a way to connect a users github id to their profile during registration
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password, role, inviteCode } = req.body;
@@ -166,6 +178,119 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+// Redirect user to GitHub
+app.get("/api/auth/github", (req, res) => {
+  console.log("GITHUB OAUTH ENDPOINT");
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user`;
+  res.redirect(redirectUrl);
+});
+
+// GitHub callback
+app.get("/api/auth/github/callback", async (req, res) => {
+    console.log("GITHUB OAUTH ENDPOINT 2");
+  const code = req.query.code;
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+  try {
+    // Exchange code for access token
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    // Fetch user info from GitHub
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const githubUser = await userRes.json();
+
+    // Check if user already exists
+    let conditions = [];
+
+    if (githubUser.id) {
+      conditions.push({ githubId: githubUser.id });
+    }
+
+    // Fallback to username
+    if (githubUser.login) {
+      conditions.push({ githubUsername: githubUser.login });
+    }
+
+    // Fallback to email
+    if (githubUser.email) {
+      conditions.push({ email: githubUser.email });
+    }
+
+    let user = conditions.length > 0 
+      ? await User.findOne({ $or: conditions }) 
+      : null;
+
+    if (!user) {
+      user = new User({
+        name: githubUser.name || githubUser.login,
+        email: githubUser.email || `${githubUser.login}@users.noreply.github.com`,
+        githubId: githubUser.id,
+        githubUsername: githubUser.login,
+        isEmailVerified: true,
+        password: await hashPassword(crypto.randomUUID()), // random unusable password
+      });
+
+      await user.save();
+    } else {
+      // Update existing user's GitHub info if needed
+      let needsUpdate = false;
+      if (!user.githubId && githubUser.id) {
+        user.githubId = githubUser.id;
+        needsUpdate = true;
+      }
+      if (!user.githubUsername && githubUser.login) {
+        user.githubUsername = githubUser.login;
+        needsUpdate = true;
+      }
+      if (needsUpdate) {
+        await user.save();
+      }
+    }
+
+    // Generate token and set cookie
+    const token = generateToken({
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const redirectUrl = `${frontendUrl}/dashboard/overview`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error("GitHub OAuth error:", error);
+    res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
+  }
+});
+
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -210,32 +335,49 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
-    const teams = await Team.find({ members: user._id }).select("name");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    const teams = await Team.find({ members: user._id })
+      .populate("creator", "name email")
+      .populate("members", "name email");
+
+    const teamsWithMetrics = await Promise.all(
+      teams.map(async (team) => {
+        const repoData = await RepoMetrics.findOne({ teamId: team._id });
+        return {
+          id: team._id,
+          name: team.name,
+          creator: team.creator,
+          members: team.members,
+          doraMetrics: repoData?.metrics || null,
+          repositoryInfo: repoData?.repositoryInfo || null,
+        };
+      })
+    );
+
     const userObj = user.toObject();
-    userObj.teams = teams;
+    userObj.teams = teamsWithMetrics;
     if (user.avatar) {
       userObj.avatar = `/uploads/${user.avatar}`;
     }
     res.json({ user: userObj });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Profile fetch error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
 app.put("/api/profile", authenticateToken, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, githubUsername, githubId } = req.body;
     const updates = {};
 
-    if (!name && !email && !password) {
+    if (!name && !email && !password && !githubUsername && !githubId) {
       return res
         .status(400)
         .json({
-          message: "At least one field (name, email, or password) is required",
+          message: "At least one field (name, email, password, githubUsername, or githubId) is required",
         });
     }
 
@@ -269,6 +411,31 @@ app.put("/api/profile", authenticateToken, async (req, res) => {
       updates.password = await hashPassword(password);
     }
 
+    // GitHub ID
+    if (githubId) {
+      const githubIdExists = await User.findOne({ githubId });
+      if (githubIdExists && githubIdExists._id.toString() !== req.user.userId) {
+        return res
+          .status(400)
+          .json({ message: "GitHub ID already linked to another account" });
+      }
+      updates.githubId = githubId;
+    }
+
+    // GitHub Username
+    if (githubUsername) {
+      const githubUsernameExists = await User.findOne({ githubUsername });
+      if (
+        githubUsernameExists &&
+        githubUsernameExists._id.toString() !== req.user.userId
+      ) {
+        return res
+          .status(400)
+          .json({ message: "GitHub username already in use by another account" });
+      }
+      updates.githubUsername = githubUsername.trim();
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
       { $set: updates },
@@ -292,6 +459,39 @@ app.get("/api/users", authenticateToken, async (req, res) => {
     const users = await User.find({}).select("-password");
     res.json({ users });
   } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE user by ID (admin only)
+app.delete("/api/users/:id", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent deleting other admins (optional safeguard)
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "Cannot delete an admin user" });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Delete user error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -345,8 +545,6 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       members: [req.user.userId]
     });
 
-    await team.save();
-
     let metrics;
     let repositoryInfo;
     try {
@@ -361,6 +559,8 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
         suggestion: "Check repository accessibility or try again later",
       });
     }
+
+    await team.save();
 
     await RepoMetrics.create({
       teamId: team._id,
@@ -422,31 +622,149 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
       await team.save();
     }
 
+    const user = await User.findById(req.user.userId);
+    console.log("Join team for user:", user._id, "githubUsername:", user.githubUsername);
+
+    if (user.githubUsername) {
+      const repoData = await RepoMetrics.findOne({ teamId: team._id });
+      if (!repoData) {
+        console.warn("No repoData found for team", team._id);
+      } else {
+        console.log("Found repoData with URL:", repoData.repositoryInfo?.url);
+      }
+      if (repoData && repoData.repositoryInfo?.url) {
+        const [owner, repo] = extractOwnerAndRepo(repoData.repositoryInfo.url);
+        console.log("Extracted owner/repo:", owner, repo);
+        if (owner && repo) {
+          try{
+            const stats = await collectMemberActivity(owner, repo, user.githubUsername);
+            repoData.memberStats.set(req.user.userId.toString(), {
+              githubUsername: user.githubUsername,
+              ...stats,
+            });
+            await repoData.save();
+            console.log("Saved memberStats");
+          } catch (err){
+            console.error("Error collecting member stats:", err);
+          }
+        }
+      }
+    }
+
     res.json({ message: "Joined team", teamId: team._id });
   } catch (error) {
     res.status(500).json({ message: "Joining team error" });
   }
 });
 
-app.get("/api/teams/:name", authenticateToken, async (req, res) => {
+// --------------------------------------------------------------------------
+// Check Team Membership
+// --------------------------------------------------------------------------
+app.get("/api/teams/:teamId/membership", authenticateToken, async (req, res) => {
   try {
-    const team = await Team.findOne({ name: req.params.name })
-      .populate("creator", "name")
+    const { teamId } = req.params;
+    const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(teamId)) {
+      return res.status(400).json({ message: "Invalid team ID format" });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    const isMember = team.members.some(memberId => 
+      memberId.toString() === userId.toString()
+    );
+
+    res.json({ isMember });
+  } catch (error) {
+    console.error("Membership check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/teams/search", authenticateToken, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.status(400).json({ message: "Query parameter 'q' is required" });
+
+    const teams = await Team.find({ 
+      name: { $regex: q, $options: "i" } 
+    }).select("name creator members");
+
+    res.json({ results: teams });
+  } catch (error) {
+    console.error("Team search error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// TEAM DETAILS WITH RBAC
+app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
+  const team = req.team;
+  const repoData = await RepoMetrics.findOne({ teamId: team._id });
+
+  await team.populate("members", "name email");
+
+  const base = {
+    team: { id: team._id, name: team.name, members: team.members || [] },
+    doraMetrics: repoData?.metrics || null,
+    repositoryInfo: repoData?.repositoryInfo || null,
+    lastUpdated: repoData?.lastUpdated || null,
+  };
+
+  if (req.user.userId === team.creator.toString()) {
+    await team.populate("creator", "name");
+    return res.json({
+      ...base,
+      members: team.members,
+      creator: team.creator,
+      memberStats: repoData?.memberStats || {},
+      permissions: "full",
+    });
+  }
+
+  const userStats = repoData?.memberStats?.get(req.user.userId.toString()) || {};
+  res.json({
+    ...base,
+    members: team.members,
+    myStats: userStats,
+    permissions: "read-only",
+  });
+});
+
+// DELETE TEAM (by name, creator only)
+app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
+  if (req.user.teamRole !== "creator" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Only the team creator can delete the team" });
+  }
+
+  try {
+    await Team.deleteOne({ name: req.team.name });
+    await RepoMetrics.deleteOne({ teamId: req.team._id });
+    res.json({ message: "Team deleted successfully" });
+  } catch (error) {
+    console.error("Delete team error:", error);
+    res.status(500).json({ message: "Failed to delete team" });
+  }
+});
+
+app.get("/api/teams", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const teams = await Team.find({})
+      .populate("creator", "name email")
       .populate("members", "name email");
 
-    if (!team) return res.status(404).json({ message: "Team not found" });
-
-    const repoData = await RepoMetrics.findOne({ teamId: team._id });
-
-    res.json({
-      team,
-      doraMetrics: repoData?.metrics || null,       // Existing DORA metrics
-      repositoryInfo: repoData?.repositoryInfo || null, // Full GitHub data
-      lastUpdated: repoData?.lastUpdated || null,
-    });
-  } catch (err) {
-    console.error("Error retrieving team info:", err);
-    res.status(500).json({ message: "Failed to retrieve team info" });
+    res.json({ teams });
+  } catch (error) {
+    console.error("Fetch teams error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -503,6 +821,11 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
 });
 
 //Error handling
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  next();
+});
+
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Something went wrong!" });
