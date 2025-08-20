@@ -1,0 +1,34 @@
+name: CI - Run tests on all branches
+
+on:
+  push:
+    branches:
+      - '**'      # trigger on pushes to any branch (main + feature/*)
+  pull_request:
+    branches:
+      - '**'      # trigger on PRs to any branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1. Checkout the code of the current branch
+      - name: Checkout branch code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history if needed (safe default)
+
+      # Step 2. Set up Node (change if using another language)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Step 3. Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4. Run tests
+      - name: Run tests
+        run: npm test
