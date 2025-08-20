@@ -6,9 +6,20 @@ import request from 'supertest';
 jest.unstable_mockModule('../../api/models/RepoMetrics.js', () => ({
   default: { findOne: jest.fn() }
 }));
+
 jest.unstable_mockModule('../../api/middlewares/authorizeTeamAccess.js', () => ({
   authorizeTeamAccess: async (req, res, next) => {
-    req.team = { _id: 't1', name: req.params.name, members: ['u1'], creator: 'u1' };
+    // Mock team with populate method
+    req.team = {
+      _id: 't1',
+      name: req.params.name,
+      members: ['u1'],
+      creator: 'u1',
+      populate: async function () {
+        this.members = [{ name: 'John Doe', email: 'john@example.com' }];
+        return this;
+      },
+    };
     req.user = { userId: 'u2', role: 'user', teamRole: 'member' };
     next();
   }
@@ -16,9 +27,9 @@ jest.unstable_mockModule('../../api/middlewares/authorizeTeamAccess.js', () => (
 
 const { default: mockedApp } = await import('../../api/app.js');
 const { default: RepoMetrics } = await import('../../api/models/RepoMetrics.js');
+
 import jwt from 'jsonwebtoken';
 jest.spyOn(jwt, 'verify').mockImplementation((token, secret, cb) => cb(null, { userId: 'u2', role: 'user' }));
-
 
 describe('GET /api/teams/:name (deployment_frequency frequencies present)', () => {
   beforeEach(() => {
@@ -28,8 +39,8 @@ describe('GET /api/teams/:name (deployment_frequency frequencies present)', () =
         deployment_frequency: {
           total_deployments: 3,
           analysis_period_days: 30,
-          perDay: [0,1,0],
-          perWeek: [1,1,1],
+          perDay: [0, 1, 0],
+          perWeek: [1, 1, 1],
           perMonth: [3],
           months: ['2025-08'],
           frequency_per_day: '0.100',
