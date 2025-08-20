@@ -96,6 +96,28 @@ function Metrics() {
     setAiProgress(0);
   };
 
+  useEffect(() => {
+  // Reset all component state when user changes
+  setTeamData(null);
+  setLoading(true);
+  setError(null);
+  setAiFeedback(null);
+  setParsedFeedback({});
+  setAiLoading(true);
+  setAiError(null);
+  setAiStatus('checking');
+  setAiProgress(0);
+  setSelectedTeamId('');
+  setExpandedInsights({});
+  setSelectedMember(null);
+  setShowMemberStatsModal(false);
+
+  // Set initial team for new user
+  if (currentUser?.teams && currentUser.teams.length > 0) {
+    setSelectedTeamId(currentUser.teams[0].id);
+  }
+}, [currentUser]); // Add currentUser as dependency
+
   // Check if current user is the creator of the selected team
   const isTeamCreator = () => {
 
@@ -663,6 +685,8 @@ const renderMemberCard = (member, isCreator = false) => {
   const changeFailureRate = doraMetrics.change_failure_rate || {};
   const mttr = doraMetrics.mttr || {};
 
+  
+
   // Prepare chart data with safe fallbacks
   const activityData = [
     { name: 'Commits', value: dataSummary.commits_count || 0, color: '#3B82F6' },
@@ -672,10 +696,10 @@ const renderMemberCard = (member, isCreator = false) => {
   ];
 
   const deploymentTrendData = [
-    { date: 'Week 1', deployments: 0, lead_time: 0 },
-    { date: 'Week 2', deployments: deploymentFreq.total_deployments || 0, lead_time: leadTime.average_days || 0 },
-    { date: 'Week 3', deployments: 0, lead_time: 0 },
-    { date: 'Week 4', deployments: 0, lead_time: 0 }
+    { date: 'Week 1', deployments:deploymentFreq.perWeek[0] },
+    { date: 'Week 2', deployments: deploymentFreq.perWeek[1]},
+    { date: 'Week 3', deployments:deploymentFreq.perWeek[2] },
+    { date: 'Week 4', deployments: deploymentFreq.perWeek[3] }
   ];
 
   const contributorData = (repositoryInfo.contributors || [])
@@ -1040,6 +1064,7 @@ const renderMemberCard = (member, isCreator = false) => {
               <div className="flex-1 p-6">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={deploymentTrendData}>
+                    
                     <CartesianGrid strokeDasharray="3 3" stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} />
                     <XAxis dataKey="date" stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} fontSize={12} />
                     <YAxis stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} fontSize={12} />
