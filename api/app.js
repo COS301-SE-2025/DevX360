@@ -706,6 +706,9 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   const team = req.team;
   const repoData = await RepoMetrics.findOne({ teamId: team._id });
 
+  await team.populate("creator", "name");
+  await team.populate("members", "name email");
+
   const base = {
     team: { id: team._id, name: team.name, members: team.members || [] },
     doraMetrics: repoData?.metrics || null,
@@ -714,8 +717,6 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   };
 
   if (req.user.userId === team.creator.toString()) {
-    await team.populate("creator", "name");
-    await team.populate("members", "name email");
     return res.json({
       ...base,
       members: team.members,
