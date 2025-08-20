@@ -3,7 +3,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Admin from '../components/Dashboard/Admin';
 
+// Mock useAuth from AuthContext
 const mockCurrentUser = { _id: 'u1', name: 'Alice', role: 'admin' };
+jest.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ currentUser: mockCurrentUser }),
+}));
+
 const mockUsers = [
   { _id: 'u1', name: 'Alice' },
   { _id: 'u2', name: 'Bob' },
@@ -13,9 +18,15 @@ const mockTeams = [
   { id: 't2', name: 'Team Beta' },
 ];
 
+// Mock internal state setters if necessary
+jest.mock('../services/admin', () => ({
+  getUsers: jest.fn(() => Promise.resolve(mockUsers)),
+  getTeams: jest.fn(() => Promise.resolve(mockTeams)),
+}));
+
 describe('Admin dashboard', () => {
   test('renders users and teams tabs with data', async () => {
-    render(<Admin currentUser={mockCurrentUser} users={mockUsers} teams={mockTeams} />);
+    render(<Admin />);
 
     // Check dashboard header
     expect(await screen.findByText(/admin dashboard/i)).toBeInTheDocument();
