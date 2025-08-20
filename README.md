@@ -38,10 +38,12 @@
 |---------------------|--------------------------------------------------------------------------------------------------------|----------------------------------------|
 | **Frontend**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/react/react.png" width="24"/> React      | Interactive dashboards & visualization |
 | **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling           |
+| **AI Analysis**     | <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpENkKrmMEnTEVg4hNLhje-ulIiVCpWRITxA&s" width="24"/> OpenAI API | Cloud-hosted AI for lightweight, scalable analysis |
 | **AI Analysis**     | <img src="https://miro.medium.com/v2/resize:fit:1100/format:webp/1*UnUo_KuVO3gVcrwPqiAzAg.png" width="24"/> Ollama (Local LLM) | Offline, cost-free code analysis       |
 | **Data Processing** | 🐙 Octokit                                                                                              | Reliable metric scheduling             |
 | **Database**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/mongodb/mongodb.png" width="24"/> MongoDB Atlas     | Real-time capabilities & free tier     |
 | **Hosting**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/vercel/vercel.png" width="24"/> Vercel                  | Zero-cost deployment                   |
+
 
 
 ---
