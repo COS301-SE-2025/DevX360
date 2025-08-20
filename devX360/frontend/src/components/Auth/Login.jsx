@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
 import ThemeToggle from '../common/ThemeToggle';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -31,7 +32,7 @@ function Login() {
   return (
     <AuthLayout>
       <div className="auth-form-container">
-        <ThemeToggle />
+        <ThemeToggle position="absolute"/>
         <div className="logo">DevX360</div>
         <div className="tagline">Manage your team's workflow efficiently</div>
 
@@ -70,12 +71,18 @@ function Login() {
           <div className="form-options">
             <div className="remember-me">
               <input
-                type="checkbox"
-                id="remember-me"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    marginRight: "0.5rem",
+                    verticalAlign: "middle"
+                  }}
               />
-              <label htmlFor="remember-me">Remember me</label>
+              <label htmlFor="remember-me" style={{marginTop:"4px"}}>Remember me</label>
             </div>
             <a href="#" className="forgot-password">Forgot password?</a>
           </div>
@@ -87,15 +94,18 @@ function Login() {
           <div className="divider">or continue with</div>
           
           <div className="social-logins">
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" className="social-icon" alt="Google" />
-            </div>
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg" className="social-icon" alt="Facebook" />
-            </div>
-            <div className="social-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/discord/discord-original.svg" className="social-icon" alt="Discord" />
-            </div>
+            <button 
+              type="button" 
+              className="github-btn"
+              onClick={() => window.location.href = `${API_BASE_URL}/api/auth/github`}
+            >
+              <img 
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" 
+                className="social-icon" 
+                alt="GitHub" 
+              />
+              <span>Continue with GitHub</span>
+            </button>
           </div>
           
           <div className="auth-footer">
