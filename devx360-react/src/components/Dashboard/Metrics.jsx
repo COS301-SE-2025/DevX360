@@ -98,31 +98,35 @@ function Metrics() {
 
   // Check if current user is the creator of the selected team
   const isTeamCreator = () => {
+
     return teamData?.creator?._id === currentUser?._id;
   };
 
   // Handle member click
 const handleMemberClick = (member) => {
+  if (!member || !currentUser) return;
+  
+  const memberIdStr = String(member._id);
+  const currentUserIdStr = String(currentUser?._id);
+  
+  console.log('Member ID (string):', memberIdStr);
+  console.log('Current User ID (string):', currentUserIdStr);
+  console.log('IDs match:', memberIdStr === currentUserIdStr);
+  
   // Only allow access to own stats or if user is team creator
-  if (!isTeamCreator() && member._id !== currentUser?._id) {
- return
-  }
-
-  //if user is not team creator but is the current user and is memeber show the stats but not the edit options
-  if (!isTeamCreator() && member._id === currentUser?._id) {
-    setSelectedMember(member);
-    setShowMemberStatsModal(true);
+  if (!isTeamCreator() && memberIdStr !== currentUserIdStr) {
     return;
   }
-  
+
   setSelectedMember(member);
   setShowMemberStatsModal(true);
   
-  // Fetch member stats if not already available
-  if (!teamData.memberStats?.[member._id]) {
-    fetchMemberStats(member._id);
+  // Check if we already have stats for this member
+  if (!teamData.memberStats?.[memberIdStr]) {
+    fetchMemberStats(memberIdStr);
   }
 };
+
 
   // Fetch individual member stats
   const fetchMemberStats = async (memberId) => {
@@ -131,16 +135,21 @@ const handleMemberClick = (member) => {
     setMemberStatsLoading(true);
     try {
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}/members/${memberId}/stats`, {
+      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}?teamId=${selectedTeamId}`, {
         credentials: 'include',
       });
 
       if (response.ok) {
         const memberStats = await response.json();
+        console.log('Fetched member stats:', memberStats);
+
+        
         // Update teamData with new member stats
         setTeamData(prev => ({
           ...prev,
+          
           memberStats: {
+          
             ...prev.memberStats,
             [memberId]: memberStats
           }
