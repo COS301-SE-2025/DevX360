@@ -13,7 +13,7 @@ import { Octokit } from 'octokit';
 
 // Initialize Octokit with proper rate limit handling
 const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
+  auth: process.env.GITHUB_TOKEN_1,
   throttle: {
     onRateLimit: (retryAfter, options) => {
       console.log(`Rate limit hit, waiting ${retryAfter} seconds...`);
@@ -254,34 +254,82 @@ async function getRepositoryInfo(repositoryUrl) {
     });
     await delay(1000);
 
-    // Fetch open issues (excluding PRs)
-    let issues = [];
+    // Fetch open issues (excluding PRs) - limited to avoid pagination issues
+    let allIssues = [];
     let page = 1;
+    let hasMore = true;
 
-    while (true) {
-      const { data } = await octokit.rest.issues.listForRepo({
-        owner,
-        repo,
-        state: 'open',
-        per_page: 100,
-        page
-      });
-      const filtered = data.filter(issue => !issue.pull_request);
-      issues.push(...filtered);
-      if (data.length < 100) break;
-      page++;
-      await delay(1000);
+    while (hasMore) {
+      try {
+        const { data: issues } = await octokit.rest.issues.listForRepo({
+          owner,
+          repo,
+          state: 'open',
+          per_page: 100,
+          page: page
+        });
+
+        if (issues.length === 0) {
+          hasMore = false;
+        } else {
+          allIssues = allIssues.concat(issues);
+          page++;
+          
+          // Respect rate limits
+          if (issues.length < 100) {
+            hasMore = false;
+          }
+          
+          await delay(1000);
+        }
+      } catch (error) {
+        console.error(`Error fetching issues page ${page}:`, error.message);
+        hasMore = false;
+      }
     }
 
-    //Retrieve only the open issues (Excluding PR)
-    const openIssuesOnly = issues.filter(issue => !issue.pull_request);
+    // Filter out PRs to get only issues
+    const openIssuesOnly = allIssues.filter(issue => !issue.pull_request);
     console.log("OPEN ISSUES: ", openIssuesOnly.length);
     // Fetch open pull requests
-    const { data: pullRequests } = await octokit.rest.pulls.list({
+    let openPRs = [];
+    page = 1;
+    hasMore = true;
+
+    while (hasMore) {
+      try {
+        const { data: prs } = await octokit.rest.pulls.list({
+          owner,
+          repo,
+          state: 'open',  // Only fetch open PRs
+          per_page: 100,
+          page: page
+        });
+
+        if (prs.length === 0) {
+          hasMore = false;
+        } else {
+          openPRs = openPRs.concat(prs);
+          page++;
+          
+          if (prs.length < 100) {
+            hasMore = false;
+          }
+          
+          await delay(1000);
+        }
+      } catch (error) {
+        console.error(`Error fetching open PRs page ${page}:`, error.message);
+        hasMore = false;
+      }
+    }
+    
+    // Fetch recent commits for deployment detection
+    const { data: commits } = await octokit.rest.repos.listCommits({
       owner,
       repo,
-      state: 'open',
-      per_page: 100
+      per_page: 100,
+      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // Last 30 days
     });
     await delay(1000);
     
@@ -315,7 +363,7 @@ async function getRepositoryInfo(repositoryUrl) {
       forks: statsAnalysis.statistics.forks,
       watchers: statsAnalysis.statistics.watchers,
       open_issues: openIssuesOnly.length,
-      open_pull_requests: pullRequests.length,
+      open_pull_requests: openPRs.length,
       size: statsAnalysis.statistics.size,
       
       // Enhanced programming languages with analysis
@@ -486,10 +534,118 @@ function createMockRepositoryResponse() {
   };
 }
 
+/**
+ * Extracts owner and repo from GitHub URL (simplified version)
+ * @param {string} url - GitHub repository URL
+ * @returns {Array} [owner, repo]
+ */
+export function extractOwnerAndRepo(url) {
+  const parsed = parseGitHubUrl(url);
+  return [parsed.owner, parsed.repo];
+}
+
+/**
+ * Collects member activity statistics for a specific user in a repository
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name  
+ * @param {string} githubUsername - GitHub username to analyze
+ * @returns {Promise<Object>} Activity statistics
+ */
+export async function collectMemberActivity(owner, repo, githubUsername) {
+  try {
+    console.log(`Collecting activity for ${githubUsername} in ${owner}/${repo}`);
+    
+    // Fetch user's commits
+    const { data: commits } = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      author: githubUsername,
+      per_page: 100
+    });
+    
+    // Fetch user's pull requests
+    const { data: pullRequests } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100
+    });
+    
+    // Filter PRs by author
+    const userPRs = pullRequests.filter(pr => pr.user?.login === githubUsername);
+    
+    // Fetch user's issues
+    const { data: issues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100
+    });
+    
+    // Filter issues by author (excluding PRs)
+    const userIssues = issues.filter(issue => 
+      issue.user?.login === githubUsername && !issue.pull_request
+    );
+    
+    // Calculate statistics
+    const stats = {
+      commits: {
+        total: commits.length,
+        recent: commits.filter(c => {
+          const commitDate = new Date(c.commit.author.date);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return commitDate >= thirtyDaysAgo;
+        }).length
+      },
+      pullRequests: {
+        total: userPRs.length,
+        merged: userPRs.filter(pr => pr.merged_at).length,
+        open: userPRs.filter(pr => pr.state === 'open').length,
+        closed: userPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length
+      },
+      issues: {
+        total: userIssues.length,
+        open: userIssues.filter(issue => issue.state === 'open').length,
+        closed: userIssues.filter(issue => issue.state === 'closed').length
+      },
+      activityScore: calculateActivityScore(commits.length, userPRs.length, userIssues.length),
+      lastActivity: commits.length > 0 ? commits[0].commit.author.date : null,
+      collectedAt: new Date().toISOString()
+    };
+    
+    return stats;
+  } catch (error) {
+    console.error(`Error collecting activity for ${githubUsername}:`, error);
+    return {
+      error: error.message,
+      commits: { total: 0, recent: 0 },
+      pullRequests: { total: 0, merged: 0, open: 0, closed: 0 },
+      issues: { total: 0, open: 0, closed: 0 },
+      activityScore: 0,
+      lastActivity: null,
+      collectedAt: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Calculates activity score based on contributions
+ */
+function calculateActivityScore(commits, prs, issues) {
+  const commitScore = commits * 1;
+  const prScore = prs * 3;
+  const issueScore = issues * 2;
+  return commitScore + prScore + issueScore;
+}
+
 export {
   getRepositoryInfo,
   parseGitHubUrl,
   fetchTopContributors,
   validateRepositoryInfo,
-  createMockRepositoryResponse
+  createMockRepositoryResponse,
+  // Already exported individually above:
+  // extractOwnerAndRepo,
+  // collectMemberActivity
 }; 

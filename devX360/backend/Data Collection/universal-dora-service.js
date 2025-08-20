@@ -558,7 +558,7 @@ async function fetchRepositoryMetrics(owner, repo) {
         start_date: dateThreshold.toISOString(),
         end_date: new Date().toISOString()
       },
-      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30),
+      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30, commits),
       lead_time: calculateLeadTime(pullRequests, commits),
       mttr: calculateMTTR(issues),
       change_failure_rate: calculateUniversalChangeFailureRate(releases, issues, commits),
@@ -699,40 +699,86 @@ async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
   }
 }
 
-// DORA Metrics Calculation Functions (keeping your existing logic)
-function calculateDeploymentFrequency(releases, tags, daysBack = 30) {
+/**
+ * Calculates deployment frequency with enhanced accuracy
+ */
+function calculateDeploymentFrequency(releases, tags, daysBack = 30, commits = []) {
   // Filter out draft and pre-release releases to count only actual deployments
-  const deployments = releases
-    .filter(r => !r.draft && !r.prerelease)
-    .map(r => new Date(r.created_at))
+  const deployments = detectDeployments(releases, commits)
+    .map(d => new Date(d.date))
     .sort((a, b) => a - b);
 
-  if (deployments.length === 0) {
-    return {
-      total_deployments: 0,
-      frequency_per_day: 0,
-      analysis_period_days: daysBack,
-      status: 'No deployments found in analysis period'
-    };
-  }
+  // Helper: get start date
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - daysBack + 1);
 
-  if (deployments.length === 1) {
-    return {
-      total_deployments: 1,
-      analysis_period_days: daysBack,
-      frequency_per_day: (1 / daysBack).toFixed(3),
-      status: 'Single deployment in analysis period'
-    };
-  }
+  // Per-day time series
+  const perDay = Array(daysBack).fill(0);
+  deployments.forEach(date => {
+    const dayIndex = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+    if (dayIndex >= 0 && dayIndex < daysBack) {
+      perDay[dayIndex]++;
+    }
+  });
 
-  // Calculate frequency based on the analysis period, not deployment time span
-  const frequencyPerDay = (deployments.length / daysBack).toFixed(3);
+  // Per-week time series
+  const numWeeks = Math.ceil(daysBack / 7);
+  const perWeek = Array(numWeeks).fill(0);
+  deployments.forEach(date => {
+    const dayIndex = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+    if (dayIndex >= 0 && dayIndex < daysBack) {
+      const weekIndex = Math.floor(dayIndex / 7);
+      perWeek[weekIndex]++;
+    }
+  });
+
+  // Per-month time series (by calendar month)
+  // Find all months in the period
+  const months = [];
+  let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const lastMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+  while (cursor <= lastMonth) {
+    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() });
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  const perMonth = Array(months.length).fill(0);
+  deployments.forEach(date => {
+    for (let i = 0; i < months.length; i++) {
+      if (
+        date.getFullYear() === months[i].year &&
+        date.getMonth() === months[i].month
+      ) {
+        perMonth[i]++;
+        break;
+      }
+    }
+  });
+
+  const totalDeployments = deployments.length;
+
+  // Scalar frequencies for API consumers
+  const frequency_per_day = (totalDeployments / daysBack).toFixed(3);
+  const frequency_per_week = perWeek.length ? (totalDeployments / perWeek.length).toFixed(3) : '0.000';
+  const frequency_per_month = perMonth.length ? (totalDeployments / perMonth.length).toFixed(3) : '0.000';
 
   return {
-    total_deployments: deployments.length,
+    total_deployments: totalDeployments,
     analysis_period_days: daysBack,
-    frequency_per_day: frequencyPerDay,
-    status: 'Multiple deployments in analysis period'
+    perDay,
+    perWeek,
+    perMonth,
+    months: months.map(m => `${m.year}-${String(m.month + 1).padStart(2, '0')}`),
+    status:
+      totalDeployments === 0
+        ? 'No deployments found in analysis period'
+        : totalDeployments === 1
+        ? 'Single deployment in analysis period'
+        : 'Multiple deployments in analysis period',
+    // New scalar frequency fields (restore/extend old behavior)
+    frequency_per_day,
+    frequency_per_week,
+    frequency_per_month,
   };
 }
 
