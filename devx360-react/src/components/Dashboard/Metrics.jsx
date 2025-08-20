@@ -386,6 +386,25 @@ const handleMemberClick = (member) => {
                     </div>
                   )}
 
+                                   {/* Commit Stats */}
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                      <GitCommit className="w-4 h-4 mr-2" />
+                      Commits
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{memberStats.commits?.recent || 0}</div>
+                        <div className="text-sm text-[var(--text-light)]">Recent</div>
+                      </div>
+                     
+                    </div>
+                  </div>
+
                   {/* Pull Requests Stats */}
                   <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
                     <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
@@ -560,7 +579,12 @@ const renderMemberCard = (member, isCreator = false) => {
           {/* Show appropriate content based on access level */}
           {canViewStats && memberStats ? (
             // Full stats preview for accessible members (creator view or own stats)
+
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div className="bg-[var(--bg-container)] rounded p-2">
+                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
+                <div className="text-xs text-[var(--text-light)]">Commits</div>
+              </div>
               <div className="bg-[var(--bg-container)] rounded p-2">
                 <div className="text-sm font-semibold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
                 <div className="text-xs text-[var(--text-light)]">PRs</div>
@@ -574,6 +598,7 @@ const renderMemberCard = (member, isCreator = false) => {
                 <div className="text-xs text-[var(--text-light)]">Score</div>
               </div>
             </div>
+         
           ) : canViewStats && !memberStats ? (
             // Loading state for accessible members without stats
             <div className="mt-3 text-center">
