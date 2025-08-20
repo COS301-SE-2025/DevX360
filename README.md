@@ -58,6 +58,9 @@ We use a collaborative workflow to manage progress and documentation.
 
 [📄 View our Coding Standards Document (PDF)](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)
 
+[📄 View our User Manual (PDF)](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)
+
+
 
 ## 👥 Team DOSKS
 
