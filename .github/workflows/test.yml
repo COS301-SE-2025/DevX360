@@ -11,7 +11,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI }}   # <-- add this line
     steps:
       - name: Checkout feature branch code
         uses: actions/checkout@v4
