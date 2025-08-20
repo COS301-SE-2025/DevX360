@@ -4,10 +4,15 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Admin from '../components/Dashboard/Admin';
 
-// Mock AuthContext to provide a currentUser
+// Mock AuthContext
 const mockCurrentUser = { _id: 'u1', name: 'Alice', role: 'admin' };
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({ currentUser: mockCurrentUser }),
+}));
+
+// Mock ThemeContext
+jest.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({ toggleTheme: jest.fn(), theme: 'light' }),
 }));
 
 // Mock service functions used in Admin component
