@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: Run Frontend Tests
     runs-on: ubuntu-latest
 
     strategy:
@@ -26,8 +26,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
+        working-directory: ./devx360-react
         run: npm ci
 
-      - name: Run all tests
-        run: npm test
+      - name: Run frontend tests
+        working-directory: ./devx360-react
+        run: npm test -- src/__tests__
