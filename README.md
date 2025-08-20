@@ -134,6 +134,22 @@ Contact me here:
 </div>
 </details>
 
+<details>
+<summary><strong>🪟 Lwando Msindo</strong> — Currently serving on the frontend as a UI Engineer.
+</summary>
+
+<div>
+
+- **Key Skills:** REST APIs · React
+- **About Me:**  
+  > “As a final-year Computer Science student at UP, I am passionate about how software works at its core. I enjoy shaping the logic that drives applications and designing abstractions that simplify complexity, now extending that mindset into UI/UX design.”
+
+Contact me here:
+
+[![LinkedIn – Lwando](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Lwando%20Msindo)](https://www.linkedin.com/in/lwando-msindo-0220722b5/)
+
+</div>
+</details>
 
 Contact us here:
 
