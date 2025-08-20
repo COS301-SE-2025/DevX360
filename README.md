@@ -50,11 +50,12 @@ We use a collaborative workflow to manage progress and documentation.
 
 [📄 View our updated SRS Document (PDF)](https://drive.google.com/file/d/1m3yFXeIlVjC0f6EHdCso6CjbHlNgnjCR/view?usp=drive_link)
 
-[📄 View our Project Planning and Role Allocation (PDF)](https://drive.google.com/file/d/18-nal_Oj2sOhXFHNqB_7Nzh1QbDW9IOX/view?usp=drive_link)
+[📄 View our Project Planning and Role Allocation (PDF)](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)
 
 [📋 Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
-[📄 View our Coding Standards Document (PDF)](https://drive.google.com/file/d/1LvG5J76JxCvjuzRgUhquXqaB4VFkFs7U/view?usp=drive_link)
+[📄 View our Coding Standards Document (PDF)](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)
+
 
 ## 👥 Team DOSKS
 
