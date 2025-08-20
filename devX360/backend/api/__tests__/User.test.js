@@ -58,7 +58,7 @@ describe('User Model', () => {
       ],
     });
     expect(schemaDefinition.password).toEqual({ type: String, required: true, minlength: 6 });
-    expect(schemaDefinition.role).toEqual({ type: String, required: true, trim: true });
+    expect(schemaDefinition.role).toEqual({ type: String, required: true, default: 'user' });
     expect(schemaDefinition.isEmailVerified).toEqual({ type: Boolean, default: false });
     expect(schemaDefinition.inviteCode).toEqual({ type: String, default: null });
     expect(schemaDefinition.createdAt).toEqual({ type: Date, default: Date.now });
