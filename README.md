@@ -140,9 +140,6 @@ Contact us here:
 📧 **Team Email:** doskscapstone17@gmail.com
 
 
-[You can view our detailed project planning here](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation/Project%20Planning%20and%20Role%20Allocation%20V3.pdf)
-
-
 # DevX360
 
 
