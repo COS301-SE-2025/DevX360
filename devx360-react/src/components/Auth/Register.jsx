@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('');
+  // const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -36,7 +36,7 @@ function Register() {
     setLoading(true);
 
     try {
-      await register(name, role, email, password, inviteCode);
+      await register(name, email, password, inviteCode);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -59,7 +59,7 @@ function Register() {
 
         <form className="auth-form active" onSubmit={handleSubmit}>
           {error && <div className="error-message">{error}</div>}
-          
+
           <div className="form-group">
             <label htmlFor="register-name">Full Name</label>
             <input
@@ -73,18 +73,6 @@ function Register() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="register-role">Role</label>
-            <input
-              type="text"
-              id="register-role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="Developer"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
             <label htmlFor="register-email">Email</label>
             <input
               type="email"
@@ -95,7 +83,7 @@ function Register() {
               required
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="register-password">Password</label>
             <input
@@ -107,7 +95,7 @@ function Register() {
               required
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="register-confirm">Confirm Password</label>
             <input
@@ -127,7 +115,7 @@ function Register() {
           >
             {showInviteField ? 'Hide Invite Code' : 'Have an invite code?'}
           </button>
-          
+
           {showInviteField && (
             <div className="form-group">
               <label htmlFor="invite-code">Invite Code (optional)</label>
@@ -140,7 +128,7 @@ function Register() {
               />
             </div>
           )}
-          
+
           <div className="form-group terms">
             <input
               type="checkbox"
@@ -148,31 +136,37 @@ function Register() {
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
               required
+              style={{
+                width: "16px",
+                height: "16px",
+                marginRight: "0.5rem",
+                verticalAlign: "middle"
+              }}
             />
-            <label htmlFor="terms">I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+            <label htmlFor="terms" style={{marginTop:"4px"}}>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
           </div>
-          
+
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
-          
+
           <div className="divider">or sign up with</div>
-          
+
           <div className="social-logins">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="github-btn"
               onClick={() => window.location.href = `${API_BASE_URL}/api/auth/github`}
             >
-              <img 
-                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" 
-                className="social-icon" 
-                alt="GitHub" 
+              <img
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
+                className="social-icon"
+                alt="GitHub"
               />
               <span>Continue with GitHub</span>
             </button>
           </div>
-          
+
           <div className="auth-footer">
             Already have an account? <a href="#" onClick={() => navigate('/login')}>Sign in</a>
           </div>

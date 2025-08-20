@@ -71,12 +71,18 @@ function Login() {
           <div className="form-options">
             <div className="remember-me">
               <input
-                type="checkbox"
-                id="remember-me"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    marginRight: "0.5rem",
+                    verticalAlign: "middle"
+                  }}
               />
-              <label htmlFor="remember-me">Remember me</label>
+              <label htmlFor="remember-me" style={{marginTop:"4px"}}>Remember me</label>
             </div>
             <a href="#" className="forgot-password">Forgot password?</a>
           </div>
