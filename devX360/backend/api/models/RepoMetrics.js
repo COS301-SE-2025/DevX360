@@ -17,6 +17,31 @@ const RepoMetricsSchema = new mongoose.Schema({
       processingTimeMs: Number
     }
   },
+  memberStats: {
+    type: Map,
+    of: new mongoose.Schema({
+      githubUsername: String,
+      commits: {
+        total: Number,
+        recent: Number
+      },
+      pullRequests: {
+        total: Number,
+        merged: Number,
+        open: Number,
+        closed: Number
+      },
+      issues: {
+        total: Number,
+        open: Number,
+        closed: Number
+      },
+      activityScore: Number,
+      lastActivity: Date,
+      collectedAt: Date
+    }),
+    default: {}
+  },
   analysisStatus: {
     type: String,
     enum: ['pending', 'completed', 'failed'],
