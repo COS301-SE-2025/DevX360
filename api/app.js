@@ -728,6 +728,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   const userStats = repoData?.memberStats?.get(req.user.userId.toString()) || {};
   res.json({
     ...base,
+    members: team.members,
     myStats: userStats,
     permissions: "read-only",
   });
