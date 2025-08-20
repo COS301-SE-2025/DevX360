@@ -706,7 +706,6 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   const team = req.team;
   const repoData = await RepoMetrics.findOne({ teamId: team._id });
 
-  await team.populate("creator", "name");
   await team.populate("members", "name email");
 
   const base = {
@@ -717,6 +716,7 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   };
 
   if (req.user.userId === team.creator.toString()) {
+    await team.populate("creator", "name");
     return res.json({
       ...base,
       members: team.members,
