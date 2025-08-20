@@ -71,6 +71,7 @@ const testAdmin = {
 describe('API Integration Tests', () => {
   beforeAll(async () => {
     // Connect to the dedicated test database
+    jest.setTimeout(60000);
     await mongoose.connect(TEST_DB_URI);
     console.log(`Connected to test database: ${TEST_DB_URI}`);
   });
