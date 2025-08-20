@@ -10,6 +10,16 @@ jest.unstable_mockModule('../../api/utils/concurrentMap.js', () => ({
   concurrentMap: mockConcurrentMap,
 }));
 
+// Mock OpenAI SDK used by codeInterpretor
+const mockOpenAIResponsesCreate = jest.fn();
+jest.unstable_mockModule('openai', () => ({
+  default: jest.fn().mockImplementation(() => ({
+    responses: {
+      create: mockOpenAIResponsesCreate,
+    },
+  })),
+}));
+
 global.fetch = jest.fn();
 
 const { performDORAAnalysis, analyzeRepositoryStructure, generateDORAInsights } = await import('../codeInterpretor.js');
@@ -39,6 +49,8 @@ describe('CodeInterpretor', () => {
         await task(item);
       }
     });
+    // Default OpenAI mock response
+    mockOpenAIResponsesCreate.mockResolvedValue({ output_text: 'Test insights' });
   });
 
   describe('analyzeRepositoryStructure', () => {
@@ -69,7 +81,12 @@ describe('CodeInterpretor', () => {
       // Arrange
       const repositoryAnalysis = {
         repository: { name: 'owner/repo', language: 'JavaScript', lastUpdated: new Date().toISOString() },
-        doraIndicators: { deployment_frequency: [] },
+        doraIndicators: {
+          deployment_frequency: [],
+          lead_time: [],
+          mttr: [],
+          change_failure_rate: []
+        },
         patterns: {
           commits: { totalCommits: 10, commitTypes: { fixes: 1, features: 2, deployments: 3 } },
           pullRequests: { averageTimeToMerge: 5, merged: 8, totalPRs: 10 },
@@ -77,14 +94,16 @@ describe('CodeInterpretor', () => {
         },
       };
       const metrics = {};
-      fetch.mockResolvedValueOnce({ json: () => Promise.resolve({ response: 'Test insights' }) });
 
       // Act
       const result = await generateDORAInsights(repositoryAnalysis, metrics);
 
       // Assert
       expect(result).toBe('Test insights');
-      expect(fetch).toHaveBeenCalledWith('http://localhost:11434/api/generate', expect.any(Object));
+      expect(mockOpenAIResponsesCreate).toHaveBeenCalledWith(expect.objectContaining({
+        model: expect.any(String),
+        input: expect.any(String),
+      }));
     });
 
     test('should handle errors during insight generation', async () => {
@@ -98,7 +117,7 @@ describe('CodeInterpretor', () => {
           releases: { totalReleases: 0, recentReleases: [], releaseFrequency: 'unknown', versioningPattern: 'unknown' },
         },
       };
-      fetch.mockRejectedValue(new Error('Fetch Error'));
+      mockOpenAIResponsesCreate.mockRejectedValue(new Error('Fetch Error'));
 
       // Act & Assert
       await expect(generateDORAInsights(repositoryAnalysis, {})).rejects.toThrow('DORA analysis failed: Fetch Error');
