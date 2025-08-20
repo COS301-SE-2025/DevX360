@@ -1,36 +1,29 @@
-name: CI - Run tests on all branches
+name: CI - Feature Analysis Tests
 
 on:
   push:
     branches:
-      - '**'      # trigger on pushes to any branch (main + feature/*)
+      - feature/ai-analysis
   pull_request:
     branches:
-      - '**'      # trigger on PRs to any branch
+      - feature/ai-analysis
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    env:                        # <-- make sure this is aligned under the job
+      OPENAI_API_KEY: ${{ secrets.OPENAI }}
     steps:
-      # Step 1. Checkout the code of the current branch
-      - name: Checkout branch code
+      - name: Checkout feature branch code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # full history if needed (safe default)
 
-      # Step 2. Set up Node (change if using another language)
-      - name: Set up Node.js
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Step 3. Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Step 4. Run tests
-        env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI }}   # <-- add this line
       - name: Run tests
         run: npm test
