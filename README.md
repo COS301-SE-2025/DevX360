@@ -50,19 +50,46 @@
 
 We use a collaborative workflow to manage progress and documentation.
 
-[📄 View our updated SRS Document](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)
+## 📄 Latest Docs
+- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
+- [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
+- [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
+- [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
+- [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
+- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)  
 
-[📄 View our Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)
+📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
-[📋 Track our progress on the Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
+---
 
-[📄 View our Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)
+## 🚀 Sprint 1 Docs
+- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
+- [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
+- [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
 
-[📄 View our User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)
 
-[📄 View our Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)
+---
 
-[📄 View our Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)
+## ⚡ Sprint 2 Docs
+- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
+- [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
+- [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
+- [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
+- [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
+  
+
+---
+
+## 🔥 Sprint 3 Docs
+- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
+- [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
+- [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
+- [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
+- [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
+- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)  
+
+---
+
 
 
 
