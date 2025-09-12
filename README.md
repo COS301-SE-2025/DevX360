@@ -62,23 +62,30 @@ We use a collaborative workflow to manage progress and documentation.
 
 ---
 
-## 🚀 Sprint 1 Docs
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS.pdf)  
- 
+<details>
+<summary><strong>🚀 Sprint 1 Docs</strong></summary>
 
+- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS.pdf)  
+
+</details>
 
 ---
 
-## ⚡ Sprint 2 Docs
+<details>
+<summary><strong>⚡ Sprint 2 Docs</strong></summary>
+
 - [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.1.pdf)  
 - [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Project%20Planning%20and%20Role%20Allocation%20V3.pdf)  
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/DevX360%20Coding%20Standards.pdf)    
 - [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Architectural%20Requirements%20V2.pdf)  
-  
+
+</details>
 
 ---
 
-## 🔥 Sprint 3 Docs
+<details>
+<summary><strong>🔥 Sprint 3 Docs</strong></summary>
+
 - [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
 - [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
 - [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
@@ -86,7 +93,10 @@ We use a collaborative workflow to manage progress and documentation.
 - [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
 - [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)  
 
+</details>
+
 ---
+
 
 
 
