@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - feature/frontend
+      - main
   pull_request:
     branches:
       - feature/frontend
-
+      - main
 jobs:
   test:
     name: Run Frontend Tests
