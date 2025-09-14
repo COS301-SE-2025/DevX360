@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - feature/ai-analysis
+      - feature/documentation
+      - main
   pull_request:
     branches:
       - feature/ai-analysis
+      - feature/documentation
+      - main
 jobs:
   test:
     runs-on: ubuntu-latest
