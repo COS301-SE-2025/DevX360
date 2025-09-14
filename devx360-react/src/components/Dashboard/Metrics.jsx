@@ -80,6 +80,18 @@ function Metrics() {
   };
 
   useEffect(() => {
+  if (!currentUser) return;
+
+  const timer = setTimeout(() => {
+    if (currentUser.teams?.length > 0) {
+      setSelectedTeamId(currentUser.teams[0].id);
+    }
+  }, 100); // short delay so session is established
+
+  return () => clearTimeout(timer);
+}, [currentUser]);
+
+  useEffect(() => {
     if (selectedTeamId && currentUser?.teams) {
       fetchTeamMetrics();
     }
@@ -115,6 +127,8 @@ function Metrics() {
   // Set initial team for new user
   if (currentUser?.teams && currentUser.teams.length > 0) {
     setSelectedTeamId(currentUser.teams[0].id);
+  } else {
+    setSelectedTeamId('');
   }
 }, [currentUser]); // Add currentUser as dependency
 
@@ -677,13 +691,13 @@ const renderMemberCard = (member, isCreator = false) => {
   const currentSelectedTeam = currentUser?.teams.find(team => team.id === selectedTeamId);
 
   // Safe data access with fallbacks for missing DORA metrics
-  const doraMetrics = teamData.doraMetrics || {};
-  const dataSummary = doraMetrics.data_summary || {};
-  const repositoryInfo = teamData.repositoryInfo || {};
-  const deploymentFreq = doraMetrics.deployment_frequency || {};
-  const leadTime = doraMetrics.lead_time || {};
-  const changeFailureRate = doraMetrics.change_failure_rate || {};
-  const mttr = doraMetrics.mttr || {};
+const doraMetrics = teamData.doraMetrics || {};
+const dataSummary = doraMetrics.data_summary || {};
+const repositoryInfo = teamData.repositoryInfo || {};
+const deploymentFreq = doraMetrics.deployment_frequency || { perWeek: [] };
+const leadTime = doraMetrics.lead_time || {};
+const changeFailureRate = doraMetrics.change_failure_rate || {};
+const mttr = doraMetrics.mttr || {};
 
   
 
@@ -695,27 +709,29 @@ const renderMemberCard = (member, isCreator = false) => {
     { name: 'Releases', value: dataSummary.releases_count || 0, color: '#EF4444' }
   ];
 
-  const deploymentTrendData = [
-    { date: 'Week 1', deployments:deploymentFreq.perWeek[0] },
-    { date: 'Week 2', deployments: deploymentFreq.perWeek[1]},
-    { date: 'Week 3', deployments:deploymentFreq.perWeek[2] },
-    { date: 'Week 4', deployments: deploymentFreq.perWeek[3] }
-  ];
+const deploymentTrendData = [
+  { date: 'Week 1', deployments: deploymentFreq.perWeek?.[0] || 0 },
+  { date: 'Week 2', deployments: deploymentFreq.perWeek?.[1] || 0 },
+  { date: 'Week 3', deployments: deploymentFreq.perWeek?.[2] || 0 },
+  { date: 'Week 4', deployments: deploymentFreq.perWeek?.[3] || 0 }
+];
 
-  const contributorData = (repositoryInfo.contributors || [])
-    .slice(0, 5)
-    .map((contributor, index) => ({
+ const contributorData = (repositoryInfo.contributors || [])
+  .slice(0, 5)
+  .map((contributor, index) => {
+    const topContributor = repositoryInfo.contributors?.[0];
+    const topContributions = topContributor?.contributions || 1; // Avoid division by zero
+    
+    return {
       rank: index + 1,
       name: contributor.username || 'Unknown',
       contributions: contributor.contributions || 0,
       avatar: contributor.avatar_url || defaultAvatar,
       profile: contributor.profile_url || '#',
-      percentage: index === 0 && repositoryInfo.contributors && repositoryInfo.contributors[0] ? 
-        100 : 
-        (contributor.contributions && repositoryInfo.contributors && repositoryInfo.contributors[0] ? 
-          (contributor.contributions / repositoryInfo.contributors[0].contributions) * 100 : 
-          0)
-    }));
+      percentage: index === 0 ? 100 : 
+        (contributor.contributions ? (contributor.contributions / topContributions) * 100 : 0)
+    };
+  });
 
   // Get metric statuses with safe fallbacks
   const deploymentStatus = getDeploymentStatus(parseFloat(deploymentFreq.frequency_per_day) || 0);
@@ -1062,7 +1078,8 @@ const renderMemberCard = (member, isCreator = false) => {
                 <h3 className="text-lg font-semibold text-[var(--text)]">Deployment Trends</h3>
               </div>
               <div className="flex-1 p-6">
-                <ResponsiveContainer width="100%" height="100%">
+                {deploymentFreq.perWeek && Array.isArray(deploymentFreq.perWeek) ? (
+                  <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={deploymentTrendData}>
                     
                     <CartesianGrid strokeDasharray="3 3" stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} />
@@ -1086,6 +1103,14 @@ const renderMemberCard = (member, isCreator = false) => {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                ): (
+  <div className="flex items-center justify-center h-full">
+    <div className="text-center">
+      <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+      <p className="text-[var(--text-light)]">No deployment data available</p>
+    </div>
+  </div>
+)}
               </div>
             </div>
 
