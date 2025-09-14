@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - feature/frontend
-
 jobs:
   test:
     name: Run Frontend Tests
