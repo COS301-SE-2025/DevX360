@@ -143,61 +143,33 @@ const handleMemberClick = (member) => {
   if (!member || !currentUser) return;
   
   const memberIdStr = String(member._id);
-  const currentUserIdStr = String(currentUser?._id);
+  const currentUserIdStr = String(currentUser._id);
   
   console.log('Member ID (string):', memberIdStr);
   console.log('Current User ID (string):', currentUserIdStr);
-  console.log('IDs match:', memberIdStr === currentUserIdStr);
+  console.log('Is Creator:', isTeamCreator());
+  console.log('Is Own Profile:', memberIdStr === currentUserIdStr);
   
-  // Only allow access to own stats or if user is team creator
-  if (!isTeamCreator() && memberIdStr !== currentUserIdStr) {
+  // RBAC Logic:
+  // - Team creators can view anyone's stats
+  // - Regular members can only view their own stats
+  const canViewStats = isTeamCreator() || memberIdStr === currentUserIdStr;
+  
+  if (!canViewStats) {
+    // Show access denied message for restricted access
+    alert('Access Restricted: You can only view your own stats. Team creators have access to all member stats.');
     return;
   }
 
   setSelectedMember(member);
   setShowMemberStatsModal(true);
   
-  // Check if we already have stats for this member
-  if (!teamData.memberStats?.[memberIdStr]) {
-    fetchMemberStats(memberIdStr);
-  }
+  // The stats should already be available in teamData.memberStats[memberIdStr]
+  // No need to fetch again since we get all stats from the initial team API call
 };
 
 
-  // Fetch individual member stats
-  const fetchMemberStats = async (memberId) => {
-
-
-    setMemberStatsLoading(true);
-    try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}?teamId=${selectedTeamId}`, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const memberStats = await response.json();
-        console.log('Fetched member stats:', memberStats);
-
-        
-        // Update teamData with new member stats
-        setTeamData(prev => ({
-          ...prev,
-          
-          memberStats: {
-          
-            ...prev.memberStats,
-            [memberId]: memberStats
-          }
-        }));
-      }
-    } catch (err) {
-      console.error('Error fetching member stats:', err);
-    } finally {
-      setMemberStatsLoading(false);
-    }
-  };
-
+  
   // Close member stats modal
   const closeMemberStatsModal = () => {
     setShowMemberStatsModal(false);
@@ -354,212 +326,257 @@ const handleMemberClick = (member) => {
   };
 
   // Member Stats Modal Component
-  const MemberStatsModal = () => {
-    if (!showMemberStatsModal || !selectedMember) return null;
+const MemberStatsModal = () => {
+  if (!showMemberStatsModal || !selectedMember) return null;
 
-    const memberStats = teamData.memberStats?.[selectedMember._id];
-    const isCurrentUser = selectedMember._id === currentUser?._id;
+  const memberIdStr = String(selectedMember._id);
+  const currentUserIdStr = String(currentUser._id);
+  const isCurrentUser = memberIdStr === currentUserIdStr;
+  const canViewStats = isTeamCreator() || isCurrentUser;
 
+  if (!canViewStats) {
     return (
       <>
-        {/* Backdrop */}
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          {/* Modal */}
-          <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-semibold text-lg">
-                    {selectedMember.name ? selectedMember.name.charAt(0).toUpperCase() : 'M'}
-                  </span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-[var(--text)]">
-                    {selectedMember.name || 'Team Member'} 
-                    {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-2">(You)</span>}
-                  </h2>
-                  <p className="text-[var(--text-light)]">{selectedMember.email || 'No email provided'}</p>
-                </div>
-              </div>
+          <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-md">
+            <div className="p-6 text-center">
+              <Lock className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-[var(--text)] mb-2">Access Restricted</h2>
+              <p className="text-[var(--text-light)] mb-4">
+                You can only view your own stats. Team creators have access to all member stats.
+              </p>
               <button
                 onClick={closeMemberStatsModal}
-                className="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors"
+                className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
               >
-                <X className="w-5 h-5 text-[var(--text-light)]" />
+                Close
               </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[70vh]">
-              {memberStatsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="w-8 h-8 text-[var(--primary)] animate-spin" />
-                  <span className="ml-3 text-[var(--text)]">Loading member stats...</span>
-                </div>
-              ) : memberStats ? (
-                <div className="space-y-6">
-                  {/* GitHub Profile Info */}
-                  {memberStats.githubUsername && (
-                    <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                      <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                        <GitBranch className="w-4 h-4 mr-2" />
-                        GitHub Profile
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-[var(--text-light)]">Username</span>
-                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.githubUsername}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-[var(--text-light)]">Activity Score</span>
-                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-[var(--text-light)]">Last Activity</span>
-                          <span className="text-sm font-medium text-[var(--text)]">
-                            {memberStats.lastActivity ? new Date(memberStats.lastActivity).toLocaleDateString() : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-[var(--text-light)]">Data Collected</span>
-                          <span className="text-sm font-medium text-[var(--text)]">
-                            {memberStats.collectedAt ? new Date(memberStats.collectedAt).toLocaleDateString() : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                                   {/* Commit Stats */}
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                      <GitCommit className="w-4 h-4 mr-2" />
-                      Commits
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Total</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{memberStats.commits?.recent || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Recent</div>
-                      </div>
-                     
-                    </div>
-                  </div>
-
-                  {/* Pull Requests Stats */}
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                      <GitPullRequest className="w-4 h-4 mr-2" />
-                      Pull Requests
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Total</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{memberStats.pullRequests?.merged || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Merged</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{memberStats.pullRequests?.open || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Open</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{memberStats.pullRequests?.closed || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Closed</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Issues Stats */}
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                      <Bug className="w-4 h-4 mr-2" />
-                      Issues
-                    </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Total</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{memberStats.issues?.open || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Open</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{memberStats.issues?.closed || 0}</div>
-                        <div className="text-sm text-[var(--text-light)]">Closed</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Performance Metrics */}
-                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Performance
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-[var(--text-light)]">Activity Score</span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min((memberStats.activityScore || 0) / 100 * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-[var(--text-light)]">PR Success Rate</span>
-                        <span className="text-sm font-medium text-[var(--text)]">
-                          {memberStats.pullRequests?.total > 0 
-                            ? `${Math.round((memberStats.pullRequests.merged / memberStats.pullRequests.total) * 100)}%`
-                            : 'N/A'
-                          }
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-[var(--text-light)]">Issue Resolution Rate</span>
-                        <span className="text-sm font-medium text-[var(--text)]">
-                          {memberStats.issues?.total > 0 
-                            ? `${Math.round((memberStats.issues.closed / memberStats.issues.total) * 100)}%`
-                            : 'N/A'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-[var(--text)] mb-2">No Stats Available</h3>
-                  <p className="text-[var(--text-light)]">
-                    {isCurrentUser ? 'Your stats will appear here once you start contributing.' : 'Member stats are being collected.'}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </>
     );
-  };
+  }
+
+  // Fixed stats access logic for modal
+  let memberStats = null;
+  if (isTeamCreator()) {
+    // Team creators can access any member's stats from memberStats object
+    memberStats = teamData.memberStats?.[memberIdStr];
+  } else if (isCurrentUser) {
+    // Regular users accessing their own stats - try both locations
+    memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-2xl max-h-[90vh] overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-lg">
+                  {selectedMember.name ? selectedMember.name.charAt(0).toUpperCase() : 'M'}
+                </span>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text)]">
+                  {selectedMember.name || 'Team Member'} 
+                  {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-2">(You)</span>}
+                </h2>
+                <p className="text-[var(--text-light)]">{selectedMember.email || 'No email provided'}</p>
+              </div>
+            </div>
+            <button
+              onClick={closeMemberStatsModal}
+              className="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-[var(--text-light)]" />
+            </button>
+          </div>
+
+          <div className="p-6 overflow-y-auto max-h-[70vh]">
+            {memberStats ? (
+              <div className="space-y-6">
+                {/* GitHub Profile Info */}
+                {memberStats.githubUsername && (
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      GitHub Profile
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[var(--text-light)]">Username</span>
+                        <span className="text-sm font-medium text-[var(--text)]">{memberStats.githubUsername}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[var(--text-light)]">Activity Score</span>
+                        <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[var(--text-light)]">Last Activity</span>
+                        <span className="text-sm font-medium text-[var(--text)]">
+                          {memberStats.lastActivity ? new Date(memberStats.lastActivity).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[var(--text-light)]">Data Collected</span>
+                        <span className="text-sm font-medium text-[var(--text)]">
+                          {memberStats.collectedAt ? new Date(memberStats.collectedAt).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Commit Stats */}
+                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                    <GitCommit className="w-4 h-4 mr-2" />
+                    Commits
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{memberStats.commits?.recent || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Recent</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pull Requests Stats */}
+                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                    <GitPullRequest className="w-4 h-4 mr-2" />
+                    Pull Requests
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{memberStats.pullRequests?.merged || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Merged</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{memberStats.pullRequests?.open || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Open</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">{memberStats.pullRequests?.closed || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Closed</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Issues Stats */}
+                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                    <Bug className="w-4 h-4 mr-2" />
+                    Issues
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{memberStats.issues?.open || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Open</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{memberStats.issues?.closed || 0}</div>
+                      <div className="text-sm text-[var(--text-light)]">Closed</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Performance
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-[var(--text-light)]">Activity Score</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min((memberStats.activityScore || 0) / 100 * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-[var(--text-light)]">PR Success Rate</span>
+                      <span className="text-sm font-medium text-[var(--text)]">
+                        {memberStats.pullRequests?.total > 0 
+                          ? `${Math.round((memberStats.pullRequests.merged / memberStats.pullRequests.total) * 100)}%`
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-[var(--text-light)]">Issue Resolution Rate</span>
+                      <span className="text-sm font-medium text-[var(--text)]">
+                        {memberStats.issues?.total > 0 
+                          ? `${Math.round((memberStats.issues.closed / memberStats.issues.total) * 100)}%`
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-[var(--text)] mb-2">No Stats Available</h3>
+                <p className="text-[var(--text-light)]">
+                  {isCurrentUser ? 'Your stats will appear here once you start contributing.' : 'Member stats are being collected.'}
+                </p>
+                {/* Debug info - remove this in production */}
+                <div className="mt-4 text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                  <p>Debug: memberIdStr={memberIdStr}, currentUserIdStr={currentUserIdStr}</p>
+                  <p>teamData.memberStats keys: {JSON.stringify(Object.keys(teamData.memberStats || {}))}</p>
+                  <p>teamData.myStats available: {teamData.myStats ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
   // Render member card with access control
 const renderMemberCard = (member, isCreator = false) => {
-  // Show all members, but only allow clicking if user is creator OR it's their own card
-  const canViewStats = isTeamCreator() || member._id === currentUser?._id;
-  const memberStats = teamData.memberStats?.[member._id];
-  const isCurrentUser = member._id === currentUser?._id;
+  const memberIdStr = String(member._id);
+  const currentUserIdStr = String(currentUser._id);
+  const isCurrentUser = memberIdStr === currentUserIdStr;
+  const canViewStats = isTeamCreator() || isCurrentUser;
+  
+  // Fixed stats access logic:
+  let memberStats = null;
+  if (canViewStats) {
+    if (isTeamCreator()) {
+      // Creators can see all member stats from memberStats object
+      memberStats = teamData.memberStats?.[memberIdStr];
+    } else if (isCurrentUser) {
+      // Regular users can only see their own stats
+      // First try memberStats[currentUserId], then fallback to myStats
+      memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
+    }
+  }
 
   return (
     <div 
@@ -567,9 +584,9 @@ const renderMemberCard = (member, isCreator = false) => {
       className={`bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] transition-all duration-200 ${
         canViewStats 
           ? 'hover:shadow-md hover:border-[var(--primary)] cursor-pointer' 
-          : 'cursor-default' // Remove opacity reduction - show all members normally
+          : 'cursor-default opacity-75'
       }`}
-      onClick={() => canViewStats && handleMemberClick(member)}
+      onClick={() => handleMemberClick(member)}
     >
       <div className="flex items-center space-x-3">
         <div className={`w-12 h-12 ${
@@ -580,10 +597,9 @@ const renderMemberCard = (member, isCreator = false) => {
           <span className="text-white font-semibold text-sm">
             {member.name ? member.name.charAt(0).toUpperCase() : (isCreator ? 'C' : 'M')}
           </span>
-          {/* Only show lock icon for non-clickable members (not creator, not current user) */}
           {!canViewStats && (
             <div className="absolute inset-0 bg-black bg-opacity-20 rounded-full flex items-center justify-center">
-              <Lock className="w-4 h-4 text-white opacity-60" />
+              <Lock className="w-4 h-4 text-white opacity-80" />
             </div>
           )}
         </div>
@@ -608,23 +624,20 @@ const renderMemberCard = (member, isCreator = false) => {
             }`}>
               {isCreator ? 'Creator' : 'Member'}
             </span>
-            {memberStats && canViewStats && (
+            {canViewStats && memberStats && (
               <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                Active
+                Stats Available
               </span>
             )}
-            {!canViewStats && !isCurrentUser && (
-              <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 flex items-center">
-                <Users className="w-3 h-3 mr-1" />
-                Teammate
+            {!canViewStats && (
+              <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex items-center">
+                <Lock className="w-3 h-3 mr-1" />
+                Restricted
               </span>
             )}
           </div>
           
-          {/* Show appropriate content based on access level */}
           {canViewStats && memberStats ? (
-            // Full stats preview for accessible members (creator view or own stats)
-
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
               <div className="bg-[var(--bg-container)] rounded p-2">
                 <div className="text-sm font-semibold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
@@ -635,31 +648,24 @@ const renderMemberCard = (member, isCreator = false) => {
                 <div className="text-xs text-[var(--text-light)]">PRs</div>
               </div>
               <div className="bg-[var(--bg-container)] rounded p-2">
-                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
-                <div className="text-xs text-[var(--text-light)]">Issues</div>
-              </div>
-              <div className="bg-[var(--bg-container)] rounded p-2">
                 <div className="text-sm font-semibold text-[var(--text)]">{memberStats.activityScore || 0}</div>
                 <div className="text-xs text-[var(--text-light)]">Score</div>
               </div>
             </div>
-         
           ) : canViewStats && !memberStats ? (
-            // Loading state for accessible members without stats
             <div className="mt-3 text-center">
               <div className="bg-[var(--bg-container)] rounded p-2">
                 <div className="text-xs text-[var(--text-light)]">Click to view stats</div>
               </div>
             </div>
-          ) : !canViewStats && !isCurrentUser ? (
-            // Show basic team member info for non-accessible members (other teammates)
+          ) : (
             <div className="mt-3 text-center">
               <div className="bg-[var(--bg-container)] rounded p-2 flex items-center justify-center space-x-2">
-                <Users className="w-4 h-4 text-[var(--text-light)]" />
-                <div className="text-xs text-[var(--text-light)]">Team Member - Stats Private</div>
+                <Lock className="w-4 h-4 text-red-500" />
+                <div className="text-xs text-red-600 dark:text-red-400">Access Restricted</div>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
