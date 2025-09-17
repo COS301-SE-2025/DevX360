@@ -1,42 +1,92 @@
-const {
-  hashPassword,
-  comparePassword,
-  generateToken,
-} = require("../../../api/utils/auth");
-const jwt = require("jsonwebtoken");
+import { jest, describe, beforeEach, afterEach, test, expect } from '@jest/globals';
 
-describe("Auth Utils", () => {
-  it("hashPassword should hash a password correctly", async () => {
-    const password = "myPassword123!";
-    const hashed = await hashPassword(password);
-    expect(hashed).not.toEqual(password);
-    expect(typeof hashed).toBe("string");
+// Mock bcryptjs
+const mockBcrypt = {
+  genSalt: jest.fn(),
+  hash: jest.fn(),
+  compare: jest.fn(),
+};
+jest.unstable_mockModule('bcryptjs', () => ({
+  default: mockBcrypt,
+}));
+
+// Mock jsonwebtoken
+const mockJwt = {
+  sign: jest.fn(),
+};
+jest.unstable_mockModule('jsonwebtoken', () => ({
+  default: mockJwt,
+}));
+
+describe('Auth Utilities', () => {
+  const originalEnv = process.env;
+  let hashPassword, comparePassword, generateToken;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    // Set process.env.JWT_SECRET before importing the module
+    process.env = { ...originalEnv, JWT_SECRET: 'test_secret' };
+    // Dynamically import the module after setting process.env
+    ({ hashPassword, comparePassword, generateToken } = await import('../utils/auth.js'));
   });
 
-  it("comparePassword should validate the correct password", async () => {
-    const password = "myPassword123!";
-    const hashed = await hashPassword(password);
-    const isValid = await comparePassword(password, hashed);
-    expect(isValid).toBe(true);
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
-  it("comparePassword should reject invalid password", async () => {
-    const password = "myPassword123!";
-    const hashed = await hashPassword(password);
-    const isValid = await comparePassword("wrongPassword", hashed);
-    expect(isValid).toBe(false);
+  describe('hashPassword', () => {
+    test('should hash a password using bcrypt', async () => {
+      mockBcrypt.genSalt.mockResolvedValue('mockSalt');
+      mockBcrypt.hash.mockResolvedValue('hashedPassword123');
+
+      const hashedPassword = await hashPassword('plainPassword');
+
+      expect(mockBcrypt.genSalt).toHaveBeenCalledWith(12);
+      expect(mockBcrypt.hash).toHaveBeenCalledWith('plainPassword', 'mockSalt');
+      expect(hashedPassword).toBe('hashedPassword123');
+    });
   });
 
-  it("generateToken should return a valid JWT token", () => {
-    const payload = { userId: "123", email: "test@example.com", role: "user" };
-    const token = generateToken(payload);
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET ||
-        "your-super-secret-jwt-key-change-this-in-production"
-    );
-    expect(decoded.userId).toBe(payload.userId);
-    expect(decoded.email).toBe(payload.email);
-    expect(decoded.role).toBe(payload.role);
+  describe('comparePassword', () => {
+    test('should compare a plain password with a hashed password', async () => {
+      mockBcrypt.compare.mockResolvedValue(true);
+
+      const result = await comparePassword('plainPassword', 'hashedPassword');
+
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('plainPassword', 'hashedPassword');
+      expect(result).toBe(true);
+    });
+
+    test('should return false for incorrect password', async () => {
+      mockBcrypt.compare.mockResolvedValue(false);
+
+      const result = await comparePassword('wrongPassword', 'hashedPassword');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('generateToken', () => {
+    test('should generate a JWT token with default options', () => {
+      const payload = { userId: '123' };
+      mockJwt.sign.mockReturnValue('mockToken');
+
+      const token = generateToken(payload);
+
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test_secret', { expiresIn: '7d' });
+      expect(token).toBe('mockToken');
+    });
+
+    test('should generate a JWT token with custom secret and options', () => {
+      const payload = { userId: '123' };
+      const customSecret = 'custom_secret';
+      const customOptions = { expiresIn: '1h' };
+      mockJwt.sign.mockReturnValue('customMockToken');
+
+      const token = generateToken(payload, customSecret, customOptions);
+
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, customSecret, customOptions);
+      expect(token).toBe('customMockToken');
+    });
   });
 });
