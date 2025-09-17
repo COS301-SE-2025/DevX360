@@ -51,8 +51,8 @@
 We use a collaborative workflow to manage progress and documentation.
 
 ## 📄 Latest Docs
-- [System Requirements Specification (SRS)](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)  
-- [Project Planning and Role Allocation](https://drive.google.com/file/d/1OvREXAx6gQIs4b9hYHmdaXdIjwGW5LKW/view?usp=drive_link)  
+- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
+- [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)  
 - [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
 - [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
 - [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
@@ -100,7 +100,7 @@ We use a collaborative workflow to manage progress and documentation.
 <details>
 <summary><strong>👨‍🍳 Sprint 4 Docs</strong></summary>
 
-- [System Requirements Specification (SRS)](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)  
+- [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf) 
 
 </details>
 
