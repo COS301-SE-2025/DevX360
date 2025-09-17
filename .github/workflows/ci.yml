@@ -12,7 +12,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:                        # <-- make sure this is aligned under the job
+    env:                        
       OPENAI_API_KEY: ${{ secrets.OPENAI }}
     steps:
       - name: Checkout feature branch code
