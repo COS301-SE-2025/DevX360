@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   Clock,
@@ -13,7 +13,10 @@ import {
   Github,
   ExternalLink,
   Crown,
-  Loader
+  Loader,
+  SortAsc,
+  SortDesc,
+  X
 } from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
 import CreateTeamModal from "./modal/CreateTeam";
@@ -24,6 +27,55 @@ import {deleteTeam} from "../../services/teams";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
 import {Link} from "react-router-dom";
+
+
+//=============================================================Sort Button Component======================================
+// This component renders a button that allows sorting by a specific key
+//
+const SortButton = ({ currentSort, sortKey, setSortBy, label }) => {
+  const isActive = currentSort.startsWith(sortKey);
+  const isAsc = isActive && currentSort.endsWith('_asc');
+  const isDesc = isActive && currentSort.endsWith('_desc');
+
+  const handleClick = () => {
+    if (isActive) {
+      setSortBy(`${sortKey}_${isAsc ? 'desc' : 'asc'}`);
+    } else {
+      setSortBy(`${sortKey}_asc`);
+    }
+  };
+
+  return (
+      <button
+          onClick={handleClick}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 border ${
+              isActive
+                  ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]'
+                  : 'bg-[var(--bg)] text-[var(--text-light)] border-[var(--border)] hover:bg-[var(--bg-container)]'
+          }`}
+      >
+        <span>{label}</span>
+        {isActive && (isAsc ? <SortAsc size={14} /> : <SortDesc size={14} />)}
+      </button>
+  );
+};
+
+//=============================================================FilterPill Component======================================
+// This component displays the filter options as pills
+const FilterPill = ({ isActive, onClick, label }) => {
+  return (
+      <button
+          onClick={onClick}
+          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 border ${
+              isActive
+                  ? 'bg-[var(--primary)]/10 text-[var(--primary-dark)] border-[var(--primary)]'
+                  : 'bg-[var(--bg)] text-[var(--text-light)] border-[var(--border)] hover:bg-[var(--bg-container)]'
+          }`}
+      >
+        {label}
+      </button>
+  );
+};
 
 //=============================================================TeamInfo Component======================================
 // This component displays the team information and metrics
@@ -41,9 +93,9 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="w-10 h-10 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-[var(--text)] mb-2">No Teams Yet</h3>
+            <h3 className="text-xl font-semibold text-[var(--text)] mb-2">No Teams Found</h3>
             <p className="text-[var(--text-light)] mb-6 max-w-md mx-auto">
-              Get started by creating a new team or joining an existing one. Teams help you track your development metrics.
+              No teams match your current search and filter criteria. Try adjusting your filters or create a new team.
             </p>
           </div>
         </div>
@@ -94,8 +146,6 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
         return { status: 'Unknown', color: 'bg-gray-100 text-gray-700 border-gray-200' };
     }
   };
-
-  console.log(teams);
 
   return (
       <div className="w-full space-y-6">
@@ -318,12 +368,15 @@ function Team() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
-  const [teamToDelete, setTeamToDelete] = useState(null); // for confirmation modal
-  const [isDeleting, setIsDeleting] = useState(false); // for deleting state
-  const [isLoading, setIsLoading] = useState(false); // for loading state
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Simplified search and filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name_asc'); // name, members
+  const [filterOwnership, setFilterOwnership] = useState('all'); // all, owned, joined
 
   const loadTeams = async () => {
     try {
@@ -380,10 +433,47 @@ function Team() {
     }
   };
 
-  const filteredTeams = teams?.filter(team =>
-      team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredAndSortedTeams = useMemo(() => {
+    if (!teams) return [];
+
+    let filtered = teams.filter(team => {
+      const matchesSearch = team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          team.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Ownership filter
+      let matchesOwnership = true;
+      if (filterOwnership === 'owned') {
+        matchesOwnership = team.creator?._id === currentUser?._id;
+      } else if (filterOwnership === 'joined') {
+        matchesOwnership = team.creator?._id !== currentUser?._id;
+      }
+
+      return matchesSearch && matchesOwnership;
+    });
+
+    filtered.sort((a, b) => {
+      const [sortProperty, sortOrder] = sortBy.split('_');
+      const modifier = sortOrder === 'desc' ? -1 : 1;
+
+      switch (sortProperty) {
+        case 'members':
+          return ((a.members?.length || 0) - (b.members?.length || 0)) * modifier;
+        default: // 'name'
+          return (a.name || '').localeCompare(b.name || '') * modifier;
+      }
+    });
+
+    return filtered;
+  }, [teams, searchTerm, sortBy, filterOwnership, currentUser?._id]);
+
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSortBy('name_asc');
+    setFilterOwnership('all');
+  };
+
+  const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
 
   useEffect(() => {
     if (currentUser?.avatar) {
@@ -415,6 +505,7 @@ function Team() {
         </div>
     );
   }
+
   return (
       <div className="min-h-screen bg-[var(--bg)]">
         {/* Header - Full width */}
@@ -433,52 +524,114 @@ function Team() {
 
         {/* Main content with proper padding */}
         <main className="max-w-7xl mx-auto px-6 py-8">
-
           <div className="mb-8">
-          {/* Controls section */}
-          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-6">
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            {/* Search*/}
-            <div className="w-full md:w-auto md:flex-1 md:max-w-md">
-              <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-light)]" />
-                <input
-                    type="text"
-                    placeholder="Search your teams..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-200"
-                />
+            {/* Advanced Filter & Search Bar */}
+            <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-6">
+              <div className="flex flex-col gap-4">
+
+                {/* Top Row: Search and Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  {/* Search Input */}
+                  <div className="w-full sm:flex-1 sm:max-w-md">
+                    <div className="relative">
+                      <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-light)]" />
+                      <input
+                          type="text"
+                          placeholder="Search teams by name or creator..."
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-200"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <button
+                        className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                      Create Team
+                    </button>
+                    <button
+                        className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
+                        onClick={() => setShowJoinModal(true)}
+                    >
+                      Join Team
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Filter Pill Buttons */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Sort By Pill Buttons */}
+                  <span className="text-sm font-medium text-[var(--text-light)] mr-1">Sort by:</span>
+
+                  <SortButton
+                      currentSort={sortBy}
+                      sortKey="name"
+                      setSortBy={setSortBy}
+                      label="Name"
+                      // aria-label={`Sort by name ${isAsc ? 'ascending' : 'descending'}`}
+                  />
+                  <SortButton
+                      currentSort={sortBy}
+                      sortKey="members"
+                      setSortBy={setSortBy}
+                      label="Members"
+                      // aria-label={`Sort by members ${isAsc ? 'ascending' : 'descending'}`}
+                  />
+
+                  {/* Divider */}
+                  <div className="h-4 w-px bg-[var(--border)]"></div>
+
+                  {/* Filter By Pill Buttons */}
+                  <span className="text-sm font-medium text-[var(--text-light)] mr-1">Show:</span>
+                  <FilterPill
+                      isActive={filterOwnership === 'all'}
+                      onClick={() => setFilterOwnership('all')}
+                      label="All Teams"
+                  />
+                  <FilterPill
+                      isActive={filterOwnership === 'owned'}
+                      onClick={() => setFilterOwnership('owned')}
+                      label="My Teams"
+                  />
+                  <FilterPill
+                      isActive={filterOwnership === 'joined'}
+                      onClick={() => setFilterOwnership('joined')}
+                      label="Joined"
+                  />
+
+                  {/* Clear Filters Button (Conditional) */}
+                  {hasActiveFilters && (
+                      <button
+                          onClick={clearFilters}
+                          className="inline-flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 text-[var(--text-light)] hover:bg-red-50 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                        Clear All
+                      </button>
+                  )}
+                </div>
               </div>
+
+              {/* Simple Results Summary */}
+              {teams.length > 0 && filteredAndSortedTeams.length !== teams.length && (
+                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                    <p className="text-sm text-[var(--text-light)]">
+                      Showing {filteredAndSortedTeams.length} of {teams.length} teams
+                    </p>
+                  </div>
+              )}
             </div>
-
-            {/*buttons*/}
-            <div className="flex gap-4 w-full md:w-auto">
-              <button
-                  className="w-full md:w-auto px-6 py-3 rounded-lg font-medium text-lg cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"
-                  onClick={() => setShowCreateModal(true)}
-              >
-                Create Team
-              </button>
-              <button
-                  className="w-full md:w-auto px-6 py-3 rounded-lg font-medium text-lg cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"
-                  onClick={() => setShowJoinModal(true)}
-              >
-                Join Team
-              </button>
-            </div>
-
-            </div>
-
-          </div>
-
           </div>
 
           {/* Team content - centered and constrained */}
           <div className="mb-8">
             <TeamInfo
-                teams={filteredTeams}
+                teams={filteredAndSortedTeams}
                 currentUser={currentUser}
                 onDeleteTeam={handleDeleteTeam}
             />
