@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo} from 'react';
-import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Calendar, Mail, Github, Ban } from 'lucide-react';
+import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Calendar, Mail, Github, Ban, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getUsers, deleteUser, getTeams } from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
@@ -24,20 +24,25 @@ function Admin() {
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [userToDelete, setUserToDelete] = useState(null); // for confirmation modal
-  const [teamToDelete, setTeamToDelete] = useState(null); // for confirmation modal
-  const [isDeleting, setIsDeleting] = useState(false); // for loading state
+  const [userSortField, setUserSortField] = useState('name');
+  const [userSortDirection, setUserSortDirection] = useState('asc');
+
+  const [teamSortField, setTeamSortField] = useState('name');
+  const [teamSortDirection, setTeamSortDirection] = useState('asc');
+
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  console.log(users);
+  // console.log(users);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
       const usersData = await getUsers();
       const teamsData = await getTeams();
-      // console.log("teamsData", teamsData); //debugging
       setUsers(usersData);
       setTeams(teamsData);
     } catch (err) {
@@ -72,8 +77,6 @@ function Admin() {
     }
   }
 
-
-
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return defaultAvatar;
 
@@ -82,6 +85,38 @@ function Admin() {
   };
 
   const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    const diffHr = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDay = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    let relative;
+    if (diffMin < 1) relative = 'Just now';
+    else if (diffMin < 60) relative = `${diffMin} min${diffMin !== 1 ? 's' : ''} ago`;
+    else if (diffHr < 24) relative = `${diffHr} hour${diffHr !== 1 ? 's' : ''} ago`;
+    else if (diffDay < 7) relative = `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+    else relative = null;
+
+    const absolute = date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }) + ', ' + date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return relative ? `${relative} (${absolute})` : absolute;
+  };
+
+
+
 
   const handleEditUser = (userId) => toast.custom(<WarningToast message={"Implement"} />);
 
@@ -123,19 +158,17 @@ function Admin() {
   const confirmDeleteTeam = async () => {
     if (!teamToDelete) return;
 
-    console.log('teamToDelete', teamToDelete);
+    // console.log('teamToDelete', teamToDelete);
 
     setIsDeletingTeam(true);
     try {
       await deleteTeam(teamToDelete.name, teamToDelete.id);
       await refreshTeams();
 
-      // console.log('Team deleted successfully:', teamToDelete.name);
       toast.success(`Team ${teamToDelete.name} deleted successfully!`);
     } catch (error) {
       console.error('Error deleting team:', error);
-      // alert('Failed to delete team: ' + error.message);
-      toast.error('Failed to delete team.'); //error.message?
+      toast.error('Failed to delete team.');
     } finally {
       setIsDeletingTeam(false);
       setShowDeleteModal(false);
@@ -143,27 +176,118 @@ function Admin() {
     }
   };
 
+  const handleUserSort = (field) => {
+    if (userSortField === field) {
+      setUserSortDirection(userSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setUserSortField(field);
+      setUserSortDirection('asc');
+    }
+  };
+
+  const handleTeamSort = (field) => {
+    if (teamSortField === field) {
+      setTeamSortDirection(teamSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setTeamSortField(field);
+      setTeamSortDirection('asc');
+    }
+  };
+
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      let valueA, valueB;
+
+      switch (userSortField) {
+        case 'name':
+          valueA = a.name?.toLowerCase() || '';
+          valueB = b.name?.toLowerCase() || '';
+          break;
+        case 'email':
+          valueA = a.email?.toLowerCase() || '';
+          valueB = b.email?.toLowerCase() || '';
+          break;
+        case 'role':
+          valueA = a.role?.toLowerCase() || '';
+          valueB = b.role?.toLowerCase() || '';
+          break;
+        case 'createdAt':
+          valueA = new Date(a.createdAt || 0);
+          valueB = new Date(b.createdAt || 0);
+          break;
+        case 'lastLogin':
+          valueA = new Date(a.lastLogin || 0);
+          valueB = new Date(b.lastLogin || 0);
+          break;
+        default:
+          valueA = a.name?.toLowerCase() || '';
+          valueB = b.name?.toLowerCase() || '';
+      }
+
+      if (userSortDirection === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
+  }, [users, userSortField, userSortDirection]);
+
+  const sortedTeams = useMemo(() => {
+    return [...teams].sort((a, b) => {
+      let valueA, valueB;
+
+      switch (teamSortField) {
+        case 'name':
+          valueA = a.name?.toLowerCase() || '';
+          valueB = b.name?.toLowerCase() || '';
+          break;
+        case 'creator':
+          valueA = a.creator?.name?.toLowerCase() || '';
+          valueB = b.creator?.name?.toLowerCase() || '';
+          break;
+        case 'members':
+          valueA = a.members?.length || 0;
+          valueB = b.members?.length || 0;
+          break;
+        case 'createdAt':
+          valueA = new Date(a.createdAt || 0);
+          valueB = new Date(b.createdAt || 0);
+          break;
+        default:
+          valueA = a.name?.toLowerCase() || '';
+          valueB = b.name?.toLowerCase() || '';
+      }
+
+      if (teamSortDirection === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
+  }, [teams, teamSortField, teamSortDirection]);
+
   const filteredUsers = useMemo(() => {
-    return users?.filter(user =>
+    return sortedUsers.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.githubUsername?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
-  }, [users, searchTerm]);
+    );
+  }, [sortedUsers, searchTerm]);
 
+  // Filter sorted teams
   const filteredTeams = useMemo(() => {
-    return teams?.filter(team =>
+    return sortedTeams.filter(team =>
         team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         team.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
-  }, [teams, searchTerm]);
+    );
+  }, [sortedTeams, searchTerm]);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    console.log(currentUser);
+    // console.log(currentUser);
     if (currentUser?.avatar) {
       const avatarUrl = currentUser.avatar.startsWith('http')
           ? currentUser.avatar
@@ -198,6 +322,22 @@ function Admin() {
         </div>
     );
   }
+
+  const SortableHeader = ({ field, currentField, direction, onClick, children }) => (
+      <th
+          className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider cursor-pointer hover:bg-[var(--bg)] transition-colors"
+          onClick={onClick}
+      >
+        <div className="flex items-center">
+          {children}
+          {currentField === field && (
+              direction === 'asc' ?
+                  <ChevronUp className="w-4 h-4 ml-1" /> :
+                  <ChevronDown className="w-4 h-4 ml-1" />
+          )}
+        </div>
+      </th>
+  );
 
   return (
       <div className="min-h-screen bg-[var(--bg)]">
@@ -245,7 +385,6 @@ function Admin() {
             </div>
           </div>
 
-
           {/* Tab Navigation */}
           <div className="mb-8">
             <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-1">
@@ -282,7 +421,6 @@ function Admin() {
             </div>
           </div>
 
-
           {/* Users Table */}
           {activeTab === 'users' && (
               <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
@@ -290,10 +428,46 @@ function Admin() {
                   <table className="w-full">
                     <thead>
                     <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">User</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Role</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Activity</th>
+                      <SortableHeader
+                          field="name"
+                          currentField={userSortField}
+                          direction={userSortDirection}
+                          onClick={() => handleUserSort('name')}
+                      >
+                        User
+                      </SortableHeader>
+                      <SortableHeader
+                          field="email"
+                          currentField={userSortField}
+                          direction={userSortDirection}
+                          onClick={() => handleUserSort('email')}
+                      >
+                        Email
+                      </SortableHeader>
+                      <SortableHeader
+                          field="role"
+                          currentField={userSortField}
+                          direction={userSortDirection}
+                          onClick={() => handleUserSort('role')}
+                      >
+                        Role
+                      </SortableHeader>
+                      <SortableHeader
+                          field="createdAt"
+                          currentField={userSortField}
+                          direction={userSortDirection}
+                          onClick={() => handleUserSort('createdAt')}
+                      >
+                        Joined
+                      </SortableHeader>
+                      <SortableHeader
+                          field="lastLogin"
+                          currentField={userSortField}
+                          direction={userSortDirection}
+                          onClick={() => handleUserSort('lastLogin')}
+                      >
+                        Last Login
+                      </SortableHeader>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
                     </tr>
                     </thead>
@@ -351,18 +525,10 @@ function Admin() {
           </span>
                               </td>
                               <td className="px-6 py-4">
-                                <div className="space-y-1">
-                                  <div className="flex items-center space-x-2 text-sm">
-                                    <Calendar className="w-4 h-4 text-[var(--text-light)]" />
-                                    <span className="text-[var(--text-light)]">Joined:</span>
-                                    <span className="text-[var(--text)] font-medium">{formatDate(user.createdAt)}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-2 text-sm">
-                                    <div className="w-4 h-4 flex items-center justify-center"></div>
-                                    <span className="text-[var(--text-light)]">Last seen:</span>
-                                    <span className="text-[var(--text)] font-medium">{formatDate(user.lastLogin)}</span>
-                                  </div>
-                                </div>
+                                <span className="text-sm text-[var(--text)] font-medium">{formatDate(user.createdAt)}</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="text-sm text-[var(--text)] font-medium">{formatDateTime(user.lastLogin)}</span>
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center justify-end space-x-2">
@@ -380,13 +546,13 @@ function Admin() {
                                     <Edit className="w-4 h-4" />
                                   </button>
                                   {currentUser._id !== user._id ? (
-                                    <button
-                                      onClick={() => handleDeleteUser(user.name, user._id, user.email)}
-                                      className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
-                                      title="Delete user"
-                                    >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                      <button
+                                          onClick={() => handleDeleteUser(user.name, user._id, user.email)}
+                                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
+                                          title="Delete user"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
                                   ) : null}
                                 </div>
                               </td>
@@ -394,7 +560,7 @@ function Admin() {
                         ))
                     ) : (
                         <tr>
-                          <td colSpan="5" className="px-6 py-16 text-center">
+                          <td colSpan="6" className="px-6 py-16 text-center">
                             <div className="flex flex-col items-center justify-center space-y-4">
                               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                                 <Users className="w-8 h-8 text-gray-400" />
@@ -420,11 +586,38 @@ function Admin() {
                   <table className="w-full">
                     <thead>
                     <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Team</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Creator</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Members</th>
-                      {/*<th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Repository</th>*/}
-                      {/*<th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Created</th>*/}
+                      <SortableHeader
+                          field="name"
+                          currentField={teamSortField}
+                          direction={teamSortDirection}
+                          onClick={() => handleTeamSort('name')}
+                      >
+                        Team
+                      </SortableHeader>
+                      <SortableHeader
+                          field="creator"
+                          currentField={teamSortField}
+                          direction={teamSortDirection}
+                          onClick={() => handleTeamSort('creator')}
+                      >
+                        Creator
+                      </SortableHeader>
+                      <SortableHeader
+                          field="members"
+                          currentField={teamSortField}
+                          direction={teamSortDirection}
+                          onClick={() => handleTeamSort('members')}
+                      >
+                        Members
+                      </SortableHeader>
+                      <SortableHeader
+                          field="createdAt"
+                          currentField={teamSortField}
+                          direction={teamSortDirection}
+                          onClick={() => handleTeamSort('createdAt')}
+                      >
+                        Created
+                      </SortableHeader>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
                     </tr>
                     </thead>
@@ -473,6 +666,9 @@ function Admin() {
                                 </div>
                               </td>
                               <td className="px-6 py-4">
+                                <span className="text-sm text-[var(--text)] font-medium">{formatDate(team.createdAt)}</span>
+                              </td>
+                              <td className="px-6 py-4">
                                 <div className="flex items-center justify-end space-x-2">
                                   <button
                                       onClick={() => handleViewTeam(team._id, team.name)}
@@ -494,7 +690,7 @@ function Admin() {
                         ))
                     ) : (
                         <tr>
-                          <td colSpan="6" className="px-6 py-16 text-center">
+                          <td colSpan="5" className="px-6 py-16 text-center">
                             <div className="flex flex-col items-center justify-center space-y-4">
                               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                                 <Users className="w-8 h-8 text-gray-400" />
@@ -557,29 +753,29 @@ function Admin() {
 
         <ModalPortal isOpen={showDeleteModal}>
           {teamToDelete ? (
-            <DeleteConfirmationModal
-              type="team"
-              name={teamToDelete?.name} //or id?
-              onConfirm={confirmDeleteTeam}
-              onCloseDelete={() => {
-                setShowDeleteModal(false)
-                setTeamToDelete(null)
-              }}
-              isDeleting={isDeletingTeam}
-            />
+              <DeleteConfirmationModal
+                  type="team"
+                  name={teamToDelete?.name}
+                  onConfirm={confirmDeleteTeam}
+                  onCloseDelete={() => {
+                    setShowDeleteModal(false)
+                    setTeamToDelete(null)
+                  }}
+                  isDeleting={isDeletingTeam}
+              />
           ) : (
-            <DeleteConfirmationModal
-              type="user"
-              name={userToDelete?.name}
-              userId={userToDelete?.id}
-              email={userToDelete?.email}
-              onConfirm={confirmDeleteUser}
-              onCloseDelete={() => {
-                setShowDeleteModal(false)
-                setUserToDelete(null)
-              }}
-              isDeleting={isDeleting}
-            />
+              <DeleteConfirmationModal
+                  type="user"
+                  name={userToDelete?.name}
+                  userId={userToDelete?.id}
+                  email={userToDelete?.email}
+                  onConfirm={confirmDeleteUser}
+                  onCloseDelete={() => {
+                    setShowDeleteModal(false)
+                    setUserToDelete(null)
+                  }}
+                  isDeleting={isDeleting}
+              />
           )}
         </ModalPortal>
       </div>
