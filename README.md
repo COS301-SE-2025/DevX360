@@ -97,6 +97,14 @@ We use a collaborative workflow to manage progress and documentation.
 
 ---
 
+<details>
+<summary><strong>👨‍🍳 Sprint 4 Docs</strong></summary>
+
+- [System Requirements Specification (SRS)](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)  
+
+</details>
+
+
 
 
 
