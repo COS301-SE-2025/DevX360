@@ -3,12 +3,13 @@ name: Frontend CI
 on:
   push:
     branches:
-      - feature/frontend
-      - main
+      - "feature/frontend"
+      - "main"
   pull_request:
     branches:
-      - feature/frontend
-      - main
+      - "feature/frontend"
+      - "main"
+
 jobs:
   test:
     name: Run Frontend Tests
@@ -19,18 +20,18 @@ jobs:
         node-version: [20.x]
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Set Up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install frontend dependencies
+      - name: Install Frontend Dependencies
         working-directory: ./devx360-react
         run: npm ci
 
-      - name: Run frontend tests
+      - name: Run Frontend Tests
         working-directory: ./devx360-react
         run: npm test -- src/__tests__
