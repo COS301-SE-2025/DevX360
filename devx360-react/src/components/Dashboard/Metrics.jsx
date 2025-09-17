@@ -933,51 +933,51 @@ const deploymentTrendData = [
             </div>
           </div>
         </section>
-
-        {/* Repository Overview and Activity Summary - Equal Height */}
+     {/* Repository Overview and Activity Summary - Equal Height */}
         <section className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px]">
-            {/* Repository Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[400px]">
+           {/* Repository Overview */}
             <div className="lg:col-span-2">
               <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-full flex flex-col">
                 <div className="p-6 border-b border-[var(--border)]">
                   <h3 className="text-lg font-semibold text-[var(--text)]">Repository Overview</h3>
                 </div>
-                <div className="flex-1 p-6 overflow-y-auto">
-                  <div className="flex items-start space-x-6 mb-6">
+                <div className="flex-1 p-6 min-h-0 overflow-hidden">
+                  {/* Repository Header */}
+                  <div className="flex items-start space-x-4 mb-4">
                     <div className="flex-shrink-0">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <GitBranch className="w-7 h-7 text-white" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <GitBranch className="w-6 h-6 text-white" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-semibold text-[var(--text)] truncate">
+                      <h3 className="text-lg font-semibold text-[var(--text)] truncate">
                         {repositoryInfo.full_name || 'Repository Name'}
                       </h3>
-                      <p className="text-[var(--text-light)] mt-1">
+                      <p className="text-[var(--text-light)] mt-1 text-sm line-clamp-2">
                         {repositoryInfo.description || 'Repository description'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-4 mt-3">
-                        <div className="flex items-center space-x-1 text-sm text-[var(--text-light)]">
-                          <Star className="w-4 h-4" />
-                          <span>{repositoryInfo.stars?.toLocaleString() || 'N/A'}</span>
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        <div className="flex items-center space-x-1 text-xs text-[var(--text-light)]">
+                          <Star className="w-3 h-3" />
+                          <span>{repositoryInfo.stars?.toLocaleString() || '0'}</span>
                         </div>
-                        <div className="flex items-center space-x-1 text-sm text-[var(--text-light)]">
-                          <GitFork className="w-4 h-4" />
-                          <span>{repositoryInfo.forks?.toLocaleString() || 'N/A'}</span>
+                        <div className="flex items-center space-x-1 text-xs text-[var(--text-light)]">
+                          <GitFork className="w-3 h-3" />
+                          <span>{repositoryInfo.forks?.toLocaleString() || '0'}</span>
                         </div>
-                        <div className="flex items-center space-x-1 text-sm text-[var(--text-light)]">
-                          <Eye className="w-4 h-4" />
-                          <span>{repositoryInfo.watchers?.toLocaleString() || 'N/A'}</span>
+                        <div className="flex items-center space-x-1 text-xs text-[var(--text-light)]">
+                          <Eye className="w-3 h-3" />
+                          <span>{repositoryInfo.watchers?.toLocaleString() || '0'}</span>
                         </div>
                         {repositoryInfo.url && (
                           <a
                             href={repositoryInfo.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                           >
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-3 h-3" />
                             <span>View on GitHub</span>
                           </a>
                         )}
@@ -985,35 +985,135 @@ const deploymentTrendData = [
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  {/* Repository Details Grid */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Team</span>
-                        <span className="text-sm font-medium text-[var(--text)]">{teamData.team?.name || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Language</span>
-                        <span className="text-sm font-medium text-[var(--text)]">{repositoryInfo.primary_language || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Default Branch</span>
-                        <span className="text-sm font-medium text-[var(--text)]">{repositoryInfo.default_branch || 'N/A'}</span>
+                      <h4 className="font-medium text-[var(--text)] text-xs uppercase tracking-wide">Project Info</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Team</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{teamData.team?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Language</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.primary_language || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Default Branch</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.default_branch || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Repository Size</span>
+                          <span className="text-xs font-medium text-[var(--text)]">
+                            {repositoryInfo.size ? `${(repositoryInfo.size / 1024).toFixed(1)} MB` : 'N/A'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Open Issues</span>
-                        <span className="text-sm font-medium text-[var(--text)]">{repositoryInfo.open_issues || 0}</span>
+                      <h4 className="font-medium text-[var(--text)] text-xs uppercase tracking-wide">Activity</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Open Issues</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.open_issues || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Open PRs</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.open_pull_requests || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Contributors</span>
+                          <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.total_contributors || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-[var(--text-light)]">Last Updated</span>
+                          <span className="text-xs font-medium text-[var(--text)]">
+                            {repositoryInfo.updated_at ? new Date(repositoryInfo.updated_at).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Open PRs</span>
-                        <span className="text-sm font-medium text-[var(--text)]">{repositoryInfo.open_pull_requests || 0}</span>
+                    </div>
+                  </div>
+
+                  {/* Language Breakdown */}
+                  {repositoryInfo.language_breakdown && repositoryInfo.language_breakdown.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium text-[var(--text)] text-xs uppercase tracking-wide mb-2">Language Breakdown</h4>
+                      <div className="space-y-2">
+                        {repositoryInfo.language_breakdown.slice(0, 4).map((lang, index) => (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                lang.language === 'JavaScript' ? 'bg-yellow-400' :
+                                lang.language === 'TypeScript' ? 'bg-blue-500' :
+                                lang.language === 'Python' ? 'bg-green-500' :
+                                lang.language === 'Java' ? 'bg-red-500' :
+                                lang.language === 'C++' ? 'bg-blue-600' :
+                                lang.language === 'C#' ? 'bg-purple-500' :
+                                lang.language === 'HTML' ? 'bg-orange-500' :
+                                lang.language === 'CSS' ? 'bg-blue-400' :
+                                lang.language === 'Makefile' ? 'bg-gray-500' :
+                                lang.language === 'CMake' ? 'bg-gray-600' :
+                                'bg-gray-400'
+                              }`}></div>
+                              <span className="text-xs font-medium text-[var(--text)]">{lang.language}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-300"
+                                  style={{ width: lang.percentage }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-[var(--text-light)] min-w-[35px] text-right">
+                                {lang.percentage}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Created</span>
-                        <span className="text-sm font-medium text-[var(--text)]">
-                          {repositoryInfo.created_at ? new Date(repositoryInfo.created_at).toLocaleDateString() : 'N/A'}
+                    </div>
+                  )}
+
+                  {/* Repository Metrics Cards */}
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <div className="bg-[var(--bg)] rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {repositoryInfo.stars?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-[var(--text-light)] mt-1">Stars</div>
+                    </div>
+                    <div className="bg-[var(--bg)] rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {repositoryInfo.forks?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-[var(--text-light)] mt-1">Forks</div>
+                    </div>
+                    <div className="bg-[var(--bg)] rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                        {repositoryInfo.watchers?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-[var(--text-light)] mt-1">Watchers</div>
+                    </div>
+                  </div>
+
+                  {/* Repository Status */}
+                  <div className="pt-3 border-t border-[var(--border)]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          repositoryInfo.is_archived ? 'bg-red-400' :
+                          repositoryInfo.is_disabled ? 'bg-gray-400' :
+                          'bg-green-400'
+                        }`}></div>
+                        <span className="text-xs text-[var(--text-light)]">
+                          {repositoryInfo.is_archived ? 'Archived' :
+                           repositoryInfo.is_disabled ? 'Disabled' :
+                           'Active'}
                         </span>
+                      </div>
+                      <div className="text-xs text-[var(--text-light)]">
+                        Created: {repositoryInfo.created_at ? new Date(repositoryInfo.created_at).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
                   </div>
