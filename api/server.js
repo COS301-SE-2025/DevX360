@@ -2,18 +2,13 @@ import 'dotenv/config';
 import mongoose from "mongoose";
 import app from "./app.js";
 
+mongoose.set('strictQuery', false); // Add this line before mongoose.connect()
+
 class Server {
-  static instance = null;
-  
   constructor() {
-    if (Server.instance) {
-      return Server.instance;
-    }
-    
     this.PORT = process.env.PORT || 5000;
     this.MONGODB_URI = process.env.MONGODB_URI;
     this.server = null;
-    Server.instance = this;
   }
 
   async start() {
@@ -23,9 +18,12 @@ class Server {
     }
 
     try {
-      await mongoose.connect(this.MONGODB_URI, {
+      mongoose.connect(this.MONGODB_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
+        maxPoolSize: 20,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
       });
       console.log("Connected to MongoDB Atlas");
 
@@ -50,7 +48,7 @@ class Server {
     console.log('MongoDB connection closed');
   }
 }
-
+/*
 // Create and start the server instance
 const server = new Server();
 server.start();
@@ -65,5 +63,21 @@ process.on('SIGTERM', async () => {
   await server.stop();
   process.exit(0);
 });
+*/
 
-export default server;
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const server = new Server();
+  server.start();
+
+  process.on('SIGINT', async () => {
+    await server.stop();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    await server.stop();
+    process.exit(0);
+  });
+}
+
+export { Server };

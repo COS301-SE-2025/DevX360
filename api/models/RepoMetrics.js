@@ -49,4 +49,6 @@ const RepoMetricsSchema = new mongoose.Schema({
   }
 });
 
+RepoMetricsSchema.index({ teamId: 1 }, { unique: true });
+
 export default mongoose.model("RepoMetrics", RepoMetricsSchema);

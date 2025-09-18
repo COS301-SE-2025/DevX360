@@ -1,103 +1,174 @@
+/**
+ * Main Express application for Capstone backend.
+ * Handles authentication, user management, team management, file uploads, and scheduled jobs.
+ */
+
 import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import multer from "multer";
+import bcrypt from "bcrypt";
+import Team from "./models/Team.js";
+import User from "./models/User.js";
+import dotenv from "dotenv";
+dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
+import cron from "node-cron";
+import { refreshGithubUsernames } from "../services/githubUpdater.js";
+import { updateAllTeams } from "../services/teamUpdater.js";
 import mongoose from "mongoose";
 import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
-import { authorizeTeamAccess } from "../api/middlewares/authorizeTeamAccess.js";
-import cron from "node-cron";
-import { refreshGithubUsernames } from "../services/githubUpdater.js";
-import cookieParser from "cookie-parser";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import { authorizeTeamAccess } from "./middlewares/authorizeTeamAccess.js";
 
-// Create __dirname equivalent
+// --------------------------------------------------------------------------
+// Path and Upload Setup
+// --------------------------------------------------------------------------
+
+/**
+ * __dirname equivalent for ES modules.
+ */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+/**
+ * Multer middleware for handling file uploads.
+ */
 const upload = multer({ dest: path.join(__dirname, "uploads") });
+
+/**
+ * Express application instance.
+ */
 const app = express();
+
+/**
+ * Cookie parser middleware.
+ */
 app.use(cookieParser());
 
-// Load environment variables
-import "dotenv/config";
+// --------------------------------------------------------------------------
+// CORS Configuration
+// --------------------------------------------------------------------------
 
-// Middleware
+/**
+ * Allowed origins for CORS.
+ * @type {string[]}
+ */
 const allowedOrigins = [
   "http://localhost:5500",
   "http://localhost:5050",
   "http://localhost:3000",
 ];
 
+/**
+ * CORS middleware for handling cross-origin requests.
+ */
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("CORS error: Not allowed"));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
   })
 );
+
+/**
+ * Middleware for parsing JSON request bodies.
+ */
 app.use(express.json());
+
+/**
+ * Static file serving for uploaded files.
+ */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const JWT_SECRET = process.env.JWT_SECRET;
+// --------------------------------------------------------------------------
+// Rate Limiting
+// --------------------------------------------------------------------------
 
+/**
+ * Express rate limiter to prevent abuse.
+ */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 10000,
 });
 app.use(limiter);
 
-// Import models
-import User from "./models/User.js";
-import Team from "./models/Team.js";
+// --------------------------------------------------------------------------
+// JWT Authentication Middleware
+// --------------------------------------------------------------------------
 
-// JWT auth middleware
+/**
+ * Middleware to authenticate JWT tokens from cookies.
+ * Attaches user object to request if valid.
+ * Returns 401 if no token, 403 if invalid.
+ */
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
-  if (!token) return res.status(401).json({ message: "Access token required" });
+  if (!token) return res.sendStatus(401);
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err)
-      return res.status(403).json({ message: "Invalid or expired token" });
+    if (err) return res.sendStatus(403);
     req.user = user;
     next();
   });
 };
 
 // --------------------------------------------------------------------------
+// Scheduled Cron Jobs
+// --------------------------------------------------------------------------
+
+/**
+ * Schedules daily GitHub username sync and team updater jobs.
+ * Only runs in the primary process (NODE_APP_INSTANCE === '0' or undefined).
+ */
+if (!process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0') {
+  /**
+   * Daily GitHub username sync at 1:00 AM.
+   */
+  cron.schedule("0 1 * * *", async () => {
+    console.log("Running daily GitHub username sync...");
+    await refreshGithubUsernames();
+  });
+
+  /**
+   * Daily team metrics and AI analysis update at 2:00 AM.
+   */
+  cron.schedule("5 2 * * *", async () => {
+    console.log("Running daily team metrics and AI analysis update...");
+    await updateAllTeams();
+  });
+}
+
+// --------------------------------------------------------------------------
 // Health Check Endpoint
 // --------------------------------------------------------------------------
+
+/**
+ * Health check endpoint.
+ * @route GET /api/health
+ * @returns {Object} API and database status.
+ */
 app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
-    let ollamaStatus = "Unavailable";
-    let ollamaRes = null;
-    
-    try {
-      ollamaRes = await fetch("http://localhost:11434");
-      ollamaStatus = ollamaRes.status === 200 ? "Operational" : "Unavailable";
-    } catch (ollamaError) {
-      // Ollama service is not available, but this shouldn't cause a 500 error
-      ollamaStatus = "Unavailable";
-    }
     
     res.json({
       status: "OK",
       database: dbStatus,
-      ollama: ollamaStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -109,13 +180,20 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-//GitHub username sync daily at 1:00 AM
-cron.schedule("0 1 * * *", async () => {
-  console.log("Running daily GitHub username sync...");
-  await refreshGithubUsernames();
-});
+// --------------------------------------------------------------------------
+// User Registration
+// --------------------------------------------------------------------------
 
-//Need a way to connect a users github id to their profile during registration
+/**
+ * Registers a new user.
+ * @route POST /api/register
+ * @param {string} name - User's name.
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @param {string} role - User's role.
+ * @param {string} [inviteCode] - Optional invite code.
+ * @returns {Object} Registration status and user info.
+ */
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password, role, inviteCode } = req.body;
@@ -178,7 +256,14 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Redirect user to GitHub
+// --------------------------------------------------------------------------
+// GitHub OAuth Authentication
+// --------------------------------------------------------------------------
+
+/**
+ * Redirects user to GitHub OAuth authorization page.
+ * @route GET /api/auth/github
+ */
 app.get("/api/auth/github", (req, res) => {
   console.log("GITHUB OAUTH ENDPOINT");
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -186,7 +271,10 @@ app.get("/api/auth/github", (req, res) => {
   res.redirect(redirectUrl);
 });
 
-// GitHub callback
+/**
+ * Handles GitHub OAuth callback.
+ * @route GET /api/auth/github/callback
+ */
 app.get("/api/auth/github/callback", async (req, res) => {
     console.log("GITHUB OAUTH ENDPOINT 2");
   const code = req.query.code;
@@ -291,23 +379,35 @@ app.get("/api/auth/github/callback", async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------
+// User Login/Logout
+// --------------------------------------------------------------------------
+
+/**
+ * Authenticates user and issues JWT.
+ * @route POST /api/login
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @returns {Object} Login status and user info.
+ */
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+      return res.status(400).json({ message: "Email and password are required" });
 
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    const user = await User.findOne({ email: email.trim().toLowerCase() })
+      .select("_id email password role")
+      .lean();
+
     if (!user) return res.status(401).json({ message: "Invalid email" });
 
     const isPasswordValid = await comparePassword(password, user.password);
+
     if (!isPasswordValid)
       return res.status(401).json({ message: "Invalid password" });
 
-    user.lastLogin = new Date();
-    await user.save();
+    User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } }).exec();
 
     const token = generateToken({
       userId: user._id,
@@ -324,7 +424,11 @@ app.post("/api/login", async (req, res) => {
       })
       .json({
         message: "Login successful",
-        user,
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: user.role,
+        },
       });
   } catch (err) {
     console.error("Login error:", err);
@@ -332,114 +436,156 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+/**
+ * Logs out the authenticated user.
+ * @route POST /api/logout
+ * @middleware authenticateToken
+ */
+app.post("/api/logout", authenticateToken, (req, res) => {
+  console.log("User logged out:", { email: req.user.email });
+  res.clearCookie("token").json({ message: "Logged out" });
+});
+
+// --------------------------------------------------------------------------
+// User Profile Management
+// --------------------------------------------------------------------------
+
+/**
+ * Gets the authenticated user's profile.
+ * @route GET /api/profile
+ * @middleware authenticateToken
+ * @returns {Object} User profile and teams.
+ */
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password");
+    const user = await User.findById(req.user.userId).select("-password").lean();
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const teams = await Team.find({ members: user._id })
-      .populate("creator", "name email")
-      .populate("members", "name email");
+    // Ensure userId is an ObjectId
+    const userObjectId = new mongoose.Types.ObjectId(req.user.userId);
 
-    const teamsWithMetrics = await Promise.all(
-      teams.map(async (team) => {
-        const repoData = await RepoMetrics.findOne({ teamId: team._id });
-        return {
-          id: team._id,
-          name: team.name,
-          creator: team.creator,
-          members: team.members,
-          doraMetrics: repoData?.metrics || null,
-          repositoryInfo: repoData?.repositoryInfo || null,
-        };
-      })
-    );
+    const teams = await Team.aggregate([
+      { $match: { members: userObjectId } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "creator",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "members",
+          foreignField: "_id",
+          as: "members",
+        },
+      },
+      { $unwind: "$creator" },
+    ]);
 
-    const userObj = user.toObject();
-    userObj.teams = teamsWithMetrics;
+    // Get all repo metrics in a single query
+    const teamIds = teams.map(t => t._id);
+    const repoDataList = await RepoMetrics.find({
+      teamId: { $in: teamIds }
+    }).lean();
+
+    const teamsWithMetrics = teams.map(team => {
+      const repoData = repoDataList.find(r => r.teamId.toString() === team._id.toString());
+      return {
+        id: team._id,
+        name: team.name,
+        creator: team.creator,
+        members: team.members,
+        doraMetrics: repoData?.metrics || null,
+        repositoryInfo: repoData?.repositoryInfo || null,
+      };
+    });
+
+    user.teams = teamsWithMetrics;
     if (user.avatar) {
-      userObj.avatar = `/uploads/${user.avatar}`;
+      user.avatar = `/uploads/${user.avatar}`;
     }
-    res.json({ user: userObj });
+    res.json({ user });
   } catch (error) {
     console.error("Profile fetch error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
+/**
+ * Updates the authenticated user's profile.
+ * @route PUT /api/profile
+ * @middleware authenticateToken
+ * @param {string} [name] - New name.
+ * @param {string} [email] - New email.
+ * @param {string} [password] - New password.
+ * @param {string} [githubUsername] - GitHub username.
+ * @param {string} [githubId] - GitHub user ID.
+ * @returns {Object} Update status and updated user.
+ */
 app.put("/api/profile", authenticateToken, async (req, res) => {
   try {
     const { name, email, password, githubUsername, githubId } = req.body;
     const updates = {};
 
     if (!name && !email && !password && !githubUsername && !githubId) {
-      return res
-        .status(400)
-        .json({
-          message: "At least one field (name, email, password, githubUsername, or githubId) is required",
-        });
+      return res.status(400).json({
+        message: "At least one field (name, email, password, githubUsername, or githubId) is required",
+      });
     }
 
+    // Only fetch user once
     const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (name) {
-      updates.name = name.trim();
-    }
+    // Check and set fields
+    if (name) updates.name = name.trim();
 
-    if (email) {
-      const emailExists = await User.findOne({
-        email: email.trim().toLowerCase(),
-      });
-      if (emailExists && emailExists._id.toString() !== req.user.userId) {
-        return res
-          .status(400)
-          .json({ message: "Email already in use by another account" });
+    if (email && email.trim().toLowerCase() !== user.email) {
+      const emailExists = await User.findOne({ email: email.trim().toLowerCase() });
+      if (emailExists && emailExists._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: "Email already in use by another account" });
       }
       updates.email = email.trim().toLowerCase();
     }
 
     if (password) {
       if (password.length < 6) {
-        return res
-          .status(400)
-          .json({ message: "Password must be at least 6 characters" });
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
       updates.password = await hashPassword(password);
     }
 
-    // GitHub ID
-    if (githubId) {
+    if (githubId && githubId !== user.githubId) {
       const githubIdExists = await User.findOne({ githubId });
-      if (githubIdExists && githubIdExists._id.toString() !== req.user.userId) {
-        return res
-          .status(400)
-          .json({ message: "GitHub ID already linked to another account" });
+      if (githubIdExists && githubIdExists._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: "GitHub ID already linked to another account" });
       }
       updates.githubId = githubId;
     }
 
-    // GitHub Username
-    if (githubUsername) {
-      const githubUsernameExists = await User.findOne({ githubUsername });
-      if (
-        githubUsernameExists &&
-        githubUsernameExists._id.toString() !== req.user.userId
-      ) {
-        return res
-          .status(400)
-          .json({ message: "GitHub username already in use by another account" });
+    if (githubUsername && githubUsername.trim() !== user.githubUsername) {
+      const githubUsernameExists = await User.findOne({ githubUsername: githubUsername.trim() });
+      if (githubUsernameExists && githubUsernameExists._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: "GitHub username already in use by another account" });
       }
       updates.githubUsername = githubUsername.trim();
     }
 
+    // Only update if there are changes
+    if (Object.keys(updates).length === 0) {
+      return res.status(200).json({ message: "No changes detected", user });
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
-      req.user.userId,
+      user._id,
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, select: "-password" }
     ).select("-password");
 
     res.json({
@@ -452,18 +598,31 @@ app.put("/api/profile", authenticateToken, async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------
+// User Management (Admin)
+// --------------------------------------------------------------------------
+
+/**
+ * Gets all users (admin only).
+ * @route GET /api/users
+ * @middleware authenticateToken
+ */
 app.get("/api/users", authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== "admin")
       return res.status(403).json({ message: "Admin access required" });
-    const users = await User.find({}).select("-password");
+    const users = await User.find({}).select("-password").lean();
     res.json({ users });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// DELETE user by ID (admin only)
+/**
+ * Deletes a user by ID (admin only).
+ * @route DELETE /api/users/:id
+ * @middleware authenticateToken
+ */
 app.delete("/api/users/:id", authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -496,11 +655,16 @@ app.delete("/api/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/logout", authenticateToken, (req, res) => {
-  console.log("User logged out:", { email: req.user.email });
-  res.clearCookie("token").json({ message: "Logged out" });
-});
+// --------------------------------------------------------------------------
+// Avatar Upload
+// --------------------------------------------------------------------------
 
+/**
+ * Uploads a user avatar image.
+ * @route POST /api/avatar
+ * @middleware authenticateToken
+ * @middleware upload.single("avatar")
+ */
 app.post(
   "/api/avatar",
   authenticateToken,
@@ -512,7 +676,7 @@ app.post(
 
       if (user.avatar) {
         const oldPath = path.join(__dirname, "uploads", user.avatar);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        fs.promises.unlink(oldPath).catch(() => {});
       }
 
       user.avatar = req.file.filename;
@@ -528,16 +692,53 @@ app.post(
   }
 );
 
+// --------------------------------------------------------------------------
+// Team Management
+// --------------------------------------------------------------------------
+
+/**
+ * Creates a new team.
+ * @route POST /api/teams
+ * @middleware authenticateToken
+ * @param {string} name - Team name.
+ * @param {string} password - Team password.
+ * @param {string} repoUrl - GitHub repository URL.
+ * @returns {Object} Team creation status and info.
+ */
 app.post("/api/teams", authenticateToken, async (req, res) => {
   try {
     const { name, password, repoUrl } = req.body;
-    if (!name || !password || !repoUrl)
+    if (!name || !password || !repoUrl) {
       return res.status(400).json({ message: "Missing fields" });
+    }
 
+    // Check for existing team
     const exists = await Team.findOne({ name });
     if (exists) return res.status(400).json({ message: "Team exists" });
 
-    const hashed = await bcrypt.hash(password, 12);
+    // Hash password and analyze repository in parallel
+    const [hashed, analysis] = await Promise.all([
+      bcrypt.hash(password, 10),
+      (async () => {
+        try {
+          return await analyzeRepository(repoUrl);
+        } catch (analysisError) {
+          console.error("Repository analysis failed:", analysisError);
+          throw {
+            message: "Repository analysis failed",
+            error: analysisError.message,
+            suggestion: "Check repository accessibility or try again later",
+          };
+        }
+      })()
+    ]);
+
+    // Validate analysis results
+    if (!analysis || !analysis.metrics || !analysis.metadata) {
+      throw new Error("Incomplete analysis data");
+    }
+
+    // Create team
     const team = new Team({
       name,
       password: hashed,
@@ -545,30 +746,17 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       members: [req.user.userId]
     });
 
-    let metrics;
-    let repositoryInfo;
-    try {
-      const analysis = await analyzeRepository(repoUrl);
-      metrics = analysis.metrics;
-      repositoryInfo = await getRepositoryInfo(repoUrl);
-    } catch (analysisError) {
-      console.error("Repository analysis failed:", analysisError);
-      return res.status(500).json({
-        message: "Repository analysis failed",
-        error: analysisError.message,
-        suggestion: "Check repository accessibility or try again later",
-      });
-    }
-
     await team.save();
 
+    // Create metrics entry
     await RepoMetrics.create({
       teamId: team._id,
-      metrics,
-      repositoryInfo, 
+      metrics: analysis.metrics,
+      repositoryInfo: analysis.metadata,
       lastUpdated: new Date(),
     });
 
+    // Non-blocking AI analysis
     setTimeout(() => runAIAnalysis(team._id), 0);
 
     res.status(201).json({
@@ -576,9 +764,9 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       team: {
         id: team._id,
         name: team.name,
-        repoUrl: repositoryInfo.url,
+        repoUrl: analysis.metadata.url,
       },
-      repositoryInfo,
+      repositoryInfo: analysis.metadata,
     });
   } catch (error) {
     console.error("Team creation error:", error);
@@ -599,6 +787,23 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       });
     }
 
+    // Handle repository analysis errors
+    if (error.message === "Repository analysis failed") {
+      return res.status(500).json({
+        message: error.message,
+        error: error.error,
+        suggestion: error.suggestion,
+      });
+    }
+
+    if (error.message === "Incomplete analysis data") {
+      return res.status(500).json({
+        message: "Repository analysis incomplete",
+        error: "The analysis didn't return complete metrics or metadata",
+        suggestion: "Please try again with a different repository",
+      });
+    }
+
     // Default error response
     res.status(500).json({
       message: "Team creation failed",
@@ -608,6 +813,14 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * Allows a user to join a team.
+ * @route POST /api/teams/join
+ * @middleware authenticateToken
+ * @param {string} name - Team name.
+ * @param {string} password - Team password.
+ * @returns {Object} Join status and team ID.
+ */
 app.post("/api/teams/join", authenticateToken, async (req, res) => {
   try {
     const { name, password } = req.body;
@@ -657,9 +870,13 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
   }
 });
 
-// --------------------------------------------------------------------------
-// Check Team Membership
-// --------------------------------------------------------------------------
+/**
+ * Checks if the authenticated user is a member of a team.
+ * @route GET /api/teams/:teamId/membership
+ * @middleware authenticateToken
+ * @param {string} teamId - Team ID.
+ * @returns {Object} isMember boolean.
+ */
 app.get("/api/teams/:teamId/membership", authenticateToken, async (req, res) => {
   try {
     const { teamId } = req.params;
@@ -685,6 +902,11 @@ app.get("/api/teams/:teamId/membership", authenticateToken, async (req, res) => 
   }
 });
 
+/**
+ * Searches for teams by name.
+ * @route GET /api/teams/search
+ * @middleware authenticateToken
+ */
 app.get("/api/teams/search", authenticateToken, async (req, res) => {
   try {
     const { q } = req.query;
@@ -701,7 +923,12 @@ app.get("/api/teams/search", authenticateToken, async (req, res) => {
   }
 });
 
-// TEAM DETAILS WITH RBAC
+/**
+ * Gets team details with RBAC.
+ * @route GET /api/teams/:name
+ * @middleware authenticateToken
+ * @middleware authorizeTeamAccess
+ */
 app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
   const team = req.team;
   const repoData = await RepoMetrics.findOne({ teamId: team._id });
@@ -735,7 +962,12 @@ app.get("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, 
   });
 });
 
-// DELETE TEAM (by name, creator only)
+/**
+ * Deletes a team by name (creator only).
+ * @route DELETE /api/teams/:name
+ * @middleware authenticateToken
+ * @middleware authorizeTeamAccess
+ */
 app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (req, res) => {
   if (req.user.teamRole !== "creator" && req.user.role !== "admin") {
     return res.status(403).json({ message: "Only the team creator can delete the team" });
@@ -751,6 +983,11 @@ app.delete("/api/teams/:name", authenticateToken, authorizeTeamAccess, async (re
   }
 });
 
+/**
+ * Gets all teams.
+ * @route GET /api/teams
+ * @middleware authenticateToken
+ */
 app.get("/api/teams", authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -768,7 +1005,15 @@ app.get("/api/teams", authenticateToken, async (req, res) => {
   }
 });
 
-//AI INTERGATION
+// --------------------------------------------------------------------------
+// AI Integration
+// --------------------------------------------------------------------------
+
+/**
+ * Gets AI review for a repository.
+ * @route GET /api/ai-review
+ * @middleware authenticateToken
+ */
 app.get("/api/ai-review", authenticateToken, async (req, res) => {
   try {
     const { teamId } = req.query;
@@ -820,17 +1065,29 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
   }
 });
 
-//Error handling
+// --------------------------------------------------------------------------
+// Error Handling
+// --------------------------------------------------------------------------
+
+/**
+ * 404 Not Found handler.
+ */
 app.use((req, res, next) => {
   console.log("Incoming request:", req.method, req.url);
   next();
 });
 
+/**
+ * General error handler.
+ */
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Something went wrong!" });
 });
 
+/**
+ * Catch-all handler for unmatched routes.
+ */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });

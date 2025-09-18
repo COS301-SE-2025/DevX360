@@ -1,24 +1,34 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 //unit tested
 async function hashPassword(password) {
-  const salt = await bcrypt.genSalt(12);
+  const salt = await bcrypt.genSalt(10);
   return await bcrypt.hash(password, salt);
 }
 
 //unit tested
 async function comparePassword(plainPassword, hashedPassword) {
-  const result = await bcrypt.compare(plainPassword, hashedPassword);
-  return result;
+  return new Promise((resolve, reject) => {
+    bcrypt.compare(plainPassword, hashedPassword, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
 }
+
+const defaultTokenOptions = { 
+  expiresIn: "7d",
+  algorithm: 'HS256'
+};
 
 //unit tested
 function generateToken(
   payload,
   secret = process.env.JWT_SECRET,
-  options = { expiresIn: "7d" }
+  options = defaultTokenOptions
 ) {
+  // Use synchronous signing since it's faster for our use case
   return jwt.sign(payload, secret, options);
 }
 
