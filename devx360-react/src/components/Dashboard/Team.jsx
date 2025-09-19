@@ -16,7 +16,10 @@ import {
   Loader,
   SortAsc,
   SortDesc,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle
 } from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
 import CreateTeamModal from "./modal/CreateTeam";
@@ -28,14 +31,118 @@ import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
 import {Link} from "react-router-dom";
 
+// Pagination configuration
+const TEAMS_PER_PAGE = 6;
+
+//=============================================================Error Boundary Component======================================
+const ErrorBoundary = ({ error, onRetry, children }) => {
+  if (error) {
+    return (
+        <div className="w-full">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to load teams</h3>
+            <p className="text-red-600 mb-6 max-w-md mx-auto">
+              {error.message || 'Failed to load teams. Please check your connection and try again.'}
+            </p>
+            <button
+                onClick={onRetry}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+    );
+  }
+  return children;
+};
+
+//=============================================================Pagination Component======================================
+const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange }) => {
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
+  return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 p-4 bg-[var(--bg-container)] rounded-xl border border-[var(--border)]">
+        <div className="text-sm text-[var(--text-light)]">
+          Showing <span className="font-medium text-[var(--text)]">{startItem}</span> to{' '}
+          <span className="font-medium text-[var(--text)]">{endItem}</span> of{' '}
+          <span className="font-medium text-[var(--text)]">{totalItems}</span> teams
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-light)] hover:bg-[var(--bg-container)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {getPageNumbers().map((page, index) => (
+              <button
+                  key={index}
+                  onClick={() => typeof page === 'number' && onPageChange(page)}
+                  disabled={page === '...'}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      page === currentPage
+                          ? 'bg-[var(--primary)] text-white'
+                          : page === '...'
+                              ? 'text-[var(--text-light)] cursor-default'
+                              : 'border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--bg-container)]'
+                  }`}
+              >
+                {page}
+              </button>
+          ))}
+
+          <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-light)] hover:bg-[var(--bg-container)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+  );
+};
 
 //=============================================================Sort Button Component======================================
-// This component renders a button that allows sorting by a specific key
-//
 const SortButton = ({ currentSort, sortKey, setSortBy, label }) => {
   const isActive = currentSort.startsWith(sortKey);
   const isAsc = isActive && currentSort.endsWith('_asc');
-  const isDesc = isActive && currentSort.endsWith('_desc');
 
   const handleClick = () => {
     if (isActive) {
@@ -61,7 +168,6 @@ const SortButton = ({ currentSort, sortKey, setSortBy, label }) => {
 };
 
 //=============================================================FilterPill Component======================================
-// This component displays the filter options as pills
 const FilterPill = ({ isActive, onClick, label }) => {
   return (
       <button
@@ -77,9 +183,22 @@ const FilterPill = ({ isActive, onClick, label }) => {
   );
 };
 
+//=============================================================Loading Overlay Component======================================
+const LoadingOverlay = ({ isVisible, message = "Loading..." }) => {
+  if (!isVisible) return null;
+
+  return (
+      <div className="absolute inset-0 bg-[var(--bg-container)]/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-[var(--primary)] mx-auto mb-3"/>
+          <p className="text-sm font-medium text-[var(--text)]">{message}</p>
+        </div>
+      </div>
+  );
+};
+
 //=============================================================TeamInfo Component======================================
-// This component displays the team information and metrics
-function TeamInfo({ teams, currentUser, onDeleteTeam }) {
+function TeamInfo({ teams, currentUser, onDeleteTeam, isDeleting }) {
   const [showMenu, setShowMenu] = useState(null);
 
   const toggleMenu = (teamId) => {
@@ -150,7 +269,9 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
   return (
       <div className="w-full space-y-6">
         {teams.map((team, index) => (
-            <div key={team.id || index} className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div key={team.id || index} className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden hover:shadow-lg transition-all duration-300 relative">
+              <LoadingOverlay isVisible={isDeleting} message="Deleting team..." />
+
               {/* Team Header */}
               <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
@@ -181,7 +302,8 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
                       <div className="relative">
                         <button
                             onClick={() => toggleMenu(team.id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg)] text-[var(--text-light)] border border-[var(--border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200"
+                            disabled={isDeleting}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg)] text-[var(--text-light)] border border-[var(--border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
@@ -204,7 +326,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
                 </div>
               </div>
 
-              {/* DORA Metrics Grid - Smaller and more compact */}
+              {/* DORA Metrics Grid */}
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Deployment Frequency */}
@@ -276,7 +398,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
                     <p className="text-xs text-[var(--text-light)]">
                       {getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0') > 0 ? (
                           `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failures
-                          out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')} deployments`
+                    out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')} deployments`
                       ) : (
                           getMetricValue(team, 'doraMetrics.deployment_frequency.status', 'No deployments found')
                       )}
@@ -309,7 +431,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
                   </div>
                 </div>
 
-                {/* Team Details Footer - More compact */}
+                {/* Team Details Footer */}
                 <div className="mt-4 pt-4 border-t border-[var(--border)]">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex items-center space-x-2">
@@ -357,13 +479,13 @@ function TeamInfo({ teams, currentUser, onDeleteTeam }) {
 }
 
 //=============================================================Team Component======================================
-// This component is the main dashboard for teams, displaying team info and metrics
 function Team() {
   const { currentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
   const [avatar, setAvatar] = useState(defaultAvatar);
 
   const [teams, setTeams] = useState([]);
+  const [error, setError] = useState(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -373,22 +495,28 @@ function Team() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Simplified search and filter states
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Filter and search states
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name_asc'); // name, members
-  const [filterOwnership, setFilterOwnership] = useState('all'); // all, owned, joined
+  const [sortBy, setSortBy] = useState('name_asc');
+  const [filterOwnership, setFilterOwnership] = useState('all');
 
   const loadTeams = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const userTeams = await getMyTeams();
       setTeams(userTeams);
+      setCurrentPage(1); // Reset to first page when loading.error new data
     } catch (error) {
-      console.error('Error refreshing teams:', error);
+      console.error('Error loading teams:', error);
+      setError(error);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleCreateTeam = async () => {
     try {
@@ -433,9 +561,10 @@ function Team() {
     }
   };
 
-  const filteredAndSortedTeams = useMemo(() => {
-    if (!teams) return [];
+  const { paginatedTeams, totalPages, totalItems, filteredTeams } = useMemo(() => {
+    if (!teams) return { paginatedTeams: [], totalPages: 0, totalItems: 0, filteredTeams: [] };
 
+    // Filter teams
     let filtered = teams.filter(team => {
       const matchesSearch = team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           team.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -451,6 +580,7 @@ function Team() {
       return matchesSearch && matchesOwnership;
     });
 
+    // Sort teams
     filtered.sort((a, b) => {
       const [sortProperty, sortOrder] = sortBy.split('_');
       const modifier = sortOrder === 'desc' ? -1 : 1;
@@ -463,17 +593,36 @@ function Team() {
       }
     });
 
-    return filtered;
-  }, [teams, searchTerm, sortBy, filterOwnership, currentUser?._id]);
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / TEAMS_PER_PAGE);
 
+    // Get current page items
+    const startIndex = (currentPage - 1) * TEAMS_PER_PAGE;
+    const endIndex = startIndex + TEAMS_PER_PAGE;
+    const paginatedTeams = filtered.slice(startIndex, endIndex);
+
+    return { paginatedTeams, totalPages, totalItems, filteredTeams: filtered };
+  }, [teams, searchTerm, sortBy, filterOwnership, currentUser?._id, currentPage]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSortBy('name_asc');
     setFilterOwnership('all');
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, filterOwnership]);
 
   useEffect(() => {
     if (currentUser?.avatar) {
@@ -512,10 +661,10 @@ function Team() {
         <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] sticky top-0 z-50">
           <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
                 <h1 className="text-2xl font-bold text-[var(--text)]">Your Teams</h1>
                 <div className="h-6 w-px bg-[var(--border)]"></div>
-                <p className="text-lg font-medium text-[var(--text-light)]">Manage and monitor your development teams</p>
+                <p className="text-base text-[var(--text-light)]">Manage and monitor your development teams</p>
               </div>
               <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
             </div>
@@ -524,118 +673,129 @@ function Team() {
 
         {/* Main content with proper padding */}
         <main className="max-w-7xl mx-auto px-6 py-8">
-          <div className="mb-8">
+          <ErrorBoundary error={error} onRetry={() => loadTeams()}>
+            <div className="mb-8">
+              {/* Advanced Filter & Search Bar */}
+              <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-6">
+                <div className="flex flex-col gap-4">
+                  {/* Top Row: Search and Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    {/* Search Input */}
+                    <div className="w-full sm:flex-1 sm:max-w-md">
+                      <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-light)]" />
+                        <input
+                            type="text"
+                            placeholder="Search teams by name or creator..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-200"
+                        />
+                      </div>
+                    </div>
 
-            {/* Advanced Filter & Search Bar */}
-            <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-6">
-              <div className="flex flex-col gap-4">
-
-                {/* Top Row: Search and Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  {/* Search Input */}
-                  <div className="w-full sm:flex-1 sm:max-w-md">
-                    <div className="relative">
-                      <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-light)]" />
-                      <input
-                          type="text"
-                          placeholder="Search teams by name or creator..."
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-200"
-                      />
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 w-full sm:w-auto">
+                      <button
+                          className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
+                          onClick={() => setShowCreateModal(true)}
+                      >
+                        Create Team
+                      </button>
+                      <button
+                          className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
+                          onClick={() => setShowJoinModal(true)}
+                      >
+                        Join Team
+                      </button>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 w-full sm:w-auto">
-                    <button
-                        className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
-                        onClick={() => setShowCreateModal(true)}
-                    >
-                      Create Team
-                    </button>
-                    <button
-                        className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
-                        onClick={() => setShowJoinModal(true)}
-                    >
-                      Join Team
-                    </button>
+                  {/* Bottom Row: Filter Pill Buttons */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Sort By Pill Buttons */}
+                    <span className="text-sm font-medium text-[var(--text-light)] mr-1">Sort by:</span>
+
+                    <SortButton
+                        currentSort={sortBy}
+                        sortKey="name"
+                        setSortBy={setSortBy}
+                        label="Name"
+                    />
+                    <SortButton
+                        currentSort={sortBy}
+                        sortKey="members"
+                        setSortBy={setSortBy}
+                        label="Members"
+                    />
+
+                    {/* Divider */}
+                    <div className="h-4 w-px bg-[var(--border)]"></div>
+
+                    {/* Filter By Pill Buttons */}
+                    <span className="text-sm font-medium text-[var(--text-light)] mr-1">Show:</span>
+                    <FilterPill
+                        isActive={filterOwnership === 'all'}
+                        onClick={() => setFilterOwnership('all')}
+                        label="All Teams"
+                    />
+                    <FilterPill
+                        isActive={filterOwnership === 'owned'}
+                        onClick={() => setFilterOwnership('owned')}
+                        label="My Teams"
+                    />
+                    <FilterPill
+                        isActive={filterOwnership === 'joined'}
+                        onClick={() => setFilterOwnership('joined')}
+                        label="Joined"
+                    />
+
+                    {/* Clear Filters Button (Conditional) */}
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="inline-flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 text-[var(--text-light)] hover:bg-red-50 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                          Clear All
+                        </button>
+                    )}
                   </div>
-                </div>
-
-                {/* Bottom Row: Filter Pill Buttons */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Sort By Pill Buttons */}
-                  <span className="text-sm font-medium text-[var(--text-light)] mr-1">Sort by:</span>
-
-                  <SortButton
-                      currentSort={sortBy}
-                      sortKey="name"
-                      setSortBy={setSortBy}
-                      label="Name"
-                      // aria-label={`Sort by name ${isAsc ? 'ascending' : 'descending'}`}
-                  />
-                  <SortButton
-                      currentSort={sortBy}
-                      sortKey="members"
-                      setSortBy={setSortBy}
-                      label="Members"
-                      // aria-label={`Sort by members ${isAsc ? 'ascending' : 'descending'}`}
-                  />
-
-                  {/* Divider */}
-                  <div className="h-4 w-px bg-[var(--border)]"></div>
-
-                  {/* Filter By Pill Buttons */}
-                  <span className="text-sm font-medium text-[var(--text-light)] mr-1">Show:</span>
-                  <FilterPill
-                      isActive={filterOwnership === 'all'}
-                      onClick={() => setFilterOwnership('all')}
-                      label="All Teams"
-                  />
-                  <FilterPill
-                      isActive={filterOwnership === 'owned'}
-                      onClick={() => setFilterOwnership('owned')}
-                      label="My Teams"
-                  />
-                  <FilterPill
-                      isActive={filterOwnership === 'joined'}
-                      onClick={() => setFilterOwnership('joined')}
-                      label="Joined"
-                  />
-
-                  {/* Clear Filters Button (Conditional) */}
-                  {hasActiveFilters && (
-                      <button
-                          onClick={clearFilters}
-                          className="inline-flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 text-[var(--text-light)] hover:bg-red-50 hover:text-red-700"
-                      >
-                        <X className="w-4 h-4" />
-                        Clear All
-                      </button>
+                  {totalItems > 0 && totalPages > 0 && (
+                      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                        <p className="text-sm text-[var(--text-light)] ml-auto">
+                          Showing <span className="font-medium text-[var(--text)]">{(currentPage - 1) * TEAMS_PER_PAGE + 1}</span> to{' '}
+                          <span className="font-medium text-[var(--text)]">{Math.min(currentPage * TEAMS_PER_PAGE, totalItems)}</span> of{' '}
+                          <span className="font-medium text-[var(--text)]">{totalItems}</span> teams
+                          {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
+                        </p>
+                      </div>
                   )}
+
+
                 </div>
               </div>
-
-              {/* Simple Results Summary */}
-              {teams.length > 0 && filteredAndSortedTeams.length !== teams.length && (
-                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
-                    <p className="text-sm text-[var(--text-light)]">
-                      Showing {filteredAndSortedTeams.length} of {teams.length} teams
-                    </p>
-                  </div>
-              )}
             </div>
-          </div>
 
-          {/* Team content - centered and constrained */}
-          <div className="mb-8">
-            <TeamInfo
-                teams={filteredAndSortedTeams}
-                currentUser={currentUser}
-                onDeleteTeam={handleDeleteTeam}
+            {/* Team content */}
+            <div className="mb-8">
+              <TeamInfo
+                  teams={paginatedTeams}
+                  currentUser={currentUser}
+                  onDeleteTeam={handleDeleteTeam}
+                  isDeleting={isDeleting}
+              />
+            </div>
+
+            {/* Pagination */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={TEAMS_PER_PAGE}
+                onPageChange={handlePageChange}
             />
-          </div>
+          </ErrorBoundary>
         </main>
 
         {/* Modals */}
