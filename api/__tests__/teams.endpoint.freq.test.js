@@ -9,16 +9,13 @@ jest.unstable_mockModule('../../api/models/RepoMetrics.js', () => ({
 
 jest.unstable_mockModule('../../api/middlewares/authorizeTeamAccess.js', () => ({
   authorizeTeamAccess: async (req, res, next) => {
-    // Mock team with populate method
+    // Provide a team object with a populate method to satisfy app.js logic
     req.team = {
       _id: 't1',
       name: req.params.name,
-      members: ['u1'],
+      members: [{ _id: 'u1', name: 'User One', email: 'u1@example.com' }],
       creator: 'u1',
-      populate: async function () {
-        this.members = [{ name: 'John Doe', email: 'john@example.com' }];
-        return this;
-      },
+      populate: async function () { return this; }
     };
     req.user = { userId: 'u2', role: 'user', teamRole: 'member' };
     next();
