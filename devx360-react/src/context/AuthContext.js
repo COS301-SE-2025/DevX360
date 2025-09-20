@@ -15,22 +15,24 @@ export const AuthProvider = ({ children }) => {
         const response = await fetch('http://localhost:5500/api/profile', {
           credentials: 'include',
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setCurrentUser(data.user);
-        } else {
+        } else if (response.status === 401 || response.status === 403) {
           setCurrentUser(null);
+        } else {
+          console.error('Profile check failed with status:', response.status);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        setCurrentUser(null);
+        // setCurrentUser(null);
         // You might want to add retry logic or show a message to the user
       } finally {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -91,17 +93,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      currentUser, 
-      setCurrentUser, // Add this to the context value
-      updateCurrentUser, // Alternative helper function
-      login, 
-      logout, 
-      register, 
-      loading 
-    }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{
+        currentUser,
+        setCurrentUser, // Add this to the context value
+        updateCurrentUser, // Alternative helper function
+        login,
+        logout,
+        register,
+        loading
+      }}>
+        {children}
+      </AuthContext.Provider>
   );
 };
 
