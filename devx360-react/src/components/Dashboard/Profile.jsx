@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {updateAvatar, updateProfile} from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
-import {AlertCircle} from 'lucide-react';
+import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from 'lucide-react';
 import toast from "react-hot-toast";
 
 const defaultAvatar = '/default-avatar.png';
@@ -109,7 +109,7 @@ function Profile() {
       email: currentUser?.email || '',
       githubUsername: currentUser?.githubUsername || '',
     });
-  }, [currentUser]);
+  }, [currentUser?.name, currentUser?.email, currentUser?.githubUsername]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -278,7 +278,6 @@ function Profile() {
     }
   }, []);
 
-  // Helper function to get input error styling
   const getInputClassName = (fieldName) => {
     const baseClass = "w-full max-w-full box-border p-2 border rounded-md bg-[var(--bg-container)] text-[var(--text)] focus:outline-none transition-colors";
     const errorClass = "border-red-500 focus:ring-2 focus:ring-red-500";
@@ -302,40 +301,98 @@ function Profile() {
           </div>
         </header>
 
-        <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col gap-4 bg-[var(--bg-container)] rounded-xl p-8 w-full"
-                 style={{ boxShadow: 'var(--shadow)' }}>
+            <div className="bg-[var(--bg-container)] rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden">
+              {/* Card Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-[var(--border)] gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                    <UserCog className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--text)]">Account Information</h2>
+                  </div>
+                </div>
 
-              <div className="flex flex-row gap-20 flex-wrap w-full">
-                {/* Profile left */}
-                <div className="flex flex-col items-center gap-6 min-w-[120px] justify-between">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative inline-block">
-                      <div className="w-[150px] h-[150px] rounded-full overflow-hidden bg-[var(--border)]">
+                {!isEditing ? (
+                  <div className="flex gap-3 w-full sm:w-auto justify-end">
+                    <button
+                      onClick={handleEditProfile}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
+                    >
+                      <Edit3 size={16} />
+                      Edit Profile
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 rounded-lg bg-transparent text-[var(--text)] hover:bg-[var(--bg)] transition-colors border border-[var(--border)]"
+                      disabled={isLoading}
+                    >
+                      {/*<X size={16} />*/}
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveProfile}
+                      className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors duration-200 min-w-[120px] justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="px-4 py-2 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {errorMessage && (
+                <div className="flex items-center gap-1 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+                  <div className="text-red-700 text-sm">
+                    {errorMessage}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/*Avatar Section*/}
+                <div className="lg:col-span-1 flex flex-col items-center">
+                    <div className="relative mb-4">
+                      <div className="w-32 h-32 rounded-full overflow-hidden bg-[var(--border)] border-4 border-[var(--bg-container)]">
                         <img
-                            src={avatar}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = defaultAvatar;
-                              e.target.onerror = null;
-                            }}
+                          src={avatar}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = defaultAvatar;
+                            e.target.onerror = null;
+                          }}
                         />
                         {isLoading && (
-                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            </div>
+                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          </div>
                         )}
                       </div>
 
                       <button
-                          onClick={triggerFileInput}
-                          className="absolute bottom-2 right-2 w-auto px-2.5 py-1.5 text-xs rounded-md min-w-[40px]
-                        bg-[var(--bg-container)] text-[var(--text)] border border-[var(--border)]
-                        hover:bg-[var(--border)] hover:border-[var(--gray)]
-                        transition-colors duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={isLoading}
+                        onClick={triggerFileInput}
+                        className="absolute bottom-2 right-2 w-auto px-2.5 py-1.5 text-xs rounded-md min-w-[40px]
+                          bg-[var(--bg-container)] text-[var(--text)] border border-[var(--border)]
+                          hover:bg-[var(--border)] hover:border-[var(--gray)]
+                          transition-colors duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isLoading}
+                        aria-label="Change profile picture"
                       >
                         {isLoading ? 'Uploading...' : 'Edit'}
                       </button>
@@ -348,192 +405,180 @@ function Profile() {
                           className="hidden"
                       />
                     </div>
+
+                  <div className="text-center mb-6">
+                    <div className="text-xl font-medium text-[var(--text)] mb-2">
+                      {currentUser?.name || 'User'}
+                    </div>
+                        {currentUser?.role && (
+                          <span className="inline-block px-4 py-2 bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white rounded-full text-sm font-bold capitalize shadow-md">
+                            {currentUser.role}
+                          </span>
+                        )}
                   </div>
 
-                  <div className="flex-1">
-                    <div className="mb-4">
-                      <label className="block text-sm text-[var(--text-light)] mb-1">Member Since</label>
-                      <div className="text-sm font-mono py-2 border-b border-[var(--border)] text-[var(--text-light)]">
-                        {formatDate(currentUser?.createdAt)}
+                    <div className="w-full p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)] mt-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-4 h-4 text-blue-600" />
+                        </div>
+                          <div>
+                            <div className="text-xs text-[var(--text-light)]">Member Since</div>
+                            <div className="text-sm font-medium text-[var(--text)]">
+                              {formatDate(currentUser?.createdAt).split(',')[0]}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {/*</div>*/}
+                  </div>
+
+                {/* Profile details */}
+                <div className="lg:col-span-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/*Full Name*/}
+                    <div className="min-h-[70px]">
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-light)]">
+                        <User size={16} />
+                        Full Name {isEditing && <span className="text-red-500">*</span>}
+                      </label>
+                      {!isEditing ? (
+                        <div className="h-[45px] px-4 py-3 bg-[var(--bg)] rounded-lg border border-[var(--border)] flex items-center">
+                        <span className="text-[var(--text)]">
+                          {currentUser?.name || <span className="text-[var(--text-light)] italic">Not provided</span>}
+                        </span>
+                          </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="text"
+                            name="name"
+                            value={editData.name || ''}
+                            onChange={handleInputChange}
+                            className={getInputClassName('name')}
+                            placeholder="Enter your full name"
+                          />
+                          {fieldErrors.name && (
+                            <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/*Email */}
+                    <div className="min-h-[70px]">
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-light)]">
+                        <Mail size={16} />
+                        Email Address {isEditing && <span className="text-red-500">*</span>}
+                      </label>
+
+                      {!isEditing ? (
+                        <div className="h-[45px] px-4 py-3 bg-[var(--bg)] rounded-lg border border-[var(--border)] flex items-center">
+                          <span className="text-[var(--text)]">{currentUser?.email}</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="email"
+                            name="email"
+                            value={editData.email || ''}
+                            onChange={handleInputChange}
+                            className={getInputClassName('email')}
+                            placeholder="your.email@example.com"
+                          />
+                          {fieldErrors.email && (
+                            <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/*github*/}
+                    <div className="min-h-[70px]">
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-light)]">
+                        <Github size={16} />
+                        GitHub Username
+                      </label>
+
+                      {!isEditing ? (
+                        <div className="h-[45px] px-4 py-3 bg-[var(--bg)] rounded-lg border border-[var(--border)] flex items-center justify-between">
+                          <span className="text-[var(--text)]">
+                            {currentUser?.githubUsername || <span className="text-[var(--text-light)] italic">Not connected</span>}
+                          </span>
+
+                          {currentUser?.githubUsername && (
+                            <a
+                              href={`https://github.com/${currentUser.githubUsername}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors text-sm flex items-center gap-1"
+                            >
+                              <Github size={16} className="text-[var(--text-light)] hover:text-[var(--primary)]" />
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="text"
+                            name="githubUsername"
+                            value={editData.githubUsername || ''}
+                            onChange={handleInputChange}
+                            className={getInputClassName('githubUsername')}
+                            placeholder="your-github-username"
+                          />
+                          {fieldErrors.githubUsername && (
+                              <p className="text-red-500 text-xs mt-1">{fieldErrors.githubUsername}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/*last login*/}
+                    <div className="min-h-[70px]">
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-light)]">
+                        <LogIn size={16} />
+                        Last Login
+                      </label>
+                      <div className="h-[45px] px-4 py-3 bg-[var(--bg)] rounded-lg border border-[var(--border)] flex items-center">
+                        <span className="text-[var(--text-light)] text-sm">
+                          {formatDate(currentUser?.lastLogin) || 'Never logged in'}
+                        </span>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Profile right */}
-                <div className="flex flex-col gap-6 flex-1 min-w-[300px]">
-                  {!isEditing ? (
-                      // View mode
-                      <>
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Full Name</label>
-                            <div className="font-medium py-2 border-b border-[var(--border)]">
-                              {currentUser?.name || <span className="text-[var(--text-light)] italic">Not provided</span>}
-                            </div>
-                          </div>
-                        </div>
+                {/* Security & Additional Information Section */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Security & Preferences</h3>
 
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">GitHub Username</label>
-                            <div className="flex items-center justify-between py-2 border-b border-[var(--border)]">
-                              <div className="font-medium text-[var(--text-light)] italic">
-                                {currentUser?.githubUsername || 'Not connected'}
-                              </div>
-                              <button
-                                  onClick={
-                                    !currentUser?.githubUsername
-                                        ? handleConnectGitHub
-                                        : () => window.open(`https://github.com/${currentUser.githubUsername}`, '_blank')
-                                  }
-                                  className="w-5 h-5 flex items-center justify-center rounded text-[var(--text-light)] hover:text-[var(--primary)] hover:bg-[var(--border)] transition-colors"
-                                  title={
-                                    !currentUser?.githubUsername
-                                        ? "Connect GitHub account"
-                                        : "View GitHub profile"
-                                  }
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Role</label>
-                            <div className="font-medium py-2 border-b border-[var(--border)] capitalize">{currentUser?.role}</div>
-                          </div>
-                        </div>
+                  <div className="bg-[var(--bg)] p-4 rounded-lg border border-[var(--border)]">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-[var(--text)] font-medium mb-1">GitHub Integration</h4>
+                        <p className="text-sm text-[var(--text-light)]">
+                          Connect your GitHub account to enable advanced features
+                        </p>
+                      </div>
 
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Email</label>
-                            <div className="font-medium py-2 border-b border-[var(--border)]">{currentUser?.email}</div>
-                          </div>
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Last Login</label>
-                            <div className="text-sm font-mono py-2 border-b border-[var(--border)] text-[var(--text-light)]">
-                              {formatDate(currentUser?.lastLogin) || 'Never'}
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                  ) : (
-                      // Edit mode
-                      <>
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Full Name *</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={editData.name || ''}
-                                onChange={handleInputChange}
-                                className={getInputClassName('name')}
-                                placeholder="Enter your full name"
-                            />
-                            {fieldErrors.name && (
-                                <p className="text-red-500 text-sm mt-1">{fieldErrors.name}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">GitHub Username</label>
-                            <input
-                                type="text"
-                                name="githubUsername"
-                                value={editData.githubUsername || ''}
-                                onChange={handleInputChange}
-                                className={getInputClassName('githubUsername')}
-                                placeholder="your-github-username"
-                            />
-                            {fieldErrors.githubUsername && (
-                                <p className="text-red-500 text-sm mt-1">{fieldErrors.githubUsername}</p>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Role</label>
-                            <div className="font-medium py-2 border-b border-[var(--border)] capitalize">{currentUser?.role}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-8 justify-between flex-wrap">
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Email *</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={editData.email || ''}
-                                onChange={handleInputChange}
-                                className={getInputClassName('email')}
-                                placeholder="your.email@example.com"
-                            />
-                            {fieldErrors.email && (
-                                <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-[150px] mb-4">
-                            <label className="block text-sm text-[var(--text-light)] mb-1">Last Login</label>
-                            <div className="text-sm font-mono py-2 border-b border-[var(--border)] text-[var(--text-light)]">
-                              {formatDate(currentUser?.lastLogin) || 'Never'}
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                  )}
-                </div>
-              </div>
-
-              {/* General error message */}
-              {errorMessage && (
-                  <div className="flex items-center gap-1 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
-                    <div className="text-red-700 text-sm">
-                      {errorMessage}
+                      <button
+                        onClick={handleConnectGitHub}
+                        disabled={!!currentUser?.githubUsername}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium 
+                          ${currentUser?.githubUsername
+                            ? 'bg-green-100 text-green-700 cursor-default'
+                            : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors'
+                        }`}
+                      >
+                        {currentUser?.githubUsername ? 'Connected' : 'Connect GitHub'}
+                      </button>
                     </div>
                   </div>
-              )}
 
-              {!isEditing ? (
-                  <div className="edit-actions">
-                    <button
-                        className="btn btn-primary edit-actions-btn"
-                        onClick={handleEditProfile}
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
-              ) : (
-                  <div className="edit-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-                    <button
-                        onClick={handleCancelEdit}
-                        className="btn btn-secondary edit-actions-btn"
-                        disabled={isLoading}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                        onClick={handleSaveProfile}
-                        className="btn btn-primary edit-actions-btn"
-                        disabled={isLoading}
-                        style={{
-                          cursor: isLoading ? 'not-allowed' : 'pointer',
-                          opacity: isLoading ? 0.6 : 1
-                        }}
-                    >
-                      {isLoading ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            Saving...
-                          </>
-                      ) : 'Save Changes'}
-                    </button>
-                  </div>
-              )}
+                </div>
+
+                </div>
+              </div>
             </div>
           </div>
         </main>
