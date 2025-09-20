@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo} from 'react';
-import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Calendar, Mail, Github, Ban, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Mail, Github, Ban, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getUsers, deleteUser, getTeams } from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
@@ -78,8 +78,10 @@ function Admin() {
 
   // Pagination state
   const [usersPage, setUsersPage] = useState(1);
+  const [teamsPage, setTeamsPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [usersTotal, setUsersTotal] = useState(null);
+  const [teamsTotal, setTeamsTotal] = useState(null);
 
   const navigate = useNavigate();
 
@@ -108,6 +110,7 @@ function Admin() {
       setUsers(usersData);
       setTeams(teamsData);
       setUsersTotal(usersData?.length ?? 0);
+      setTeamsTotal(teamsData?.length ?? 0);
     } catch (err) {
       console.log('Error fetching data:', JSON.stringify(err, null, 2));
       if (err.message.includes('429')) {
@@ -122,10 +125,11 @@ function Admin() {
     }
   };
 
-  const refreshTeams = async () => {
+  const refreshTeams = async (page = teamsPage) => {
     try {
       const teamsList = await getTeams()
       setTeams(teamsList);
+      setTeamsTotal(teamsList?.length ?? 0);
     } catch (error) {
       console.error('Error refreshing teams:', error);
     }
@@ -347,9 +351,16 @@ function Admin() {
   }, [sortedTeams, searchTerm]);
 
   const pagedUsers = useMemo(() => {
+    // if (useServerPagination) return users;
     const start = (usersPage - 1) * pageSize;
     return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, usersPage, pageSize]);
+  }, [filteredUsers, users, usersPage, pageSize]);
+
+  const pagedTeams = useMemo(() => {
+    // if (useServerPagination) return teams;
+    const start = (teamsPage - 1) * pageSize;
+    return filteredTeams.slice(start, start + pageSize);
+  }, [filteredTeams, teams, teamsPage, pageSize]);
 
 
   useEffect(() => {
@@ -358,7 +369,8 @@ function Admin() {
 
   useEffect(() => {
     setUsersPage(1);
-  }, [searchTerm, userSortField, userSortDirection]);
+    setTeamsPage(1);
+  }, [searchTerm, userSortField, userSortDirection, teamSortField, teamSortDirection]);
 
 
   useEffect(() => {
@@ -376,7 +388,10 @@ function Admin() {
     if (usersPage > totalPages) setUsersPage(totalPages);
   }, [filteredUsers, pageSize, usersPage]);
 
-
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil((filteredTeams?.length || 0) / pageSize));
+    if (teamsPage > totalPages) setTeamsPage(totalPages);
+  }, [filteredTeams, pageSize, teamsPage]);
 
   if (isLoading) {
     return (
@@ -505,96 +520,96 @@ function Admin() {
 
           {/* Users Table */}
           {activeTab === 'users' && (
-            <>
-              <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                    <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
-                      <SortableHeader
-                          field="name"
-                          currentField={userSortField}
-                          direction={userSortDirection}
-                          onClick={() => handleUserSort('name')}
-                      >
-                        User
-                      </SortableHeader>
-                      <SortableHeader
-                          field="email"
-                          currentField={userSortField}
-                          direction={userSortDirection}
-                          onClick={() => handleUserSort('email')}
-                      >
-                        Email
-                      </SortableHeader>
-                      <SortableHeader
-                          field="role"
-                          currentField={userSortField}
-                          direction={userSortDirection}
-                          onClick={() => handleUserSort('role')}
-                      >
-                        Role
-                      </SortableHeader>
-                      <SortableHeader
-                          field="createdAt"
-                          currentField={userSortField}
-                          direction={userSortDirection}
-                          onClick={() => handleUserSort('createdAt')}
-                      >
-                        Joined
-                      </SortableHeader>
-                      <SortableHeader
-                          field="lastLogin"
-                          currentField={userSortField}
-                          direction={userSortDirection}
-                          onClick={() => handleUserSort('lastLogin')}
-                      >
-                        Last Login
-                      </SortableHeader>
-                      <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                    {pagedUsers.length > 0 ? (
-                        pagedUsers.map(user => (
-                            <tr key={user._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
-                              <td className="px-6 py-4">
-                                <div className="flex items-center space-x-4">
-                                  <div className="relative">
-                                    <img
-                                        src={getAvatarUrl(user.avatar)}
-                                        alt={user.name}
-                                        className="w-12 h-12 rounded-full border-2 border-[var(--border)] shadow-sm"
-                                    />
+              <>
+                <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                      <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
+                        <SortableHeader
+                            field="name"
+                            currentField={userSortField}
+                            direction={userSortDirection}
+                            onClick={() => handleUserSort('name')}
+                        >
+                          User
+                        </SortableHeader>
+                        <SortableHeader
+                            field="email"
+                            currentField={userSortField}
+                            direction={userSortDirection}
+                            onClick={() => handleUserSort('email')}
+                        >
+                          Email
+                        </SortableHeader>
+                        <SortableHeader
+                            field="role"
+                            currentField={userSortField}
+                            direction={userSortDirection}
+                            onClick={() => handleUserSort('role')}
+                        >
+                          Role
+                        </SortableHeader>
+                        <SortableHeader
+                            field="createdAt"
+                            currentField={userSortField}
+                            direction={userSortDirection}
+                            onClick={() => handleUserSort('createdAt')}
+                        >
+                          Joined
+                        </SortableHeader>
+                        <SortableHeader
+                            field="lastLogin"
+                            currentField={userSortField}
+                            direction={userSortDirection}
+                            onClick={() => handleUserSort('lastLogin')}
+                        >
+                          Last Login
+                        </SortableHeader>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
+                      </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                      {pagedUsers.length > 0 ? (
+                          pagedUsers.map(user => (
+                              <tr key={user._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-4">
+                                    <div className="relative">
+                                      <img
+                                          src={getAvatarUrl(user.avatar)}
+                                          alt={user.name}
+                                          className="w-12 h-12 rounded-full border-2 border-[var(--border)] shadow-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
+                                      <p className="text-xs text-[var(--text-light)]">ID: {user._id}</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
-                                    <p className="text-xs text-[var(--text-light)]">ID: {user._id}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                      <Mail className="w-4 h-4 text-[var(--text-light)]" />
+                                      <span className="text-sm text-[var(--text)]">{user.email}</span>
+                                    </div>
+                                    {user.githubUsername && (
+                                        <div className="flex items-center space-x-2">
+                                          <Github className="w-4 h-4 text-[var(--text-light)]" />
+                                          <a
+                                              href={`https://github.com/${user.githubUsername}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="text-sm text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors"
+                                          >
+                                            {user.githubUsername}
+                                          </a>
+                                        </div>
+                                    )}
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="space-y-2">
-                                  <div className="flex items-center space-x-2">
-                                    <Mail className="w-4 h-4 text-[var(--text-light)]" />
-                                    <span className="text-sm text-[var(--text)]">{user.email}</span>
-                                  </div>
-                                  {user.githubUsername && (
-                                      <div className="flex items-center space-x-2">
-                                        <Github className="w-4 h-4 text-[var(--text-light)]" />
-                                        <a
-                                            href={`https://github.com/${user.githubUsername}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-sm text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors"
-                                        >
-                                          {user.githubUsername}
-                                        </a>
-                                      </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
+                                </td>
+                                <td className="px-6 py-4">
           <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold -ml-2 ${
                   user.role === 'admin'
@@ -606,197 +621,206 @@ function Admin() {
           >
             {user.role?.toUpperCase() || 'USER'}
           </span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="text-sm text-[var(--text)] font-medium">{formatDate(user.createdAt)}</span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="text-sm text-[var(--text)] font-medium">{formatDateTime(user.lastLogin)}</span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                      onClick={() => {
-                                        if (currentUser._id === user._id) {
-                                          navigate('/dashboard/profile');
-                                        } else {
-                                          handleEditUser(user._id);
-                                        }
-                                      }}
-                                      className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
-                                      title={currentUser._id === user._id ? "Edit your profile" : "Edit user"}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  {currentUser._id !== user._id ? (
-                                      <button
-                                          onClick={() => handleDeleteUser(user.name, user._id, user.email)}
-                                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
-                                          title="Delete user"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                  ) : null}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-sm text-[var(--text)] font-medium">{formatDate(user.createdAt)}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-sm text-[var(--text)] font-medium">{formatDateTime(user.lastLogin)}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <button
+                                        onClick={() => {
+                                          if (currentUser._id === user._id) {
+                                            navigate('/dashboard/profile');
+                                          } else {
+                                            handleEditUser(user._id);
+                                          }
+                                        }}
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
+                                        title={currentUser._id === user._id ? "Edit your profile" : "Edit user"}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    {currentUser._id !== user._id ? (
+                                        <button
+                                            onClick={() => handleDeleteUser(user.name, user._id, user.email)}
+                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
+                                            title="Delete user"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    ) : null}
+                                  </div>
+                                </td>
+                              </tr>
+                          ))
+                      ) : (
+                          <tr>
+                            <td colSpan="6" className="px-6 py-16 text-center">
+                              <div className="flex flex-col items-center justify-center space-y-4">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <Users className="w-8 h-8 text-gray-400" />
                                 </div>
-                              </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                          <td colSpan="6" className="px-6 py-16 text-center">
-                            <div className="flex flex-col items-center justify-center space-y-4">
-                              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                <Users className="w-8 h-8 text-gray-400" />
+                                <div>
+                                  <p className="text-lg font-medium text-[var(--text)] mb-1">No users found</p>
+                                  <p className="text-sm text-[var(--text-light)]">Try adjusting your search criteria</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-lg font-medium text-[var(--text)] mb-1">No users found</p>
-                                <p className="text-sm text-[var(--text-light)]">Try adjusting your search criteria</p>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                    )}
-                    </tbody>
-                  </table>
+                            </td>
+                          </tr>
+                      )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-              <Pagination
-                  page={usersPage}
-                  setPage={setUsersPage}
-                  totalItems={filteredUsers.length}
-                  pageSize={pageSize}
-              />
-            </>
+                <Pagination
+                    page={usersPage}
+                    setPage={setUsersPage}
+                    totalItems={filteredUsers.length}
+                    pageSize={pageSize}
+                />
+              </>
           )}
 
           {/* Teams Table */}
           {activeTab === 'teams' && (
-              <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                    <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
-                      <SortableHeader
-                          field="name"
-                          currentField={teamSortField}
-                          direction={teamSortDirection}
-                          onClick={() => handleTeamSort('name')}
-                      >
-                        Team
-                      </SortableHeader>
-                      <SortableHeader
-                          field="creator"
-                          currentField={teamSortField}
-                          direction={teamSortDirection}
-                          onClick={() => handleTeamSort('creator')}
-                      >
-                        Creator
-                      </SortableHeader>
-                      <SortableHeader
-                          field="members"
-                          currentField={teamSortField}
-                          direction={teamSortDirection}
-                          onClick={() => handleTeamSort('members')}
-                      >
-                        Members
-                      </SortableHeader>
-                      <SortableHeader
-                          field="createdAt"
-                          currentField={teamSortField}
-                          direction={teamSortDirection}
-                          onClick={() => handleTeamSort('createdAt')}
-                      >
-                        Created
-                      </SortableHeader>
-                      <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                    {filteredTeams.length > 0 ? (
-                        filteredTeams.map(team => (
-                            <tr key={team._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
-                              <td className="px-6 py-4">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                    <Users className="w-5 h-5 text-white" />
+              <>
+                <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                      <tr className="bg-[var(--bg)] border-b border-[var(--border)]">
+                        <SortableHeader
+                            field="name"
+                            currentField={teamSortField}
+                            direction={teamSortDirection}
+                            onClick={() => handleTeamSort('name')}
+                        >
+                          Team
+                        </SortableHeader>
+                        <SortableHeader
+                            field="creator"
+                            currentField={teamSortField}
+                            direction={teamSortDirection}
+                            onClick={() => handleTeamSort('creator')}
+                        >
+                          Creator
+                        </SortableHeader>
+                        <SortableHeader
+                            field="members"
+                            currentField={teamSortField}
+                            direction={teamSortDirection}
+                            onClick={() => handleTeamSort('members')}
+                        >
+                          Members
+                        </SortableHeader>
+                        <SortableHeader
+                            field="createdAt"
+                            currentField={teamSortField}
+                            direction={teamSortDirection}
+                            onClick={() => handleTeamSort('createdAt')}
+                        >
+                          Created
+                        </SortableHeader>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
+                      </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                      {pagedTeams.length > 0 ? (
+                          pagedTeams.map(team => (
+                              <tr key={team._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                      <Users className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-semibold text-[var(--text)]">{team.name}</p>
+                                      <p className="text-xs text-[var(--text-light)]">Team ID: {team._id}</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-[var(--text)]">{team.name}</p>
-                                    <p className="text-xs text-[var(--text-light)]">Team ID: {team._id}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <p className="text-sm text-[var(--text)] font-medium">{team.creator?.name || 'Unknown'}</p>
-                                <p className="text-xs text-[var(--text-light)]">Email: {team.creator?.email || 'Unknown'}</p>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center space-x-2">
-                                  <div className="flex -space-x-2">
-                                    {team.members?.slice(0, 3).map(member => (
-                                        <div key={member._id} className="relative">
-                                          <img
-                                              src={defaultAvatar}
-                                              alt={member.name}
-                                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                                          />
-                                        </div>
-                                    ))}
-                                  </div>
-                                  {team.members?.length > 3 && (
-                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border-2 border-white">
+                                </td>
+                                <td className="px-6 py-4">
+                                  <p className="text-sm text-[var(--text)] font-medium">{team.creator?.name || 'Unknown'}</p>
+                                  <p className="text-xs text-[var(--text-light)]">Email: {team.creator?.email || 'Unknown'}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex -space-x-2">
+                                      {team.members?.slice(0, 3).map(member => (
+                                          <div key={member._id} className="relative">
+                                            <img
+                                                src={defaultAvatar}
+                                                alt={member.name}
+                                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                                            />
+                                          </div>
+                                      ))}
+                                    </div>
+                                    {team.members?.length > 3 && (
+                                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border-2 border-white">
                 <span className="text-xs font-semibold text-[var(--text-light)]">
                   +{team.members.length - 3}
                 </span>
-                                      </div>
-                                  )}
-                                  <span className="text-xs text-[var(--text-light)] ml-2">
+                                        </div>
+                                    )}
+                                    <span className="text-xs text-[var(--text-light)] ml-2">
               {team.members?.length || 0} member{(team.members?.length || 0) !== 1 ? 's' : ''}
             </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-sm text-[var(--text)] font-medium">{formatDate(team.createdAt)}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <button
+                                        onClick={() => handleViewTeam(team._id, team.name)}
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
+                                        title="Go to dashboard"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTeam(team._id, team.name)}
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
+                                        title="Delete team"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                          ))
+                      ) : (
+                          <tr>
+                            <td colSpan="5" className="px-6 py-16 text-center">
+                              <div className="flex flex-col items-center justify-center space-y-4">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <Users className="w-8 h-8 text-gray-400" />
                                 </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="text-sm text-[var(--text)] font-medium">{formatDate(team.createdAt)}</span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                      onClick={() => handleViewTeam(team._id, team.name)}
-                                      className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
-                                      title="Go to dashboard"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                      onClick={() => handleDeleteTeam(team._id, team.name)}
-                                      className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
-                                      title="Delete team"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                <div>
+                                  <p className="text-lg font-medium text-[var(--text)] mb-1">No teams found</p>
+                                  <p className="text-sm text-[var(--text-light)]">Try adjusting your search criteria</p>
                                 </div>
-                              </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                          <td colSpan="5" className="px-6 py-16 text-center">
-                            <div className="flex flex-col items-center justify-center space-y-4">
-                              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                <Users className="w-8 h-8 text-gray-400" />
                               </div>
-                              <div>
-                                <p className="text-lg font-medium text-[var(--text)] mb-1">No teams found</p>
-                                <p className="text-sm text-[var(--text-light)]">Try adjusting your search criteria</p>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                    )}
-                    </tbody>
-                  </table>
+                            </td>
+                          </tr>
+                      )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+
+                <Pagination
+                    page={teamsPage}
+                    setPage={setTeamsPage}
+                    totalItems={filteredTeams.length}
+                    pageSize={pageSize}
+                />
+              </>
           )}
 
           {/* Summary Stats */}
