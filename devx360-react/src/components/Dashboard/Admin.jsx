@@ -10,6 +10,63 @@ import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import ModalPortal from "./modal/ModalPortal";
 import {useNavigate} from "react-router-dom";
 
+function Pagination({ page, setPage, totalItems, pageSize }) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const start = Math.max(1, page - 2);
+  const end = Math.min(totalPages, page + 2);
+  const pages = [];
+  for (let p = start; p <= end; p++) pages.push(p);
+
+  return (
+      <div className="flex items-center justify-between px-6 py-3 border-t border-[var(--border)] bg-[var(--bg)]">
+        <div className="text-sm text-[var(--text-light)]">
+          Showing page {page} of {totalPages} — {totalItems} item{totalItems !== 1 ? 's' : ''}
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              className="px-2 py-1 rounded-md border bg-[var(--bg-container)] text-[var(--text)] disabled:opacity-50"
+          >
+            First
+          </button>
+          <button
+              onClick={() => setPage(prev => Math.max(1, prev - 1))}
+              disabled={page === 1}
+              className="px-2 py-1 rounded-md border bg-[var(--bg-container)] text-[var(--text)] disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          {pages.map(p => (
+              <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-1 rounded-md border ${p === page ? 'bg-[var(--primary)] text-[var(--bg)]' : 'bg-[var(--bg-container)] text-[var(--text)]'}`}
+              >
+                {p}
+              </button>
+          ))}
+
+          <button
+              onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={page === totalPages}
+              className="px-2 py-1 rounded-md border bg-[var(--bg-container)] text-[var(--text)] disabled:opacity-50"
+          >
+            Next
+          </button>
+          <button
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages}
+              className="px-2 py-1 rounded-md border bg-[var(--bg-container)] text-[var(--text)] disabled:opacity-50"
+          >
+            Last
+          </button>
+        </div>
+      </div>
+  );
+}
+
 function Admin() {
   const { currentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
@@ -18,6 +75,11 @@ function Admin() {
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Pagination state
+  const [usersPage, setUsersPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [usersTotal, setUsersTotal] = useState(null);
 
   const navigate = useNavigate();
 
@@ -45,6 +107,7 @@ function Admin() {
       const teamsData = await getTeams();
       setUsers(usersData);
       setTeams(teamsData);
+      setUsersTotal(usersData?.length ?? 0);
     } catch (err) {
       console.log('Error fetching data:', JSON.stringify(err, null, 2));
       if (err.message.includes('429')) {
@@ -61,8 +124,8 @@ function Admin() {
 
   const refreshTeams = async () => {
     try {
-      const userTeams = await getTeams()
-      setTeams(userTeams);
+      const teamsList = await getTeams()
+      setTeams(teamsList);
     } catch (error) {
       console.error('Error refreshing teams:', error);
     }
@@ -72,6 +135,7 @@ function Admin() {
     try {
       const userList = await getUsers();
       setUsers(userList);
+      setUsersTotal(userList?.length ?? 0);
     } catch (error) {
       console.error('Error refreshing users:', error);
     }
@@ -282,9 +346,20 @@ function Admin() {
     );
   }, [sortedTeams, searchTerm]);
 
+  const pagedUsers = useMemo(() => {
+    const start = (usersPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, usersPage, pageSize]);
+
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setUsersPage(1);
+  }, [searchTerm, userSortField, userSortDirection]);
+
 
   useEffect(() => {
     // console.log(currentUser);
@@ -295,6 +370,13 @@ function Admin() {
       setAvatar(avatarUrl);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil((filteredUsers?.length || 0) / pageSize));
+    if (usersPage > totalPages) setUsersPage(totalPages);
+  }, [filteredUsers, pageSize, usersPage]);
+
+
 
   if (isLoading) {
     return (
@@ -423,6 +505,7 @@ function Admin() {
 
           {/* Users Table */}
           {activeTab === 'users' && (
+            <>
               <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -472,8 +555,8 @@ function Admin() {
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
-                    {filteredUsers.length > 0 ? (
-                        filteredUsers.map(user => (
+                    {pagedUsers.length > 0 ? (
+                        pagedUsers.map(user => (
                             <tr key={user._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
                               <td className="px-6 py-4">
                                 <div className="flex items-center space-x-4">
@@ -577,6 +660,13 @@ function Admin() {
                   </table>
                 </div>
               </div>
+              <Pagination
+                  page={usersPage}
+                  setPage={setUsersPage}
+                  totalItems={filteredUsers.length}
+                  pageSize={pageSize}
+              />
+            </>
           )}
 
           {/* Teams Table */}
