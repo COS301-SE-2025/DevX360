@@ -1,25 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Clock,
-  GitBranch,
-  TrendingUp,
-  Zap,
-  MoreVertical,
-  Trash2,
-  Search,
-  Users,
-  Calendar,
-  Github,
-  ExternalLink,
-  Crown,
   Loader,
   SortAsc,
   SortDesc,
   X,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
 import CreateTeamModal from "./modal/CreateTeam";
@@ -29,36 +18,147 @@ import ModalPortal from "./modal/ModalPortal";
 import {deleteTeam} from "../../services/teams";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
-import {Link} from "react-router-dom";
+import TeamInfo from './Team/TeamInfo';
 
-// Pagination configuration
+
+
+// Pagination config
 const TEAMS_PER_PAGE = 6;
 
-//=============================================================Error Boundary Component======================================
-const ErrorBoundary = ({ error, onRetry, children }) => {
-  if (error) {
-    return (
-        <div className="w-full">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to load teams</h3>
-            <p className="text-red-600 mb-6 max-w-md mx-auto">
-              {error.message || 'Failed to load teams. Please check your connection and try again.'}
-            </p>
-            <button
-                onClick={onRetry}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-    );
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0
+    };
   }
-  return children;
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Log error details
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    this.setState({
+      error,
+      errorInfo
+    });
+
+    // You can also log the error to an error reporting service here
+    // Example: errorReportingService.captureException(error, { extra: errorInfo });
+  }
+
+  handleRetry = () => {
+    this.setState(prevState => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: prevState.retryCount + 1
+    }));
+
+    // Call parent retry function if provided
+    if (this.props.onRetry) {
+      this.props.onRetry();
+    }
+  };
+
+  render() {
+    // Handle async errors passed as props (existing functionality)
+    if (this.props.error) {
+      return (
+          <div className="w-full">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to load teams</h3>
+              <p className="text-red-600 mb-6 max-w-md mx-auto">
+                {this.props.error.message || 'Failed to load teams. Please check your connection and try again.'}
+              </p>
+              <button
+                  onClick={this.props.onRetry}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+      );
+    }
+
+    // Handle React render errors
+    if (this.state.hasError) {
+      return (
+          <div className="w-full">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Something went wrong</h3>
+              <p className="text-red-600 mb-6 max-w-md mx-auto">
+                {this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.'}
+              </p>
+
+              <div className="flex gap-3 justify-center">
+                <button
+                    onClick={this.handleRetry}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                >
+                  Try Again
+                </button>
+
+                <button
+                    onClick={() => window.location.reload()}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
+                >
+                  Refresh Page
+                </button>
+              </div>
+
+              {/* Development mode error details */}
+              {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+                  <details className="mt-6 text-left">
+                    <summary className="cursor-pointer text-sm font-medium text-red-700 mb-2">
+                      Technical Details (Development Only)
+                    </summary>
+                    <pre className="text-xs bg-red-100 p-4 rounded border overflow-auto max-h-40">
+                  {this.state.error && this.state.error.toString()}
+                      {this.state.errorInfo.componentStack}
+                </pre>
+                  </details>
+              )}
+            </div>
+          </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+//=============================================================FilterPill Component======================================
+const FilterPill = ({ isActive, onClick, label }) => {
+  return (
+      <button
+          onClick={onClick}
+          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 border ${
+              isActive
+                  ? 'bg-[var(--primary)]/10 text-[var(--primary-dark)] border-[var(--primary)]'
+                  : 'bg-[var(--bg)] text-[var(--text-light)] border-[var(--border)] hover:bg-[var(--bg-container)]'
+          }`}
+      >
+        {label}
+      </button>
+  );
 };
+
 
 //=============================================================Pagination Component======================================
 const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange }) => {
@@ -167,315 +267,59 @@ const SortButton = ({ currentSort, sortKey, setSortBy, label }) => {
   );
 };
 
-//=============================================================FilterPill Component======================================
-const FilterPill = ({ isActive, onClick, label }) => {
-  return (
-      <button
-          onClick={onClick}
-          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 border ${
-              isActive
-                  ? 'bg-[var(--primary)]/10 text-[var(--primary-dark)] border-[var(--primary)]'
-                  : 'bg-[var(--bg)] text-[var(--text-light)] border-[var(--border)] hover:bg-[var(--bg-container)]'
-          }`}
-      >
-        {label}
-      </button>
-  );
-};
 
-//=============================================================Loading Overlay Component======================================
-const LoadingOverlay = ({ isVisible, message = "Loading..." }) => {
-  if (!isVisible) return null;
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
-  return (
-      <div className="absolute inset-0 bg-[var(--bg-container)]/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
-        <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-[var(--primary)] mx-auto mb-3"/>
-          <p className="text-sm font-medium text-[var(--text)]">{message}</p>
-        </div>
-      </div>
-  );
-};
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
-//=============================================================TeamInfo Component======================================
-function TeamInfo({ teams, currentUser, onDeleteTeam, isDeleting }) {
-  const [showMenu, setShowMenu] = useState(null);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
 
-  const toggleMenu = (teamId) => {
-    setShowMenu(showMenu === teamId ? null : teamId);
-  };
+  return debouncedValue;
+}
 
-  if (!teams || teams.length === 0) {
-    return (
-        <div className="w-full">
-          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-12 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-[var(--text)] mb-2">No Teams Found</h3>
-            <p className="text-[var(--text-light)] mb-6 max-w-md mx-auto">
-              No teams match your current search and filter criteria. Try adjusting your filters or create a new team.
-            </p>
-          </div>
-        </div>
-    );
-  }
-
-  const getMetricValue = (team, metricPath, fallback = 'N/A') => {
-    try {
-      const pathArray = metricPath.split('.');
-      let value = team;
-
-      for (const key of pathArray) {
-        if (value && typeof value === 'object' && key in value) {
-          value = value[key];
-        } else {
-          return fallback;
-        }
+const normalizeTeamData = (rawTeam) => {
+  return {
+    id: rawTeam.id,
+    name: rawTeam.name || 'Unnamed Team',
+    creator: rawTeam.creator || {_id: null, name: 'Unknown'},
+    members: rawTeam.members || [],
+    repositoryInfo: rawTeam.repositoryInfo || null,
+    doraMetrics: {
+      analysis_period: rawTeam.doraMetrics?.analysis_period || {
+        start_date: null,
+        end_date: null
+      },
+      deployment_frequency: rawTeam.doraMetrics?.deployment_frequency || {
+        frequency_per_day: '0',
+        total_deployments: '0',
+        status: 'No deployments found'
+      },
+      lead_time: rawTeam.doraMetrics?.lead_time || {
+        average_days: '0.00',
+        min_days: '0.00',
+        max_days: '0.00',
+        total_prs_analyzed: '0',
+        status: 'No pull requests analysed'
+      },
+      change_failure_rate: rawTeam.doraMetrics?.change_failure_rate || {
+        failure_rate: '0.00%',
+        deployment_failures: '0',
+        total_deployments: '0'
+      },
+      mttr: rawTeam.doraMetrics?.mttr || {
+        average_days: '0.00',
+        total_incidents_analyzed: '0',
+        status: 'No incidents analyzed'
       }
-      return value !== null && value !== undefined ? value : fallback;
-    } catch (error) {
-      return fallback;
     }
   };
-
-  const getMetricStatus = (value, type) => {
-    switch (type) {
-      case 'deployment':
-        const freq = parseFloat(value) || 0;
-        if (freq >= 0.1) return { status: 'Excellent', color: 'bg-green-100 text-green-700 border-green-200' };
-        if (freq >= 0.05) return { status: 'Good', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-        return { status: 'Needs Improvement', color: 'bg-red-100 text-red-700 border-red-200' };
-      case 'leadtime':
-        const days = parseFloat(value) || 0;
-        if (days <= 2) return { status: 'Excellent', color: 'bg-green-100 text-green-700 border-green-200' };
-        if (days <= 7) return { status: 'Good', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-        return { status: 'Needs Improvement', color: 'bg-red-100 text-red-700 border-red-200' };
-      case 'cfr':
-        const rate = parseFloat(value?.replace('%', '')) || 0;
-        if (rate <= 5) return { status: 'Excellent', color: 'bg-green-100 text-green-700 border-green-200' };
-        if (rate <= 15) return { status: 'Good', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-        return { status: 'Critical', color: 'bg-red-100 text-red-700 border-red-200' };
-      case 'mttr':
-        const mttrDays = parseFloat(value) || 0;
-        if (mttrDays <= 1) return { status: 'Excellent', color: 'bg-green-100 text-green-700 border-green-200' };
-        if (mttrDays <= 24) return { status: 'Good', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-        return { status: 'Needs Improvement', color: 'bg-red-100 text-red-700 border-red-200' };
-      default:
-        return { status: 'Unknown', color: 'bg-gray-100 text-gray-700 border-gray-200' };
-    }
-  };
-
-  return (
-      <div className="w-full space-y-6">
-        {teams.map((team, index) => (
-            <div key={team.id || index} className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden hover:shadow-lg transition-all duration-300 relative">
-              <LoadingOverlay isVisible={isDeleting} message="Deleting team..." />
-
-              {/* Team Header */}
-              <div className="p-6 border-b border-[var(--border)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-[var(--text)] mb-1">{team.name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-[var(--text-light)]">
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4" />
-                          <span>{team.members?.length || 0} member{(team.members?.length || 0) !== 1 ? 's' : ''}</span>
-                        </div>
-                        {team.creator && (
-                            <div className="flex items-center space-x-1">
-                              <Crown className="w-4 h-4" />
-                              <span>
-                          {team.creator._id === currentUser?._id ? 'You created this team' : `Created by ${team.creator.name || 'Unknown'}`}
-                        </span>
-                            </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {team.creator?._id === currentUser?._id && (
-                      <div className="relative">
-                        <button
-                            onClick={() => toggleMenu(team.id)}
-                            disabled={isDeleting}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg)] text-[var(--text-light)] border border-[var(--border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        {showMenu === team.id && (
-                            <div className="absolute right-0 top-10 w-44 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg shadow-lg z-10 overflow-hidden">
-                              <button
-                                  className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
-                                  onClick={() => {
-                                    onDeleteTeam(team.id, team.name);
-                                    setShowMenu(null);
-                                  }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Delete Team</span>
-                              </button>
-                            </div>
-                        )}
-                      </div>
-                  )}
-                </div>
-              </div>
-
-              {/* DORA Metrics Grid */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Deployment Frequency */}
-                  <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <GitBranch className="w-4 h-4 text-blue-600" />
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          getMetricStatus(getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0'), 'deployment').color
-                      }`}>
-                    {getMetricStatus(getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0'), 'deployment').status}
-                  </span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Deployment Frequency</h4>
-                    <p className="text-lg font-bold text-[var(--text)] mb-1">
-                      {getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0')}/day
-                    </p>
-                    <p className="text-xs text-[var(--text-light)]">
-                      {getMetricValue(team, 'doraMetrics.deployment_frequency.total_deployments', '0') > 0 ? (
-                          `${getMetricValue(team, 'doraMetrics.deployment_frequency.total_deployments', '0')} deployments`
-                      ) : (
-                          getMetricValue(team, 'doraMetrics.deployment_frequency.status', 'No deployments found')
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Lead Time */}
-                  <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-                        <Clock className="w-4 h-4 text-green-600" />
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          getMetricStatus(getMetricValue(team, 'doraMetrics.lead_time.average_days', '0'), 'leadtime').color
-                      }`}>
-                    {getMetricStatus(getMetricValue(team, 'doraMetrics.lead_time.average_days', '0'), 'leadtime').status}
-                  </span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Lead Time</h4>
-                    <p className="text-lg font-bold text-[var(--text)] mb-1">
-                      {getMetricValue(team, 'doraMetrics.lead_time.average_days', '0.00')} days
-                    </p>
-                    <p className="text-xs text-[var(--text-light)]">
-                      {getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', '0') > 0 ? (
-                          `${getMetricValue(team, 'doraMetrics.lead_time.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.lead_time.max_days', '0.00')} days`
-                      ) : (
-                          getMetricValue(team, 'doraMetrics.lead_time.status', 'No pull requests analysed')
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Change Failure Rate */}
-                  <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-orange-600" />
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          getMetricStatus(getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%'), 'cfr').color
-                      }`}>
-                    {getMetricStatus(getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%'), 'cfr').status}
-                  </span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Change Failure Rate</h4>
-                    <p className="text-lg font-bold text-[var(--text)] mb-1">
-                      {getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%')}
-                    </p>
-                    <p className="text-xs text-[var(--text-light)]">
-                      {getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0') > 0 ? (
-                          `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failures
-                    out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')} deployments`
-                      ) : (
-                          getMetricValue(team, 'doraMetrics.deployment_frequency.status', 'No deployments found')
-                      )}
-                    </p>
-                  </div>
-
-                  {/* MTTR */}
-                  <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          getMetricStatus(getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00'), 'mttr').color
-                      }`}>
-                    {getMetricStatus(getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00'), 'mttr').status}
-                  </span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Mean Time to Recovery</h4>
-                    <p className="text-lg font-bold text-[var(--text)] mb-1">
-                      {getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00')} days
-                    </p>
-                    <p className="text-xs text-[var(--text-light)]">
-                      {getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0') > 0 ? (
-                          `${getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0')} incidents`
-                      ) : (
-                          getMetricValue(team, 'doraMetrics.mttr.status', 'No incidents analyzed')
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Team Details Footer */}
-                <div className="mt-4 pt-4 border-t border-[var(--border)]">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-[var(--text-light)]" />
-                      <div>
-                        <p className="text-xs font-medium text-[var(--text)]">Analysis Period</p>
-                        <p className="text-xs text-[var(--text-light)]">{new Date(team.doraMetrics?.analysis_period.start_date).toLocaleDateString() || 'N/A'} - {new Date(team.doraMetrics?.analysis_period.end_date).toLocaleDateString() || 'N/A'}</p>
-                      </div>
-                    </div>
-
-                    {team.repositoryInfo?.url && (
-                        <div className="flex items-center space-x-2">
-                          <Github className="w-4 h-4 text-[var(--text-light)]" />
-                          <div>
-                            <p className="text-xs font-medium text-[var(--text)]">Repository</p>
-                            <a
-                                href={team.repositoryInfo.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors flex items-center space-x-1"
-                            >
-                              <span>{team.repositoryInfo.full_name}</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          </div>
-                        </div>
-                    )}
-
-                    <Link to={`/dashboard/metrics`} className="text-xs font-medium text-[var(--text)] hover:text-[var(--primary-dark)] transition-colors">
-                      <div className="w-4 h-4 bg-[var(--primary)] rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-2.5 h-2.5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-[var(--text)]">Performance</p>
-                        <p className="text-xs text-[var(--text-light)]">View detailed metrics</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-        ))}
-      </div>
-  );
 }
 
 //=============================================================Team Component======================================
@@ -491,7 +335,8 @@ function Team() {
   const [showJoinModal, setShowJoinModal] = useState(false);
 
   const [teamToDelete, setTeamToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingTeamIds, setDeletingTeamIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -499,24 +344,32 @@ function Team() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter and search states
-  const [searchTerm, setSearchTerm] = useState('');
+  // const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name_asc');
   const [filterOwnership, setFilterOwnership] = useState('all');
 
-  const loadTeams = async () => {
+  const [searchInput, setSearchInput] = useState(''); // What user types
+  const debouncedSearchTerm = useDebounce(searchInput, 300); // Actual search after 300ms delay
+
+  const resetPagination = useCallback(() => {
+    setCurrentPage(prev => prev === 1 ? prev : 1);
+  }, []);
+
+  const loadTeams = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       const userTeams = await getMyTeams();
-      setTeams(userTeams);
-      setCurrentPage(1); // Reset to first page when loading.error new data
+      const normalizedTeams = userTeams.map(normalizeTeamData);
+      setTeams(normalizedTeams);
+      resetPagination();
     } catch (error) {
       console.error('Error loading teams:', error);
       setError(error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [resetPagination]);
 
   const handleCreateTeam = async () => {
     try {
@@ -544,9 +397,10 @@ function Team() {
   };
 
   const confirmDeleteTeam = async () => {
-    if (!teamToDelete) return;
+    if (!teamToDelete || deletingTeamIds.has(teamToDelete)) return;
 
-    setIsDeleting(true);
+    // setIsDeleting(true);
+    setDeletingTeamIds(prev => new Set([...prev, teamToDelete.id]));
     try {
       await deleteTeam(teamToDelete.name, teamToDelete.id);
       await loadTeams();
@@ -557,19 +411,27 @@ function Team() {
       console.error('Error deleting team:', error);
       toast.error('Failed to delete team.');
     } finally {
-      setIsDeleting(false);
+      setDeletingTeamIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(teamToDelete.id);
+        return newSet;
+      });
+      // setIsDeleting(false);
     }
   };
 
   const { paginatedTeams, totalPages, totalItems, filteredTeams } = useMemo(() => {
-    if (!teams) return { paginatedTeams: [], totalPages: 0, totalItems: 0, filteredTeams: [] };
+    console.log('Recalculating filtered teams...'); // You'll see this in console when it recalculates
 
-    // Filter teams
+    if (!teams || teams.length === 0) {
+      return { paginatedTeams: [], totalPages: 0, totalItems: 0, filteredTeams: [] };
+    }
+
     let filtered = teams.filter(team => {
-      const matchesSearch = team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          team.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      // USE debouncedSearchTerm here instead of searchTerm
+      const matchesSearch = team.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          team.creator?.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-      // Ownership filter
       let matchesOwnership = true;
       if (filterOwnership === 'owned') {
         matchesOwnership = team.creator?._id === currentUser?._id;
@@ -602,13 +464,13 @@ function Team() {
     const paginatedTeams = filtered.slice(startIndex, endIndex);
 
     return { paginatedTeams, totalPages, totalItems, filteredTeams: filtered };
-  }, [teams, searchTerm, sortBy, filterOwnership, currentUser?._id, currentPage]);
+  }, [teams, debouncedSearchTerm, sortBy, filterOwnership, currentUser?._id, currentPage]);
 
   const clearFilters = () => {
-    setSearchTerm('');
+    setSearchInput('');
     setSortBy('name_asc');
     setFilterOwnership('all');
-    setCurrentPage(1);
+    resetPagination();
   };
 
   const handlePageChange = (newPage) => {
@@ -617,12 +479,12 @@ function Team() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
+  // const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
+  const hasActiveFilters = debouncedSearchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
 
-  // Reset page when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, sortBy, filterOwnership]);
+    resetPagination();
+  }, [debouncedSearchTerm, sortBy, filterOwnership, resetPagination]);
 
   useEffect(() => {
     if (currentUser?.avatar) {
@@ -635,11 +497,10 @@ function Team() {
     }
 
     if (currentUser) {
-      (async () => {
-        await loadTeams();
-      })();
+      loadTeams()
     }
-  }, [currentUser]);
+  }, [currentUser, loadTeams]);
+
 
   if (isLoading) {
     return (
@@ -687,8 +548,8 @@ function Team() {
                         <input
                             type="text"
                             placeholder="Search teams by name or creator..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
+                            value={searchInput}
+                            onChange={e => setSearchInput(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-container)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-200"
                         />
                       </div>
@@ -783,7 +644,7 @@ function Team() {
                   teams={paginatedTeams}
                   currentUser={currentUser}
                   onDeleteTeam={handleDeleteTeam}
-                  isDeleting={isDeleting}
+                  deletingTeamIds={deletingTeamIds}
               />
             </div>
 
@@ -819,7 +680,7 @@ function Team() {
               name={teamToDelete?.name}
               onConfirm={confirmDeleteTeam}
               onCloseDelete={() => setShowDeleteModal(false)}
-              isDeleting={isDeleting}
+              isDeleting={deletingTeamIds.has(teamToDelete?.id)}
           />
         </ModalPortal>
       </div>
