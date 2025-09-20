@@ -187,9 +187,9 @@ function Profile() {
     }
   };
 
-  const handleConnectGitHub = () => {
+ /* const handleConnectGitHub = () => {
     window.location.href = `${API_BASE_URL}/api/auth/github`;
-  };
+  };*/
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
@@ -561,17 +561,20 @@ function Profile() {
                         </p>
                       </div>
 
-                      <button
-                        onClick={handleConnectGitHub}
-                        disabled={!!currentUser?.githubUsername}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium 
-                          ${currentUser?.githubUsername
-                            ? 'bg-green-100 text-green-700 cursor-default'
-                            : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors'
-                        }`}
-                      >
-                        {currentUser?.githubUsername ? 'Connected' : 'Connect GitHub'}
-                      </button>
+                      {/*<button*/}
+                      {/*  onClick={handleConnectGitHub}*/}
+                      {/*  disabled={!!currentUser?.githubUsername}*/}
+                      {/*  className={`px-4 py-2 rounded-lg text-sm font-medium */}
+                      {/*    ${currentUser?.githubUsername*/}
+                      {/*      ? 'bg-green-100 text-green-700 cursor-default'*/}
+                      {/*      : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors'*/}
+                      {/*  }`}*/}
+                      {/*>*/}
+                      <div className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 cursor-default">
+                        {currentUser?.githubUsername && 'Connected'}
+                      </div>
+
+                      {/*</button>*/}
                     </div>
                   </div>
 
