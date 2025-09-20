@@ -1,4 +1,5 @@
 import { Octokit } from 'octokit';
+import { parseGitHubUrl } from './github-utils.js';
 
 /**
  * Enhanced Repository Information Service with Maximum Accuracy
@@ -26,7 +27,7 @@ const octokit = new Octokit({
   }
 });
 
-// Helper function to add delay between requests
+// Helper function to add delay between requests (kept for compatibility; avoid fixed sleeps where possible)
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
@@ -36,56 +37,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
  * @returns {Object} Object containing owner and repo name with validation info
  * @throws {Error} If the URL is invalid or malformed
  */
-function parseGitHubUrl(repositoryUrl) {
-  try {
-    const url = new URL(repositoryUrl);
-    
-    if (url.hostname !== 'github.com') {
-      throw new Error('Invalid GitHub URL: hostname must be github.com');
-    }
-    
-    const pathParts = url.pathname.split('/').filter(part => part.length > 0);
-    
-    if (pathParts.length < 2) {
-      throw new Error('Invalid GitHub URL: must contain owner and repository name');
-    }
-    
-    const owner = pathParts[0];
-    const repo = pathParts[1];
-    
-    // Remove .git extension if present
-    const cleanRepo = repo.replace(/\.git$/, '');
-    
-    // Enhanced validation
-    const validation = {
-      isValid: true,
-      confidence: 'high',
-      warnings: []
-    };
-    
-    // Check for common issues
-    if (owner.length < 1 || cleanRepo.length < 1) {
-      validation.warnings.push('Owner or repository name appears to be empty');
-      validation.confidence = 'medium';
-    }
-    
-    if (owner.includes(' ') || cleanRepo.includes(' ')) {
-      validation.warnings.push('Owner or repository name contains spaces');
-      validation.confidence = 'low';
-    }
-    
-    return { 
-      owner, 
-      repo: cleanRepo,
-      validation
-    };
-  } catch (error) {
-    if (error instanceof TypeError) {
-      throw new Error('Invalid URL format');
-    }
-    throw error;
-  }
-}
+// parseGitHubUrl imported from './github-utils.js'
 
 /**
  * Enhanced contributor fetching with accuracy indicators
@@ -103,7 +55,7 @@ async function fetchTopContributors(owner, repo, limit = 10) {
       per_page: limit
     });
     
-    await delay(1000);
+    // Removed fixed delay; rely on Octokit's built-in throttling
 
     const processedContributors = contributors.map(user => ({
       username: user.login,
@@ -245,7 +197,7 @@ async function getRepositoryInfo(repositoryUrl) {
       owner,
       repo
     });
-    await delay(1000);
+    // Removed fixed delay; rely on Octokit's built-in throttling
     
     // Fetch repository languages
     const { data: languages } = await octokit.rest.repos.listLanguages({
@@ -254,74 +206,28 @@ async function getRepositoryInfo(repositoryUrl) {
     });
     await delay(1000);
 
-    // Fetch open issues (excluding PRs) - limited to avoid pagination issues
-    let allIssues = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      try {
-        const { data: issues } = await octokit.rest.issues.listForRepo({
-          owner,
-          repo,
-          state: 'open',
-          per_page: 100,
-          page: page
-        });
-
-        if (issues.length === 0) {
-          hasMore = false;
-        } else {
-          allIssues = allIssues.concat(issues);
-          page++;
-          
-          // Respect rate limits
-          if (issues.length < 100) {
-            hasMore = false;
-          }
-          
-          await delay(1000);
-        }
-      } catch (error) {
-        console.error(`Error fetching issues page ${page}:`, error.message);
-        hasMore = false;
-      }
+    // Replace pagination with Search API counts for efficiency
+    let openIssuesCount = 0;
+    let openPRCount = 0;
+    try {
+      const issuesSearch = await octokit.rest.search.issuesAndPullRequests({
+        q: `repo:${owner}/${repo} type:issue state:open`,
+        per_page: 1
+      });
+      openIssuesCount = issuesSearch.data.total_count || 0;
+    } catch (error) {
+      console.warn(`Search API failed for open issues: ${error.message}`);
+      openIssuesCount = 0;
     }
-
-    // Filter out PRs to get only issues
-    const openIssuesOnly = allIssues.filter(issue => !issue.pull_request);
-    console.log("OPEN ISSUES: ", openIssuesOnly.length);
-    // Fetch open pull requests
-    let openPRs = [];
-    page = 1;
-    hasMore = true;
-
-    while (hasMore) {
-      try {
-        const { data: prs } = await octokit.rest.pulls.list({
-          owner,
-          repo,
-          state: 'open',  // Only fetch open PRs
-          per_page: 100,
-          page: page
-        });
-
-        if (prs.length === 0) {
-          hasMore = false;
-        } else {
-          openPRs = openPRs.concat(prs);
-          page++;
-          
-          if (prs.length < 100) {
-            hasMore = false;
-          }
-          
-          await delay(1000);
-        }
-      } catch (error) {
-        console.error(`Error fetching open PRs page ${page}:`, error.message);
-        hasMore = false;
-      }
+    try {
+      const prsSearch = await octokit.rest.search.issuesAndPullRequests({
+        q: `repo:${owner}/${repo} type:pr state:open`,
+        per_page: 1
+      });
+      openPRCount = prsSearch.data.total_count || 0;
+    } catch (error) {
+      console.warn(`Search API failed for open PRs: ${error.message}`);
+      openPRCount = 0;
     }
     
     // Fetch recent commits for deployment detection
@@ -331,7 +237,7 @@ async function getRepositoryInfo(repositoryUrl) {
       per_page: 100,
       since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // Last 30 days
     });
-    await delay(1000);
+    // Removed fixed delay
     
     // Fetch top contributors with accuracy metrics
     const contributorData = await fetchTopContributors(owner, repo, 30, 10);
@@ -362,8 +268,8 @@ async function getRepositoryInfo(repositoryUrl) {
       stars: statsAnalysis.statistics.stars,
       forks: statsAnalysis.statistics.forks,
       watchers: statsAnalysis.statistics.watchers,
-      open_issues: openIssuesOnly.length,
-      open_pull_requests: openPRs.length,
+      open_issues: openIssuesCount,
+      open_pull_requests: openPRCount,
       size: statsAnalysis.statistics.size,
       
       // Enhanced programming languages with analysis

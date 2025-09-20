@@ -1,4 +1,5 @@
 import { getNextOctokit } from '../services/tokenManager.js';
+import { parseGitHubUrl } from './github-utils.js';
 
 /**
  * Universal DORA Metrics Service
@@ -38,34 +39,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
  * @returns {Object} Object containing owner and repo name
  * @throws {Error} If the URL is invalid or malformed
  */
-function parseGitHubUrl(repositoryUrl) {
-  try {
-    const url = new URL(repositoryUrl);
-    
-    if (url.hostname !== 'github.com') {
-      throw new Error('Invalid GitHub URL: hostname must be github.com');
-    }
-    
-    const pathParts = url.pathname.split('/').filter(part => part.length > 0);
-    
-    if (pathParts.length < 2) {
-      throw new Error('Invalid GitHub URL: must contain owner and repository name');
-    }
-    
-    const owner = pathParts[0];
-    const repo = pathParts[1];
-    
-    // Remove .git extension if present
-    const cleanRepo = repo.replace(/\.git$/, '');
-    
-    return { owner, repo: cleanRepo };
-  } catch (error) {
-    if (error instanceof TypeError) {
-      throw new Error('Invalid URL format');
-    }
-    throw error;
-  }
-}
+// parseGitHubUrl imported from './github-utils.js'
 
 /**
  * Enhanced Issue Content Analysis for Universal Accuracy
@@ -679,6 +653,7 @@ async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
   try {
     console.log(`Fetching repositories for organization: ${organization}`);
     
+    const octokit = getNextOctokit();
     const { data: repos } = await octokit.rest.repos.listForOrg({
       org: organization,
       per_page: Math.min(maxRepos, 100),
