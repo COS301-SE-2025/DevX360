@@ -55,7 +55,7 @@ function Metrics() {
       setError(null);
       
       const targetTeamId = selectedTeamId;
-      console.log('Fetching metrics for team:', targetTeamId);
+      // console.log('Fetching metrics for team:', targetTeamId);
       const targetTeam = currentUser.teams.find(team => team.id === targetTeamId);
       if (!targetTeam) {
         throw new Error('Selected team not found');
@@ -145,10 +145,10 @@ const handleMemberClick = (member) => {
   const memberIdStr = String(member._id);
   const currentUserIdStr = String(currentUser._id);
   
-  console.log('Member ID (string):', memberIdStr);
-  console.log('Current User ID (string):', currentUserIdStr);
-  console.log('Is Creator:', isTeamCreator());
-  console.log('Is Own Profile:', memberIdStr === currentUserIdStr);
+  // console.log('Member ID (string):', memberIdStr);
+  // console.log('Current User ID (string):', currentUserIdStr);
+  // console.log('Is Creator:', isTeamCreator());
+  // console.log('Is Own Profile:', memberIdStr === currentUserIdStr);
   
   // RBAC Logic:
   // - Team creators can view anyone's stats
@@ -178,9 +178,9 @@ const handleMemberClick = (member) => {
 
   // Fixed AI feedback useEffect
   useEffect(() => {
-    console.log('Fetching AI feedback for team:', selectedTeamId);
+    // console.log('Fetching AI feedback for team:', selectedTeamId);
     if (!selectedTeamId) return;
-    console.log('Checking AI feedback for team:', teamData?.team?._id);
+    // console.log('Checking AI feedback for team:', teamData?.team?._id);
     const teamId = selectedTeamId || teamData?.team?._id;
     let pollInterval;
 
@@ -192,12 +192,12 @@ const handleMemberClick = (member) => {
         });
 
         const data = await response.json();
-        console.log('AI feedback response:', data);
+        // console.log('AI feedback response:', data);
 
         if (response.ok && data.status === 'completed' && data.aiFeedback) {
           // Successfully got completed analysis
           setAiFeedback(data.aiFeedback);
-          console.log('AI Feedback:', data.aiFeedback);
+          // console.log('AI Feedback:', data.aiFeedback);
           
           // Parse the feedback sections - improved regex to handle the format better
           const feedbackSections = {};
