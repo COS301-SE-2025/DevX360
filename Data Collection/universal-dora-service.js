@@ -465,12 +465,12 @@ async function fetchRepositoryMetrics(owner, repo) {
   const octokit = getNextOctokit();
 
   try {
-    console.log(`Fetching DORA metrics for ${owner}/${repo} (30-day analysis)...`);
+    console.error(`Fetching DORA metrics for ${owner}/${repo} (30-day analysis)...`);
 
     // Calculate the date threshold for 30 days ago
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - 30);
-    console.log(`Analyzing data from ${dateThreshold.toISOString()} to present`);
+    console.error(`Analyzing data from ${dateThreshold.toISOString()} to present`);
 
     const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
       octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }),
@@ -513,12 +513,12 @@ async function fetchRepositoryMetrics(owner, repo) {
       issue.created_at && new Date(issue.created_at) >= dateThreshold
     );
 
-    console.log(`Filtered data counts over 30 days:`);
-    console.log(`  Releases: ${releases.length}`);
-    console.log(`  Tags: ${tags.length}`);
-    console.log(`  Commits: ${commits.length}`);
-    console.log(`  Pull Requests: ${pullRequests.length}`);
-    console.log(`  Issues: ${issues.length}`);
+    console.error(`Filtered data counts over 30 days:`);
+    console.error(`  Releases: ${releases.length}`);
+    console.error(`  Tags: ${tags.length}`);
+    console.error(`  Commits: ${commits.length}`);
+    console.error(`  Pull Requests: ${pullRequests.length}`);
+    console.error(`  Issues: ${issues.length}`);
 
     const metrics = {
       repository: {
@@ -547,7 +547,7 @@ async function fetchRepositoryMetrics(owner, repo) {
       }
     };
 
-    console.log(`Successfully processed DORA metrics for ${owner}/${repo} over 30 days`);
+    console.error(`Successfully processed DORA metrics for ${owner}/${repo} over 30 days`);
     return metrics;
 
   } catch (error) {
@@ -594,12 +594,12 @@ async function getDORAMetricsBatch(repositoryUrls) {
   const results = [];
   const errors = [];
   
-  console.log(`Processing ${repositoryUrls.length} repositories...`);
+  console.error(`Processing ${repositoryUrls.length} repositories...`);
   
   for (let i = 0; i < repositoryUrls.length; i++) {
     const url = repositoryUrls[i];
     try {
-      console.log(`Processing ${i + 1}/${repositoryUrls.length}: ${url}`);
+      console.error(`Processing ${i + 1}/${repositoryUrls.length}: ${url}`);
       const metrics = await getDORAMetrics(url);
       
       if (metrics) {
@@ -651,7 +651,7 @@ async function getDORAMetricsBatch(repositoryUrls) {
  */
 async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
   try {
-    console.log(`Fetching repositories for organization: ${organization}`);
+    console.error(`Fetching repositories for organization: ${organization}`);
     
     const octokit = getNextOctokit();
     const { data: repos } = await octokit.rest.repos.listForOrg({
@@ -661,7 +661,7 @@ async function getOrganizationDORAMetrics(organization, maxRepos = 50) {
       direction: 'desc'
     });
     
-    console.log(`Found ${repos.length} repositories. Processing DORA metrics...`);
+    console.error(`Found ${repos.length} repositories. Processing DORA metrics...`);
     
     const repositoryUrls = repos.slice(0, maxRepos).map(repo => 
       `https://github.com/${organization}/${repo.name}`

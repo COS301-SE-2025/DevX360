@@ -17,11 +17,11 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN_1,
   throttle: {
     onRateLimit: (retryAfter, options) => {
-      console.log(`Rate limit hit, waiting ${retryAfter} seconds...`);
+      console.error(`Rate limit hit, waiting ${retryAfter} seconds...`);
       return true;
     },
     onSecondaryRateLimit: (retryAfter, options) => {
-      console.log(`Secondary rate limit hit, waiting ${retryAfter} seconds...`);
+      console.error(`Secondary rate limit hit, waiting ${retryAfter} seconds...`);
       return true;
     }
   }
@@ -190,7 +190,7 @@ async function getRepositoryInfo(repositoryUrl) {
     // Validate and parse the GitHub URL with enhanced validation
     const { owner, repo, validation } = parseGitHubUrl(repositoryUrl);
     
-    console.log(`Fetching enhanced repository information for ${owner}/${repo}...`);
+    console.error(`Fetching enhanced repository information for ${owner}/${repo}...`);
     
     // Fetch basic repository information
     const { data: repository } = await octokit.rest.repos.get({
@@ -325,7 +325,7 @@ async function getRepositoryInfo(repositoryUrl) {
       ]
     };
     
-    console.log(`Successfully retrieved enhanced information for ${owner}/${repo} (Confidence: ${overallConfidence}%)`);
+    console.error(`Successfully retrieved enhanced information for ${owner}/${repo} (Confidence: ${overallConfidence}%)`);
     return repositoryInfo;
     
   } catch (error) {
@@ -459,7 +459,7 @@ export function extractOwnerAndRepo(url) {
  */
 export async function collectMemberActivity(owner, repo, githubUsername) {
   try {
-    console.log(`Collecting activity for ${githubUsername} in ${owner}/${repo}`);
+    console.error(`Collecting activity for ${githubUsername} in ${owner}/${repo}`);
     
     // Fetch user's commits
     const { data: commits } = await octokit.rest.repos.listCommits({

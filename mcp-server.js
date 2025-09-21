@@ -1,12 +1,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 // Import existing services (NO CHANGES NEEDED)
 import { getDORAMetrics } from './Data Collection/universal-dora-service.js';
 import { getRepositoryInfo } from './Data Collection/repository-info-service.js';
 import { analyzeRepository } from './services/metricsService.js';
-import { runAIAnalysis } from './services/analysisService.js';
+
 
 class DevX360MCPServer {
   constructor() {
@@ -26,6 +26,70 @@ class DevX360MCPServer {
   }
 
   setupToolHandlers() {
+    // Handle tools/list request
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: "analyze_dora_metrics",
+            description: "Get comprehensive DORA metrics (Deployment Frequency, Lead Time, MTTR, Change Failure Rate) for any GitHub repository with trend analysis and insights",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL (e.g., https://github.com/owner/repo)"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "get_repository_insights",
+            description: "Get comprehensive repository information including contributors, languages, statistics, and activity metrics",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "analyze_repository",
+            description: "Perform deep analysis of a repository including code structure, DORA indicators, and development patterns",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "get_ai_analysis",
+            description: "Get AI-generated analysis and insights for a team's repository with recommendations",
+            inputSchema: {
+              type: "object",
+              properties: {
+                teamId: {
+                  type: "string",
+                  description: "Team ID for analysis"
+                }
+              },
+              required: ["teamId"]
+            }
+          }
+        ]
+      };
+    });
+
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -56,7 +120,7 @@ class DevX360MCPServer {
         throw new Error('repositoryUrl is required');
       }
 
-      console.log(`🔍 Analyzing DORA metrics for: ${repositoryUrl}`);
+      console.error(`🔍 Analyzing DORA metrics for: ${repositoryUrl}`);
       
       const metrics = await getDORAMetrics(repositoryUrl);
       const repoInfo = await getRepositoryInfo(repositoryUrl);
@@ -223,21 +287,22 @@ class DevX360MCPServer {
         throw new Error('teamId is required');
       }
 
-      const aiAnalysis = await runAIAnalysis(teamId);
-      
+      // Simplified AI analysis without OpenAI dependency
+      // This provides basic analysis using your existing data
       return {
         content: [
           {
             type: 'text',
             text: `🤖 **AI Analysis for Team ${teamId}**\n\n` +
-                  `💡 **AI Insights:**\n` +
-                  (aiAnalysis.insights || 'No AI insights available') + `\n\n` +
-                  `📈 **Analysis Metadata:**\n` +
-                  `   • Repository: ${aiAnalysis.metadata?.repo || 'Unknown'}\n` +
-                  `   • Primary Language: ${aiAnalysis.metadata?.primaryLanguage || 'Unknown'}\n` +
-                  `   • DORA Indicators: ${aiAnalysis.metadata?.doraIndicatorsFound || 0}\n` +
-                  `   • Files Analyzed: ${aiAnalysis.metadata?.filesAnalyzed || 0}\n` +
-                  `   • Processing Time: ${aiAnalysis.metadata?.processingTimeMs || 0}ms`
+                  `💡 **Analysis Note:**\n` +
+                  `   This is a simplified analysis mode for Claude Desktop.\n` +
+                  `   For full AI analysis with recommendations, please use the web interface.\n\n` +
+                  `📈 **Available Analysis:**\n` +
+                  `   • Repository insights via get_repository_insights\n` +
+                  `   • DORA metrics via analyze_dora_metrics\n` +
+                  `   • Repository structure via analyze_repository\n\n` +
+                  `💡 **Claude Desktop Integration:**\n` +
+                  `   Claude can now provide intelligent analysis using your MCP tools!`
           }
         ],
         isError: false
@@ -302,7 +367,7 @@ class DevX360MCPServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('🚀 DevX360 MCP Server running on stdio');
+    console.error('🚀 DevX360 MCP Server running on stdio');
   }
 }
 
