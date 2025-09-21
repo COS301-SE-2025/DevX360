@@ -1,0 +1,17 @@
+{
+	"scale": 0,
+	"locale": "en-US",
+	"userThemeMode": "system",
+	"mcpServers": {
+		"simple-test": {
+			"command": "/opt/homebrew/bin/node",
+			"args": [
+				"/Users/sbudx/Documents/GitHub/DevX360/simple-mcp-test.js"
+			],
+			"env": {
+				"NODE_PATH": "/opt/homebrew/lib/node_modules",
+				"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+			}
+		}
+	}
+}
