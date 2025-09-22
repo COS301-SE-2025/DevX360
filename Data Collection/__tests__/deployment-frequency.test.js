@@ -8,6 +8,17 @@ async function importModifiedModule(filePath, namesToExport) {
   let src = fs.readFileSync(filePath, 'utf8');
   // Strip the getNextOctokit import to avoid resolution
   src = src.replace(/import\s+\{\s*getNextOctokit\s*\}[^;]+;?/g, '');
+  // Strip github-utils import (parseGitHubUrl) since not needed for these unit tests
+  src = src.replace(/import\s+\{[^}]*\}\s+from\s+['"]\.\/github-utils\.js['"];?/g, '');
+  // If the module re-exports parseGitHubUrl, drop it from the export list to avoid undefined export
+  src = src.replace(/export\s*\{([\s\S]*?)\};/g, (m, inner) => {
+    const cleaned = inner
+      .split(',')
+      .map(s => s.trim())
+      .filter(name => name !== 'parseGitHubUrl')
+      .join(', ');
+    return `export { ${cleaned} };`;
+  });
   for (const name of namesToExport) {
     src = src.replace(new RegExp(`\\bfunction\\s+${name}\\s*\\(`), `export function ${name}(`);
   }
