@@ -28,6 +28,9 @@ function Profile() {
     githubUsername: '',
   });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [githubUsernameError, setGithubUsernameError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -71,8 +74,9 @@ function Profile() {
 
   const handleEditProfile = () => {
     setIsEditing(true);
-    setFieldErrors({});
-    setErrorMessage('');
+    // setFieldErrors({});
+    // setErrorMessage('');
+    clearErrors();
   };
 
   const validateForm = () => {
@@ -101,8 +105,7 @@ function Profile() {
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
-    setFieldErrors({});
-    setErrorMessage('');
+    clearErrors()
     // Reset to original values
     setEditData({
       name: currentUser?.name || '',
@@ -125,7 +128,24 @@ function Profile() {
     if (errorMessage) {
       setErrorMessage('');
     }
-  }, [fieldErrors, errorMessage]);
+    if (nameError) {
+      setNameError('');
+    }
+    if (emailError) {
+      setEmailError('');
+    }
+    if (githubUsernameError) {
+      setGithubUsernameError('');
+    }
+  }, [fieldErrors, errorMessage, nameError, emailError, githubUsernameError]);
+
+  const clearErrors = () => {
+    setFieldErrors({});
+    setErrorMessage('');
+    setNameError('');
+    setEmailError('');
+    setGithubUsernameError('');
+  }
 
   const handleSaveProfile = async () => {
     // Validate form
@@ -144,8 +164,9 @@ function Profile() {
 
     try {
       setIsLoading(true);
-      setFieldErrors({});
-      setErrorMessage('');
+      clearErrors();
+      // setFieldErrors({});
+      // setErrorMessage('');
 
       // Trim data before sending
       const trimmedData = {
@@ -178,9 +199,15 @@ function Profile() {
       if (error.field && error.message) {
         setFieldErrors({ [error.field]: error.message });
       } else {
-        setErrorMessage(error?.message || 'Failed to update profile');
+          if (error?.message?.includes('Email')) {
+            setEmailError(error?.message || 'Failed to update email');
+          } else if (error?.message?.includes('GitHub')) {
+            setGithubUsernameError(error?.message || 'Failed to update github username');
+          } else {
+            setErrorMessage(error?.message || 'Failed to update profile');
+          }
       }
-      toast.error(error?.message || 'Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
@@ -338,7 +365,7 @@ function Profile() {
                     <button
                       onClick={handleSaveProfile}
                       className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors duration-200 min-w-[120px] justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isLoading}
+                      disabled={isLoading || !editData.name || !editData.email }
                     >
                       {isLoading ? (
                         <>
@@ -354,15 +381,6 @@ function Profile() {
                   </div>
                 )}
               </div>
-
-              {errorMessage && (
-                <div className="flex items-center gap-1 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
-                  <div className="text-red-700 text-sm">
-                    {errorMessage}
-                  </div>
-                </div>
-              )}
 
               <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/*Avatar Section*/}
@@ -458,8 +476,14 @@ function Profile() {
                             className={getInputClassName('name')}
                             placeholder="Enter your full name"
                           />
+
                           {fieldErrors.name && (
-                            <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>
+                              <div className="flex gap-1 items-center px-1 py-1">
+                                <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                                <div className="text-[var(--secondary)] text-xs mt-0.5">
+                                  {fieldErrors.name}
+                                </div>
+                              </div>
                           )}
                         </div>
                       )}
@@ -487,9 +511,23 @@ function Profile() {
                             placeholder="your.email@example.com"
                           />
                           {fieldErrors.email && (
-                            <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+                              <div className="flex gap-1 items-center px-1 py-1">
+                                <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                                <div className="text-[var(--secondary)] text-xs mt-0.5">
+                                  {fieldErrors.email}
+                                </div>
+                              </div>
                           )}
                         </div>
+                      )}
+
+                      {emailError && (
+                          <div className="flex gap-1 items-center px-1 py-1">
+                            <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                            <div className="text-[var(--secondary)] text-xs mt-0.5">
+                              {emailError}
+                            </div>
+                          </div>
                       )}
                     </div>
 
@@ -528,9 +566,23 @@ function Profile() {
                             placeholder="your-github-username"
                           />
                           {fieldErrors.githubUsername && (
-                              <p className="text-red-500 text-xs mt-1">{fieldErrors.githubUsername}</p>
+                              <div className="flex gap-1 items-center px-1 py-1">
+                                <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                                <div className="text-[var(--secondary)] text-xs mt-0.5">
+                                  {fieldErrors.githubUsername}
+                                </div>
+                              </div>
                           )}
                         </div>
+                      )}
+
+                      {githubUsernameError && (
+                          <div className="flex gap-1 items-center px-1 py-1">
+                            <AlertCircle size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+                            <div className="text-[var(--secondary)] text-xs mt-0.5">
+                              {githubUsernameError}
+                            </div>
+                          </div>
                       )}
                     </div>
 
