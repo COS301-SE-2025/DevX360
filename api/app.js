@@ -25,7 +25,7 @@ import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from ".
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
-import { hashPassword, comparePassword, generateToken } from "./utils/auth.js";
+import { hashPassword, comparePassword, generateToken, authenticateMCP } from "./utils/auth.js";
 import { authorizeTeamAccess } from "./middlewares/authorizeTeamAccess.js";
 
 // --------------------------------------------------------------------------
@@ -1062,6 +1062,50 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
       error: err.message,
       suggestion: "Check repository access and AI service availability",
     });
+  }
+});
+
+/**
+ * Exposes team + RepoMetrics for consumption by an external MCP.
+ * Auth: x-mcp-token header (value = process.env.MCP_API_TOKEN)
+ * @route GET /api/mcp/team/:teamName
+ */
+app.get("/api/mcp/team/:teamName", authenticateMCP, async (req, res) => {
+  try {
+    const { teamName } = req.params;
+
+    const team = await Team.findOne({ name: teamName })
+      .populate("creator", "name email")
+      .populate("members", "name email")
+      .lean();
+
+    if (!team) return res.status(404).json({ message: "Team not found" });
+
+    const repoData = await RepoMetrics.findOne({ teamId: team._id }).lean();
+
+    let memberStats = {};
+    if (repoData?.memberStats) {
+      try {
+        memberStats = Object.fromEntries(repoData.memberStats);
+      } catch {
+        memberStats = repoData.memberStats;
+      }
+    }
+
+    res.json({
+      team: {
+        name: team.name,
+        creator: team.creator || null,
+        members: team.members || [],
+      },
+      repositoryInfo: repoData?.repositoryInfo || null,
+      doraMetrics: repoData?.metrics || null,
+      memberStats,
+      lastUpdated: repoData?.lastUpdated || null,
+    });
+  } catch (err) {
+    console.error("MCP team fetch error:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

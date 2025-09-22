@@ -32,8 +32,18 @@ function generateToken(
   return jwt.sign(payload, secret, options);
 }
 
+const authenticateMCP = (req, res, next) => {
+  const token = req.header("x-mcp-token") || req.query.mcp_token;
+  if (!token) return res.status(401).json({ message: "MCP token required" });
+  if (!process.env.MCP_API_TOKEN || token !== process.env.MCP_API_TOKEN) {
+    return res.status(403).json({ message: "Invalid MCP token" });
+  }
+  next();
+};
+
 export {
   hashPassword,
   comparePassword,
   generateToken,
+  authenticateMCP
 };
