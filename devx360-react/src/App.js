@@ -1,4 +1,4 @@
-// App.js
+// App.js 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './components/Auth/Login';
@@ -31,6 +31,21 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// PublicRoute: redirects authenticated users away from auth pages
+const PublicRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (currentUser) {
+    return <Navigate to="/dashboard/overview" replace />;
+  }
+  
+  return children;
+};
+
 // App component with routing
 function App() {
   const { currentUser, loading } = useAuth();
@@ -39,13 +54,20 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Redirect root to dashboard overview */}
-        <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
+        {/* Root path goes to landing page */}
+        <Route path="/" element={<LandingPage />} />
 
-        {/* Public routes */}
-        <Route path="/landingpage" element={<LandingPage />} /> 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Public routes that redirect if already authenticated */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
+        <Route path="/register" element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } />
 
         {/* Protected routes */}
         <Route
@@ -63,8 +85,11 @@ function App() {
           {isAdmin && (<Route path="admin" element={<Admin />} />)}
           <Route path="metrics" element={<Metrics />} />
           <Route path="help" element={<HelpMenu />} />
-          <Route path="faqpage" element={<FAQPage />} /> 
+          <Route path="faqpage" element={<FAQPage />} />
         </Route>
+
+        {/* Catch-all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {/* Toast notifications */}
