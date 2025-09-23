@@ -9,10 +9,12 @@ function Sidebar() {
 
   const isAdmin = currentUser?.role === 'admin';
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+ 
+const handleLogout = async () => {
+  await logout();
+  // Force navigation to login and reload
+  window.location.href = '/login';
+};
 
   const toggleSidebar = () => {
     setIsMinimized(!isMinimized);

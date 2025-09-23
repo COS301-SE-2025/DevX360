@@ -20,15 +20,17 @@ export const AuthProvider = ({ children }) => {
           const data = await response.json();
           setCurrentUser(data.user);
         } else if (response.status === 401 || response.status === 403) {
+          // User is not authenticated - this is expected after logout
           setCurrentUser(null);
         } else {
           console.error('Profile check failed with status:', response.status);
+          setCurrentUser(null);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        // setCurrentUser(null);
-        // You might want to add retry logic or show a message to the user
+        setCurrentUser(null);
       } finally {
+        // Always set loading to false, regardless of success or failure
         setLoading(false);
       }
     };
@@ -79,8 +81,13 @@ export const AuthProvider = ({ children }) => {
         credentials: 'include',
       });
       setCurrentUser(null);
+      
+      // Force page reload to clear all component states
+      window.location.reload();
     } catch (error) {
       console.error('Logout failed:', error);
+      // Still reload even if logout request fails
+      window.location.reload();
     }
   };
 
@@ -106,4 +113,3 @@ export const AuthProvider = ({ children }) => {
       </AuthContext.Provider>
   );
 };
-

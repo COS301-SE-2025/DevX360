@@ -253,6 +253,50 @@ const handleMemberClick = (member) => {
     };
   }, [teamData]);
 
+  useEffect(() => {
+  // Handle logout scenario - if user becomes null, reset all states
+  if (currentUser === null) {
+    setTeamData(null);
+    setLoading(false); // Important: set loading to false
+    setError('User not authenticated');
+    setAiFeedback(null);
+    setParsedFeedback({});
+    setAiLoading(false);
+    setAiError(null);
+    setAiStatus('not_started');
+    setAiProgress(0);
+    setSelectedTeamId('');
+    setExpandedInsights({});
+    setSelectedMember(null);
+    setShowMemberStatsModal(false);
+  }
+}, [currentUser]);
+
+// Also update the loading check to handle null user
+if (loading) {
+  return (
+    <div className="min-h-screen bg-[var(--bg)]">
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+        <span className="ml-3 text-[var(--text)]">Loading metrics...</span>
+      </div>
+    </div>
+  );
+}
+
+// Add this check right after the loading check
+if (!currentUser) {
+  return (
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+      <div className="text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <div className="text-xl font-semibold text-[var(--text)] mb-2">Authentication Required</div>
+        <div className="text-[var(--text-light)]">Please log in to view metrics.</div>
+      </div>
+    </div>
+  );
+}
+
   const getMetricStatus = (value, thresholds) => {
     if (value >= thresholds.good) return { status: 'Good', color: 'green' };
     if (value >= thresholds.fair) return { status: 'Fair', color: 'yellow' };
