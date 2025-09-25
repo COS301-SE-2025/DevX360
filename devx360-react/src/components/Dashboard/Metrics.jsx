@@ -740,6 +740,20 @@ const renderMemberCard = (member, isCreator = false) => {
 
   const currentSelectedTeam = currentUser?.teams.find(team => team.id === selectedTeamId);
 
+  //  <option value="7">Last 7 days</option>
+  //                 <option value="30">Last 30 days</option>
+  //                 <option value="90">Last 90 days</option>
+
+  //if these options are in play then we need to adjust the data fetching logic to support these ranges
+
+  //if timeRange is 7 then const doraMetrics = teamData.doraMetrics.7d || {};
+
+  //else if timeRange is 30 then const doraMetrics = teamData.doraMetrics.30d || {};
+
+  //else if timeRange is 90 then const doraMetrics = teamData.doraMetrics.90d || {};
+
+  
+
   // Safe data access with fallbacks for missing DORA metrics
 const doraMetrics = teamData.doraMetrics || {};
 const dataSummary = doraMetrics.data_summary || {};
@@ -831,26 +845,12 @@ const deploymentTrendData = [
                   <option value="7">Last 7 days</option>
                   <option value="30">Last 30 days</option>
                   <option value="90">Last 90 days</option>
-                  <option value="180">Last 6 months</option>
-                  <option value="365">Last year</option>
+                
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
               </div>
               
-              {/* Environment */}
-              <div className="relative">
-                <select
-                  value={environment}
-                  onChange={(e) => setEnvironment(e.target.value)}
-                  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
-                >
-                  <option value="all">All Environments</option>
-                  <option value="production">Production</option>
-                  <option value="staging">Staging</option>
-                  <option value="development">Development</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
-              </div>
+              
             </div>
             
             <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
