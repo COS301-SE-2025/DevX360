@@ -23,6 +23,7 @@ import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import { updateAllTeams } from "../services/teamUpdater.js";
 import mongoose from "mongoose";
 import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
+import { getDORAMetrics } from "../Data Collection/universal-dora-service.js";
 import { analyzeRepository } from "../services/metricsService.js";
 import { runAIAnalysis } from "../services/analysisService.js";
 import RepoMetrics from "./models/RepoMetrics.js";
@@ -1227,6 +1228,87 @@ app.get("/api/mcp/team/:teamName", authenticateMCP, async (req, res) => {
     });
   } catch (err) {
     console.error("MCP team fetch error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// --------------------------------------------------------------------------
+// MCP utility endpoints (read-only)
+// --------------------------------------------------------------------------
+
+/**
+ * Returns repository info for a GitHub URL
+ * @route GET /api/mcp/repo?url=...
+ * @middleware authenticateMCP
+ */
+app.get("/api/mcp/repo", authenticateMCP, async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ message: "url is required" });
+    if (!process.env.GITHUB_TOKEN_1 && !process.env.GITHUB_TOKEN_2) {
+      return res.status(401).json({
+        message: "GitHub authentication not configured",
+        suggestion: "Set GITHUB_TOKEN_1 (and optionally GITHUB_TOKEN_2) in the API environment",
+      });
+    }
+    const info = await getRepositoryInfo(url);
+    res.json(info);
+  } catch (err) {
+    console.error("MCP repo fetch error:", err);
+    const msg = String(err?.message || "");
+    if (msg.toLowerCase().includes("authentication failed")) {
+      return res.status(401).json({
+        message: "GitHub authentication failed",
+        suggestion: "Verify GitHub token validity and scopes, then retry",
+      });
+    }
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+/**
+ * Computes DORA metrics for a GitHub URL (or returns latest cached if you later change)
+ * @route GET /api/mcp/metrics?repositoryUrl=...
+ * @middleware authenticateMCP
+ */
+app.get("/api/mcp/metrics", authenticateMCP, async (req, res) => {
+  try {
+    const { repositoryUrl } = req.query;
+    if (!repositoryUrl) return res.status(400).json({ message: "repositoryUrl is required" });
+    if (!process.env.GITHUB_TOKEN_1 && !process.env.GITHUB_TOKEN_2) {
+      return res.status(401).json({
+        message: "GitHub authentication not configured",
+        suggestion: "Set GITHUB_TOKEN_1 (and optionally GITHUB_TOKEN_2) in the API environment",
+      });
+    }
+    const metrics = await getDORAMetrics(repositoryUrl);
+    res.json(metrics);
+  } catch (err) {
+    console.error("MCP metrics error:", err);
+    const msg = String(err?.message || "");
+    if (msg.toLowerCase().includes("authentication failed")) {
+      return res.status(401).json({
+        message: "GitHub authentication failed",
+        suggestion: "Verify GitHub token validity and scopes, then retry",
+      });
+    }
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+/**
+ * Performs deep repository analysis
+ * @route GET /api/mcp/analyze?url=...
+ * @middleware authenticateMCP
+ */
+app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ message: "url is required" });
+    const analysis = await analyzeRepository(url);
+    res.json(analysis);
+  } catch (err) {
+    console.error("MCP analyze error:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
