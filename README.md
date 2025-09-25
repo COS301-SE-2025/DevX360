@@ -51,12 +51,13 @@
 We use a collaborative workflow to manage progress and documentation.
 
 ## 📄 Latest Docs
-- [System Requirements Specification (SRS)](https://drive.google.com/file/d/1M1hNmcDfPIf97rqlfjV-J1XEi8lU-XKL/view?usp=drive_link)  
-- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V5.pdf)  
-- [Coding Standards Document](https://drive.google.com/file/d/1RrgjbP85liYQj6_MVfKot73qhtU15ggG/view?usp=drive_link)  
+- [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)
+- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.3.3.pdf)  
+- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
-- [Architectural Requirements](https://drive.google.com/file/d/1lVRi5Q4tlNDi4e_MfYVCfbRHQZkAPJBn/view?usp=drive_link)  
-- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)  
+- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.2.pdf)  
+- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)
+- [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
 
 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
@@ -100,10 +101,17 @@ We use a collaborative workflow to manage progress and documentation.
 <details>
 <summary><strong>👨‍🍳 Sprint 4 Docs</strong></summary>
 
-- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V5.pdf) 
+- [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)
+- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.3.3.pdf)  
+- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
+- [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
+- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.2.pdf)  
+- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)
+- [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
 
 </details>
 
+---
 
 
 
