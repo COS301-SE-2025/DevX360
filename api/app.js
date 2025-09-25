@@ -289,9 +289,10 @@ app.post("/api/register", async (req, res) => {
  * @route GET /api/auth/github
  */
 app.get("/api/auth/github", (req, res) => {
-  console.log("GITHUB OAUTH ENDPOINT");
+  const { flow = 'signup', returnTo = '/dashboard/overview' } = req.query;
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user`;
+  const state = Buffer.from(JSON.stringify({ flow, returnTo })).toString('base64');
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user&state=${state}`;
   res.redirect(redirectUrl);
 });
 
@@ -303,6 +304,7 @@ app.get("/api/auth/github/callback", async (req, res) => {
     console.log("GITHUB OAUTH ENDPOINT 2");
   const code = req.query.code;
   const clientId = process.env.GITHUB_CLIENT_ID;
+  const state = req.query.state;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -324,6 +326,10 @@ app.get("/api/auth/github/callback", async (req, res) => {
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
 
+    if (!accessToken) {
+      throw new Error("Failed to get access token from GitHub");
+    }
+
     // Fetch user info from GitHub
     const userRes = await fetch("https://api.github.com/user", {
       headers: {
@@ -333,6 +339,38 @@ app.get("/api/auth/github/callback", async (req, res) => {
 
     const githubUser = await userRes.json();
 
+    // Parse state parameter
+    let stateParams = { flow: 'signup', returnTo: '/dashboard/overview' };
+    if (state) {
+      try {
+        stateParams = JSON.parse(Buffer.from(state, 'base64').toString());
+      } catch (e) {
+        console.warn("Invalid state parameter, using default flow");
+      }
+    }
+
+    const { flow, returnTo } = stateParams;
+    console.log(`OAuth flow: ${flow}, returnTo: ${returnTo}`);
+
+    // Handle connect flow - user should already be logged in
+    if (flow === 'connect') {
+      // Store GitHub data in session/temporary storage for the connect endpoint
+      // Using a temporary token approach for security
+      const tempToken = jwt.sign({
+        githubData: {
+          id: githubUser.id,
+          login: githubUser.login,
+          name: githubUser.name,
+          email: githubUser.email,
+          avatar_url: githubUser.avatar_url
+        }
+      }, process.env.JWT_SECRET, { expiresIn: '10m' });
+
+      // Redirect to frontend with temp token
+      return res.redirect(`${frontendUrl}/profile/connect-github?temp_token=${tempToken}`);
+    }
+
+    // Handle signup/login flow
     // Check if user already exists
     let conditions = [];
 
@@ -376,6 +414,10 @@ app.get("/api/auth/github/callback", async (req, res) => {
         user.githubUsername = githubUser.login;
         needsUpdate = true;
       }
+
+      user.lastLogin = new Date();
+      needsUpdate = true;
+      
       if (needsUpdate) {
         await user.save();
       }
@@ -400,6 +442,85 @@ app.get("/api/auth/github/callback", async (req, res) => {
   } catch (error) {
     console.error("GitHub OAuth error:", error);
     res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
+  }
+});
+
+/**
+ * GitHub connection for existing authenticated users
+ * @route POST /api/profile/connect-github-complete
+ * @middleware authenticateToken
+ */
+app.post("/api/profile/connect-github", authenticateToken, async (req, res) => {
+  try {
+    const { tempToken } = req.body;
+    
+    if (!tempToken) {
+      return res.status(400).json({ message: "Temporary token is required" });
+    }
+
+    // Verify and decode temporary token
+    let githubData;
+    try {
+      const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+      githubData = decoded.githubData;
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid or expired temporary token" });
+    }
+
+    // Find current user
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if GitHub account is already connected to another user
+    const existingUserWithGitHub = await User.findOne({
+      $or: [
+        { githubId: githubData.id },
+        { githubUsername: githubData.login }
+      ],
+      _id: { $ne: user._id }
+    });
+
+    if (existingUserWithGitHub) {
+      return res.status(400).json({ 
+        message: "This GitHub account is already connected to another user" 
+      });
+    }
+
+    // Update user with GitHub info
+    const updates = {
+      githubId: githubData.id,
+      githubUsername: githubData.login,
+    };
+
+    // Optionally update name if not set
+    if (!user.name && githubData.name) {
+      updates.name = githubData.name;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.json({
+      message: "GitHub account connected successfully",
+      user: updatedUser,
+      githubInfo: {
+        username: githubData.login,
+        id: githubData.id,
+        avatar: githubData.avatar_url
+      }
+    });
+
+  } catch (error) {
+    console.error("GitHub connection completion error:", error);
+    res.status(500).json({ 
+      message: "Failed to complete GitHub connection",
+      error: error.message 
+    });
   }
 });
 
