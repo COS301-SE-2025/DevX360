@@ -455,72 +455,66 @@ function calculateConfidenceScore(validationResults) {
 }
 
 /**
- * Fetches DORA metrics for a single repository with 30-day filter
- * 
+ * Fetches DORA metrics for a single repository within a given time window.
+ *
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
- * @returns {Promise<Object>} DORA metrics object
+ * @param {number} daysBack - Number of days to look back (e.g. 7, 30, 90)
+ * @returns {Promise<Object>} DORA metrics object for the selected period
  */
-async function fetchRepositoryMetrics(owner, repo) {
+async function fetchRepositoryMetrics(owner, repo, daysBack = 30) {
   const octokit = getNextOctokit();
 
   try {
-    console.error(`Fetching DORA metrics for ${owner}/${repo} (30-day analysis)...`);
+    console.error(`Fetching DORA metrics for ${owner}/${repo} (${daysBack}-day analysis)...`);
 
-    // Calculate the date threshold for 30 days ago
     const dateThreshold = new Date();
-    dateThreshold.setDate(dateThreshold.getDate() - 30);
-    console.error(`Analyzing data from ${dateThreshold.toISOString()} to present`);
+    dateThreshold.setDate(dateThreshold.getDate() - daysBack);
 
+    // Fetch repo data in parallel
     const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
       octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }),
       octokit.rest.repos.listTags({ owner, repo, per_page: 100 }),
       octokit.rest.repos.listCommits({ owner, repo, per_page: 100 }),
-      octokit.rest.pulls.list({ owner, repo, state: 'closed', per_page: 100 }),
-      octokit.rest.issues.listForRepo({ owner, repo, state: 'closed', per_page: 100 })
+      octokit.rest.pulls.list({ owner, repo, state: "closed", per_page: 100 }),
+      octokit.rest.issues.listForRepo({ owner, repo, state: "closed", per_page: 100 })
     ]);
 
-    // Filter data by date threshold with proper null checks
-    const releases = releasesRes.data.filter(release => 
+    // Filter by date threshold
+    const releases = releasesRes.data.filter(release =>
       release.created_at && new Date(release.created_at) >= dateThreshold
     );
-    
+
     const tags = tagsRes.data.filter(tag => {
       try {
-        return tag.commit?.commit?.author?.date && 
+        return tag.commit?.commit?.author?.date &&
                new Date(tag.commit.commit.author.date) >= dateThreshold;
       } catch (error) {
         console.warn(`Skipping tag with invalid date structure: ${tag.name}`);
         return false;
       }
     });
-    
+
     const commits = commitsRes.data.filter(commit => {
       try {
-        return commit.commit?.author?.date && 
+        return commit.commit?.author?.date &&
                new Date(commit.commit.author.date) >= dateThreshold;
       } catch (error) {
-        console.warn(`Skipping commit with invalid date structure: ${commit.sha?.substring(0, 7) || 'unknown'}`);
+        console.warn(`Skipping commit with invalid date structure: ${commit.sha?.substring(0, 7) || "unknown"}`);
         return false;
       }
     });
-    
-    const pullRequests = pullsRes.data.filter(pr => 
+
+    const pullRequests = pullsRes.data.filter(pr =>
       pr.created_at && new Date(pr.created_at) >= dateThreshold
     );
-    
-    const issues = issuesRes.data.filter(issue => 
+
+    const issues = issuesRes.data.filter(issue =>
       issue.created_at && new Date(issue.created_at) >= dateThreshold
     );
 
-    console.error(`Filtered data counts over 30 days:`);
-    console.error(`  Releases: ${releases.length}`);
-    console.error(`  Tags: ${tags.length}`);
-    console.error(`  Commits: ${commits.length}`);
-    console.error(`  Pull Requests: ${pullRequests.length}`);
-    console.error(`  Issues: ${issues.length}`);
-
-    const metrics = {
+    // Return structured metrics
+    return {
       repository: {
         name: repo,
         owner: owner,
@@ -528,11 +522,11 @@ async function fetchRepositoryMetrics(owner, repo) {
         url: `https://github.com/${owner}/${repo}`
       },
       analysis_period: {
-        days_back: 30,
+        days_back: daysBack,
         start_date: dateThreshold.toISOString(),
         end_date: new Date().toISOString()
       },
-      deployment_frequency: calculateDeploymentFrequency(releases, tags, 30, commits),
+      deployment_frequency: calculateDeploymentFrequency(releases, tags, daysBack, commits),
       lead_time: calculateLeadTime(pullRequests, commits),
       mttr: calculateMTTR(issues),
       change_failure_rate: calculateUniversalChangeFailureRate(releases, issues, commits),
@@ -542,43 +536,40 @@ async function fetchRepositoryMetrics(owner, repo) {
         commits_count: commits.length,
         pull_requests_count: pullRequests.length,
         issues_count: issues.length,
-        analysis_period_days: 30,
+        analysis_period_days: daysBack,
         fetched_at: new Date().toISOString()
       }
     };
-
-    console.error(`Successfully processed DORA metrics for ${owner}/${repo} over 30 days`);
-    return metrics;
-
   } catch (error) {
-    if (error.status === 403) {
-      console.error(`Rate limit exceeded for ${owner}/${repo}. Waiting 60 seconds...`);
-      await delay(60000);
-      return fetchRepositoryMetrics(owner, repo); // retry
-    }
-
-    const errorMessage = error.status === 404
-      ? `Repository not found: ${owner}/${repo}`
-      : error.status === 401
-        ? 'Invalid GitHub token or insufficient permissions'
-        : error.message;
-
-    console.error(`Error fetching metrics for ${owner}/${repo}: ${errorMessage}`);
+    console.error(`Error fetching metrics for ${owner}/${repo}: ${error.message}`);
     return null;
   }
 }
 
 /**
- * Fetches DORA metrics for a single repository using a GitHub URL
- * 
+ * Fetches DORA metrics for a repository across multiple periods.
+ *
+ * Currently supports:
+ *  - 7 days
+ *  - 30 days
+ *  - 90 days
+ *
  * @param {string} repositoryUrl - The GitHub repository URL
- * @returns {Promise<Object>} DORA metrics object
- * @throws {Error} For invalid URLs, network issues, or GitHub API errors
+ * @returns {Promise<Object>} Object containing metrics for all periods
+ * {
+ *   "7d": {...},
+ *   "30d": {...},
+ *   "90d": {...}
+ * }
  */
 async function getDORAMetrics(repositoryUrl) {
   try {
     const { owner, repo } = parseGitHubUrl(repositoryUrl);
-    return await fetchRepositoryMetrics(owner, repo);
+    return {
+      "7d": await fetchRepositoryMetrics(owner, repo, 7),
+      "30d": await fetchRepositoryMetrics(owner, repo, 30),
+      "90d": await fetchRepositoryMetrics(owner, repo, 90)
+    };
   } catch (error) {
     throw new Error(`Failed to fetch DORA metrics: ${error.message}`);
   }

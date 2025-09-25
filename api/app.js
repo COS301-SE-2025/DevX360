@@ -134,11 +134,11 @@ const authenticateToken = (req, res, next) => {
  * Schedules daily GitHub username sync and team updater jobs.
  * Only runs in the primary process (NODE_APP_INSTANCE === '0' or undefined).
  */
-if (!process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0') {
+//if (!process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0') {
   /**
    * Daily GitHub username sync at 1:00 AM.
    */
-  cron.schedule("0 1 * * *", async () => {
+  /*cron.schedule("0 1 * * *", async () => {
     console.log("Running daily GitHub username sync...");
     await refreshGithubUsernames();
   });
@@ -146,11 +146,11 @@ if (!process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0') {
   /**
    * Daily team metrics and AI analysis update at 2:00 AM.
    */
-  cron.schedule("5 2 * * *", async () => {
+  /*cron.schedule("5 2 * * *", async () => {
     console.log("Running daily team metrics and AI analysis update...");
     await updateAllTeams();
   });
-}
+}*/
 
 // --------------------------------------------------------------------------
 // Health Check Endpoint
