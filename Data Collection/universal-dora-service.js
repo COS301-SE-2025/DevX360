@@ -471,13 +471,29 @@ async function fetchRepositoryMetrics(owner, repo, daysBack = 30) {
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - daysBack);
 
-    // Fetch repo data in parallel
+    // Fetch repo data in parallel with detailed logging
+    console.error(`[${owner}/${repo}] Starting parallel API calls...`);
     const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
-      octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }),
-      octokit.rest.repos.listTags({ owner, repo, per_page: 100 }),
-      octokit.rest.repos.listCommits({ owner, repo, per_page: 100 }),
-      octokit.rest.pulls.list({ owner, repo, state: "closed", per_page: 100 }),
-      octokit.rest.issues.listForRepo({ owner, repo, state: "closed", per_page: 100 })
+      octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }).catch(err => {
+        console.error(`[${owner}/${repo}] RELEASES API FAILED:`, err.message, err.status);
+        throw err;
+      }),
+      octokit.rest.repos.listTags({ owner, repo, per_page: 100 }).catch(err => {
+        console.error(`[${owner}/${repo}] TAGS API FAILED:`, err.message, err.status);
+        throw err;
+      }),
+      octokit.rest.repos.listCommits({ owner, repo, per_page: 100 }).catch(err => {
+        console.error(`[${owner}/${repo}] COMMITS API FAILED:`, err.message, err.status);
+        throw err;
+      }),
+      octokit.rest.pulls.list({ owner, repo, state: "closed", per_page: 100 }).catch(err => {
+        console.error(`[${owner}/${repo}] PULLS API FAILED:`, err.message, err.status);
+        throw err;
+      }),
+      octokit.rest.issues.listForRepo({ owner, repo, state: "closed", per_page: 100 }).catch(err => {
+        console.error(`[${owner}/${repo}] ISSUES API FAILED:`, err.message, err.status);
+        throw err;
+      })
     ]);
 
     // Filter by date threshold
