@@ -22,13 +22,19 @@ import cron from "node-cron";
 import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import { updateAllTeams } from "../services/teamUpdater.js";
 import mongoose from "mongoose";
-import { getRepositoryInfo, collectMemberActivity, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
+import { getRepositoryInfo, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
 import { getDORAMetrics } from "../Data Collection/universal-dora-service.js";
-import { analyzeRepository } from "../services/metricsService.js";
-import { runAIAnalysis } from "../services/analysisService.js";
+//import { analyzeRepository } from "../services/metricsService.js";
+//import { runAIAnalysis } from "../services/analysisService.js";
+import {
+  safeAnalyzeRepository,
+  safeRunAIAnalysis,
+  safeCollectMemberActivity,
+} from "../services/mockWrappers.js";
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken, authenticateMCP } from "./utils/auth.js";
 import { authorizeTeamAccess } from "./middlewares/authorizeTeamAccess.js";
+import { env } from "process";
 
 // --------------------------------------------------------------------------
 // Path and Upload Setup
@@ -417,7 +423,7 @@ app.get("/api/auth/github/callback", async (req, res) => {
 
       user.lastLogin = new Date();
       needsUpdate = true;
-      
+
       if (needsUpdate) {
         await user.save();
       }
@@ -965,7 +971,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       bcrypt.hash(password, 10),
       (async () => {
         try {
-          return await analyzeRepository(repoUrl);
+          return await safeAnalyzeRepository(repoUrl);
         } catch (analysisError) {
           console.error("Repository analysis failed:", analysisError);
           throw {
@@ -1001,7 +1007,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     });
 
     // Non-blocking AI analysis
-    setTimeout(() => runAIAnalysis(team._id), 0);
+    setTimeout(() => safeRunAIAnalysis(team._id), 0);
 
     res.status(201).json({
       message: "Team created successfully",
@@ -1094,7 +1100,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
         console.log("Extracted owner/repo:", owner, repo);
         if (owner && repo) {
           try{
-            const stats = await collectMemberActivity(owner, repo, user.githubUsername);
+            const stats = await safeCollectMemberActivity(owner, repo, user.githubUsername);
             repoData.memberStats.set(req.user.userId.toString(), {
               githubUsername: user.githubUsername,
               ...stats,
@@ -1265,6 +1271,14 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
 
     const metricsEntry = await RepoMetrics.findOne({ teamId });
     if (!metricsEntry) return res.status(404).json({ message: "Metrics not found" });
+
+    if (process.env.MOCK_MODE === true) {
+      return res.json({
+        aiFeedback: ["Mock feedback: All good!", "Mock feedback: Write more tests."],
+        analysisMetadata: { mocked: true, lastUpdated: new Date() },
+        status: "completed",
+      });
+    }
 
     if (metricsEntry.analysisStatus !== 'completed') {
       return res.status(202).json({
