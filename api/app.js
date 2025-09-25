@@ -10,6 +10,7 @@ import multer from "multer";
 import bcrypt from "bcrypt";
 import Team from "./models/Team.js";
 import User from "./models/User.js";
+import sharp from "sharp";
 import dotenv from "dotenv";
 dotenv.config();
 import path from "path";
@@ -35,13 +36,13 @@ import { authorizeTeamAccess } from "./middlewares/authorizeTeamAccess.js";
 /**
  * __dirname equivalent for ES modules.
  */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+//const __filename = fileURLToPath(import.meta.url);
+//const __dirname = dirname(__filename);
 
 /**
  * Multer middleware for handling file uploads.
  */
-const upload = multer({ dest: path.join(__dirname, "uploads") });
+//const upload = multer({ dest: path.join(__dirname, "uploads") });
 
 /**
  * Express application instance.
@@ -91,7 +92,7 @@ app.use(express.json());
 /**
  * Static file serving for uploaded files.
  */
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+//app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --------------------------------------------------------------------------
 // Rate Limiting
@@ -151,6 +152,28 @@ const authenticateToken = (req, res, next) => {
     await updateAllTeams();
   });
 }*/
+
+/**
+ * Configure Multer to use memory storage.
+ * We never write user-uploaded files to disk to avoid path traversal / persistence risks.
+ * 
+ * Limits:
+ *  - 2 MB max file size
+ *  - Only image/* MIME types are allowed
+ */
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2 MB max
+    files: 1,
+  },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image files are allowed"));
+    }
+    cb(null, true);
+  },
+});
 
 // --------------------------------------------------------------------------
 // Health Check Endpoint
@@ -505,9 +528,13 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
     });
 
     user.teams = teamsWithMetrics;
+
     if (user.avatar) {
-      user.avatar = `/uploads/${user.avatar}`;
+      console.log("User has avatar:", user.avatar );
+      user.avatarUrl = user.avatar ? `/api/avatar/${user._id}` : null;
+      delete user.avatar;
     }
+
     res.json({ user });
   } catch (error) {
     console.error("Profile fetch error:", error);
@@ -660,37 +687,132 @@ app.delete("/api/users/:id", authenticateToken, async (req, res) => {
 // --------------------------------------------------------------------------
 
 /**
- * Uploads a user avatar image.
- * @route POST /api/avatar
- * @middleware authenticateToken
- * @middleware upload.single("avatar")
+ * POST /api/avatar
+ * Secure avatar upload:
+ *  - memory upload (multer.memoryStorage)
+ *  - quick client MIME check
+ *  - validate image buffer via sharp.metadata()
+ *  - reject SVGs
+ *  - resize + re-encode to PNG (this strips metadata)
+ *  - enforce processed size limit
  */
 app.post(
   "/api/avatar",
   authenticateToken,
-  upload.single("avatar"),
+  uploadMemory.single("avatar"),
   async (req, res) => {
     try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // 1) Basic client-provided MIME check
+      if (!req.file.mimetype || !req.file.mimetype.startsWith("image/")) {
+        return res.status(400).json({ message: "Only image uploads are allowed" });
+      }
+
+      // 2) Explicitly reject SVG (SVG is XML and can contain scripts)
+      if (req.file.mimetype === "image/svg+xml") {
+        return res.status(400).json({ message: "SVG uploads are not allowed" });
+      }
+
+      // 3) Validate buffer is a readable image and get its format
+      let image;
+      let meta;
+      try {
+        image = sharp(req.file.buffer);
+        meta = await image.metadata();
+      } catch (err) {
+        console.warn("sharp metadata read failed:", err);
+        return res.status(400).json({ message: "Uploaded file is not a valid image" });
+      }
+
+      if (!meta || !meta.format) {
+        return res.status(400).json({ message: "Uploaded file is not a valid image" });
+      }
+
+      // Disallow vector / problematic formats even if MIME lied
+      if (meta.format === "svg") {
+        return res.status(400).json({ message: "SVG uploads are not allowed" });
+      }
+
+      // 4) Re-encode + resize (this strips EXIF/metadata because we're not using withMetadata())
+      const MAX_DIM = 512;
+      const processedBuffer = await image
+        .resize({ width: MAX_DIM, height: MAX_DIM, fit: "cover" })
+        .png({ compressionLevel: 9 }) // re-encode to PNG
+        .toBuffer();
+
+      // 5) Enforce processed size limit
+      const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+      if (processedBuffer.length > MAX_BYTES) {
+        return res.status(400).json({ message: "Processed image too large" });
+      }
+
+      // 6) Save to user document
       const user = await User.findById(req.user.userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      if (user.avatar) {
-        const oldPath = path.join(__dirname, "uploads", user.avatar);
-        fs.promises.unlink(oldPath).catch(() => {});
-      }
+      user.avatar = {
+        data: processedBuffer,
+        contentType: "image/png",
+        updatedAt: new Date(),
+      };
 
-      user.avatar = req.file.filename;
       await user.save();
 
-      res.json({
-        message: "Avatar uploaded",
-        avatarUrl: `/uploads/${req.file.filename}`,
+      return res.json({
+        message: "Avatar uploaded successfully",
+        avatarUrl: `/api/avatar/${user._id}`,
       });
-    } catch (error) {
-      res.status(500).json({ message: "Avatar upload error" });
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      return res
+        .status(500)
+        .json({ message: "Failed to process avatar", error: err.message });
     }
   }
 );
+
+
+/**
+ * GET /api/avatar/:userId
+ *
+ * Retrieve a user's avatar.
+ *
+ * Response:
+ *  - Content-Type: image/png (or stored contentType)
+ *  - Cache headers for efficiency
+ *
+ * If no avatar found, returns 404.
+ */
+app.get("/api/avatar/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).send("Invalid user id");
+    }
+
+    const user = await User.findById(userId).select("avatar");
+    if (!user || !user.avatar || !user.avatar.data) {
+      return res.status(404).json({ message: "Avatar not found" });
+    }
+
+    res.setHeader("Content-Type", user.avatar.contentType || "image/png");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=86400, stale-while-revalidate=604800"
+    );
+    if (user.avatar.updatedAt) {
+      res.setHeader("Last-Modified", user.avatar.updatedAt.toUTCString());
+    }
+
+    res.send(user.avatar.data);
+  } catch (err) {
+    console.error("Avatar serve error:", err);
+    res.status(500).json({ message: "Failed to fetch avatar" });
+  }
+});
 
 // --------------------------------------------------------------------------
 // Team Management

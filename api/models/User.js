@@ -29,7 +29,11 @@ const userSchema = new mongoose.Schema({
   inviteCode: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   lastLogin: { type: Date, default: null },
-  avatar: { type: String, default: null },
+  avatar: {
+    data: Buffer,
+    contentType: String,
+    updatedAt: Date,
+  },
 });
 
 userSchema.index({ email: 1 }, { unique: true });

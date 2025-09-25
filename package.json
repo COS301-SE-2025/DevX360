@@ -21,7 +21,8 @@
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "octokit": "^5.0.3",
-    "openai": "^5.12.2"
+    "openai": "^5.12.2",
+    "sharp": "^0.34.4"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.27.2",
