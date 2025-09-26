@@ -336,6 +336,41 @@ if (!currentUser) {
     return getMetricStatus(freq, { good: 0.1, fair: 0.05 });
   };
 
+  const getDeploymentTrendData = () => {
+  const timeRangeNum = parseInt(timeRange);
+  
+  if (timeRangeNum === 7) {
+    // For 7 days, use perDay data
+    const perDay = deploymentFreq.perDay || [];
+    return perDay.map((deployments, index) => ({
+      date: `Day ${index + 1}`,
+      deployments: deployments
+    }));
+  } else if (timeRangeNum === 30) {
+    // For 30 days, use perWeek data (4 weeks)
+    const perWeek = deploymentFreq.perWeek || [];
+    return perWeek.map((deployments, index) => ({
+      date: `Week ${index + 1}`,
+      deployments: deployments
+    }));
+  } else if (timeRangeNum === 90) {
+    // For 90 days, use perWeek data (should have ~12-13 weeks)
+    const perWeek = deploymentFreq.perWeek || [];
+    return perWeek.map((deployments, index) => ({
+      date: `Week ${index + 1}`,
+      deployments: deployments
+    }));
+  }
+  
+  // Fallback to weekly data
+  const perWeek = deploymentFreq.perWeek || [];
+  return perWeek.map((deployments, index) => ({
+    date: `Week ${index + 1}`,
+    deployments: deployments
+  }));
+};
+
+
   const getLeadTimeStatus = (days) => {
     return getMetricStatus(10 - days, { good: 8, fair: 6 });
   };
