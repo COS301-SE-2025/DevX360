@@ -34,7 +34,7 @@
     "supertest": "^7.1.1"
   },
   "scripts": {
-    "start": "node api/server-cluster.js",
+    "start": "node api/server.js",
     "dev": "nodemon api/server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js mcp/__tests__/mcp-server.e2e.test.js --runInBand --testTimeout=30000",
