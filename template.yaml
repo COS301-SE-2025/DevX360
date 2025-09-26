@@ -38,18 +38,14 @@ Resources:
           DB_URL: "{{resolve:ssm:/devx360/api/DB_URL}}"
           MONGODB_URI: "{{resolve:ssm:/devx360/api/MONGODB_URI}}"
 
-          # Authentication
-          JWT_SECRET: "{{resolve:ssm-secure:/devx360/api/JWT_SECRET}}"
-          MCP_API_TOKEN: "{{resolve:ssm-secure:/devx360/api/MCP_API_TOKEN}}"
-
-          # GitHub
-          GITHUB_CLIENT_ID: "{{resolve:ssm-secure:/devx360/api/GITHUB_CLIENT_ID}}"
-          GITHUB_CLIENT_SECRET: "{{resolve:ssm-secure:/devx360/api/GITHUB_CLIENT_SECRET}}"
-          GITHUB_TOKEN_1: "{{resolve:ssm-secure:/devx360/api/GITHUB_TOKEN_1}}"
-          GITHUB_TOKEN_2: "{{resolve:ssm-secure:/devx360/api/GITHUB_TOKEN_2}}"
-
-          # OpenAI
-          OPENAI_API_KEY: "{{resolve:ssm-secure:/devx360/api/OPENAI_API_KEY}}"
+          # Authentication & tokens (plain SSM parameters)
+          JWT_SECRET: "{{resolve:ssm:/devx360/api/JWT_SECRET}}"
+          MCP_API_TOKEN: "{{resolve:ssm:/devx360/api/MCP_API_TOKEN}}"
+          GITHUB_CLIENT_ID: "{{resolve:ssm:/devx360/api/GITHUB_CLIENT_ID}}"
+          GITHUB_CLIENT_SECRET: "{{resolve:ssm:/devx360/api/GITHUB_CLIENT_SECRET}}"
+          GITHUB_TOKEN_1: "{{resolve:ssm:/devx360/api/GITHUB_TOKEN_1}}"
+          GITHUB_TOKEN_2: "{{resolve:ssm:/devx360/api/GITHUB_TOKEN_2}}"
+          OPENAI_API_KEY: "{{resolve:ssm:/devx360/api/OPENAI_API_KEY}}"
 
           # App
           NODE_ENV: "production"
