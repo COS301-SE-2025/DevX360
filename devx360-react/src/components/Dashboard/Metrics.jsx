@@ -839,12 +839,8 @@ const {
     { name: 'Releases', value: dataSummary.releases_count || 0, color: '#EF4444' }
   ];
 
-const deploymentTrendData = [
-  { date: 'Week 1', deployments: deploymentFreq.perWeek?.[0] || 0 },
-  { date: 'Week 2', deployments: deploymentFreq.perWeek?.[1] || 0 },
-  { date: 'Week 3', deployments: deploymentFreq.perWeek?.[2] || 0 },
-  { date: 'Week 4', deployments: deploymentFreq.perWeek?.[3] || 0 }
-];
+const deploymentTrendData = getDeploymentTrendData();
+
 
  const contributorData = (repositoryInfo.contributors || [])
   .slice(0, 5)
