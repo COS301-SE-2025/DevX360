@@ -1285,46 +1285,73 @@ const deploymentTrendData = getDeploymentTrendData();
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Deployment Trends */}
-            <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
-              <div className="p-6 border-b border-[var(--border)]">
-                <h3 className="text-lg font-semibold text-[var(--text)]">Deployment Trends</h3>
-              </div>
-              <div className="flex-1 p-6">
-                {deploymentFreq.perWeek && Array.isArray(deploymentFreq.perWeek) ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={deploymentTrendData}>
-                    
-                    <CartesianGrid strokeDasharray="3 3" stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} />
-                    <XAxis dataKey="date" stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} fontSize={12} />
-                    <YAxis stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
-                        borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="deployments"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                ): (
-  <div className="flex items-center justify-center h-full">
-    <div className="text-center">
-      <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-      <p className="text-[var(--text-light)]">No deployment data available</p>
+          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
+  <div className="p-6 border-b border-[var(--border)]">
+    <div className="flex items-center justify-between">
+      <h3 className="text-lg font-semibold text-[var(--text)]">Deployment Trends</h3>
+      <span className="text-xs text-[var(--text-light)] px-2 py-1 bg-[var(--bg)] rounded">
+        {timeRange === '7' ? 'Daily View' : 
+         timeRange === '30' ? '4 Weeks View' : 
+         '12+ Weeks View'}
+      </span>
     </div>
   </div>
-)}
-              </div>
-            </div>
+  <div className="flex-1 p-6">
+    {deploymentTrendData && deploymentTrendData.length > 0 ? (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={deploymentTrendData}>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} 
+          />
+          <XAxis 
+            dataKey="date" 
+            stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
+            fontSize={12}
+            angle={timeRange === '90' ? -45 : 0}
+            textAnchor={timeRange === '90' ? 'end' : 'middle'}
+            height={timeRange === '90' ? 60 : 30}
+          />
+          <YAxis 
+            stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
+            fontSize={12} 
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
+              borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+            }}
+            formatter={(value, name) => [
+              `${value} deployments`,
+              timeRange === '7' ? 'Daily' : 'Weekly'
+            ]}
+          />
+          <Line
+            type="monotone"
+            dataKey="deployments"
+            stroke="#3b82f6"
+            strokeWidth={3}
+            dot={{ r: 4 }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    ) : (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-[var(--text-light)]">No deployment data available</p>
+          <p className="text-xs text-[var(--text-light)] mt-1">
+            Data range: {timeRange} days
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
             {/* Top Contributors */}
             <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
