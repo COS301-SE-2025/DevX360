@@ -9,12 +9,21 @@ class Server {
     this.PORT = process.env.PORT || 5000;
     this.MONGODB_URI = process.env.MONGODB_URI;
     this.server = null;
+    this.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   }
 
   async start() {
     if (!this.MONGODB_URI) {
       console.error("MONGODB_URI is not set. Check your .env file");
       process.exit(1);
+    }
+
+    if (!this.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set. Check your .env file");
+      process.exit(1);
+    }
+    else{
+      console.log("OPENAI_API_KEY is set.");
     }
 
     try {
