@@ -703,7 +703,7 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
     user.teams = teamsWithMetrics;
 
     if (user.avatar) {
-      console.log("User has avatar:", user.avatar );
+      console.log("User has avatar");
       user.avatarUrl = user.avatar ? `/api/avatar/${user._id}` : null;
       delete user.avatar;
     }
