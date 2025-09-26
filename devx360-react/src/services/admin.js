@@ -29,9 +29,14 @@ export async function getTeams() {
         throw new Error(data.message || 'Failed to fetch teams');
     }
 
-    console.log("data", data);
+    // console.log("data", data);
 
     return data.teams;
+}
+
+export function getUserAvatarUrl(userId) {
+  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5500";
+  return `${baseUrl}/api/avatar/${userId}`;
 }
 
 

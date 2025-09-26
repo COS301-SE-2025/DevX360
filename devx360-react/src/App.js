@@ -14,6 +14,7 @@ import LandingPage from './components/LandingPage';
 import FAQPage from './components/Dashboard/FAQPage';
 import { Toaster } from 'react-hot-toast';
 import Admin from "./components/Dashboard/Admin";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 // ProtectedRoute: protects authenticated routes
 const ProtectedRoute = ({ children }) => {
@@ -52,6 +53,7 @@ function App() {
   const isAdmin = currentUser?.role === 'admin';
 
   return (
+      <ErrorBoundary onRetry={() => window.location.reload()}>
     <Router>
       <Routes>
         {/* Root path goes to landing page */}
@@ -108,6 +110,7 @@ function App() {
         containerStyle={{ zIndex: 10002 }}
       />
     </Router>
+      </ErrorBoundary>
   );
 }
 

@@ -19,129 +19,15 @@ import {deleteTeam} from "../../services/teams";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
 import TeamInfo from './Team/TeamInfo';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 
 
 // Pagination config
 const TEAMS_PER_PAGE = 6;
+const defaultAvatar = '/default-avatar.png';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
-
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      retryCount: 0
-    };
-  }
-
-  static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    // Log error details
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-    this.setState({
-      error,
-      errorInfo
-    });
-
-    // You can also log the error to an error reporting service here
-    // Example: errorReportingService.captureException(error, { extra: errorInfo });
-  }
-
-  handleRetry = () => {
-    this.setState(prevState => ({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      retryCount: prevState.retryCount + 1
-    }));
-
-    // Call parent retry function if provided
-    if (this.props.onRetry) {
-      this.props.onRetry();
-    }
-  };
-
-  render() {
-    // Handle async errors passed as props (existing functionality)
-    if (this.props.error) {
-      return (
-          <div className="w-full">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to load teams</h3>
-              <p className="text-red-600 mb-6 max-w-md mx-auto">
-                {this.props.error.message || 'Failed to load teams. Please check your connection and try again.'}
-              </p>
-              <button
-                  onClick={this.props.onRetry}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-      );
-    }
-
-    // Handle React render errors
-    if (this.state.hasError) {
-      return (
-          <div className="w-full">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Something went wrong</h3>
-              <p className="text-red-600 mb-6 max-w-md mx-auto">
-                {this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.'}
-              </p>
-
-              <div className="flex gap-3 justify-center">
-                <button
-                    onClick={this.handleRetry}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
-                >
-                  Try Again
-                </button>
-
-                <button
-                    onClick={() => window.location.reload()}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
-                >
-                  Refresh Page
-                </button>
-              </div>
-
-              {/* Development mode error details */}
-              {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-                  <details className="mt-6 text-left">
-                    <summary className="cursor-pointer text-sm font-medium text-red-700 mb-2">
-                      Technical Details (Development Only)
-                    </summary>
-                    <pre className="text-xs bg-red-100 p-4 rounded border overflow-auto max-h-40">
-                  {this.state.error && this.state.error.toString()}
-                      {this.state.errorInfo.componentStack}
-                </pre>
-                  </details>
-              )}
-            </div>
-          </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 //=============================================================FilterPill Component======================================
 const FilterPill = ({ isActive, onClick, label }) => {
@@ -267,7 +153,6 @@ const SortButton = ({ currentSort, sortKey, setSortBy, label }) => {
   );
 };
 
-
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -325,9 +210,7 @@ const normalizeTeamData = (rawTeam) => {
 //=============================================================Team Component======================================
 function Team() {
   const { currentUser } = useAuth();
-  const defaultAvatar = '/default-avatar.png';
-  const [avatar, setAvatar] = useState(defaultAvatar);
-
+  // const [avatar, setAvatar] = useState(defaultAvatar);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState(null);
 
@@ -473,6 +356,24 @@ function Team() {
     resetPagination();
   };
 
+  const getFullAvatarUrl = (avatarUrl) => {
+    if (!avatarUrl) return defaultAvatar;
+    if (avatarUrl.startsWith('http')) return avatarUrl;
+
+    // Handle the case where avatarUrl might not start with /
+    const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+    return `${API_BASE_URL}${cleanPath}`;
+  };
+
+  const avatarUrl = useMemo(() => {
+    if (currentUser?.avatarUrl) {
+      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
+      // Add timestamp to force refresh after uploads
+      return `${fullUrl}?t=${Date.now()}`;
+    }
+    return defaultAvatar;
+  }, [currentUser?.avatarUrl]);
+
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
     // Scroll to top when changing pages
@@ -487,14 +388,11 @@ function Team() {
   }, [debouncedSearchTerm, sortBy, filterOwnership, resetPagination]);
 
   useEffect(() => {
-    if (currentUser?.avatar) {
-      const avatarUrl = currentUser.avatar.startsWith('http')
-          ? currentUser.avatar
-          : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
-      setAvatar(avatarUrl);
-    } else {
-      setAvatar(defaultAvatar);
-    }
+    // if (currentUser?.avatarUrl) {
+    //   setAvatar(getFullAvatarUrl(currentUser.avatarUrl));
+    // } else {
+    //   setAvatar(defaultAvatar);
+    // }
 
     if (currentUser) {
       loadTeams()
@@ -527,7 +425,7 @@ function Team() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-base text-[var(--text-light)]">Manage and monitor your development teams</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
             </div>
           </div>
         </header>

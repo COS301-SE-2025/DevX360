@@ -8,22 +8,21 @@ import toast from "react-hot-toast";
 const defaultAvatar = '/default-avatar.png';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
-const getFullAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return defaultAvatar;
-  if (avatarPath.startsWith('http')) return avatarPath;
+const getFullAvatarUrl = (avatarUrl) => {
+  if (!avatarUrl) return defaultAvatar;
+  if (avatarUrl.startsWith('http')) return avatarUrl;
 
-  // Handle double slash issue
-  const cleanPath = avatarPath.startsWith('/') ? avatarPath : `/${avatarPath}`;
+  // Handle the case where avatarUrl might not start with /
+  const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
   return `${API_BASE_URL}${cleanPath}`;
 };
 
 function Profile() {
   const { currentUser, setCurrentUser } = useAuth();
-  const [avatar, setAvatar] = useState(defaultAvatar);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
+  const [previewAvatar, setPreviewAvatar] = useState(null);
   const [formState, setFormState] = useState({
     data: {
       name: '',
@@ -42,13 +41,14 @@ function Profile() {
 
   // Memoize avatar URL calculation
   const avatarUrl = useMemo(() => {
-    return currentUser?.avatar ? getFullAvatarUrl(currentUser.avatar) : defaultAvatar;
-  }, [currentUser?.avatar]);
-
-  // Set avatar URL when currentUser changes
-  useEffect(() => {
-    setAvatar(avatarUrl);
-  }, [avatarUrl]);
+    if (previewAvatar) return previewAvatar;
+    if (currentUser?.avatarUrl) {
+      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
+      // Add timestamp to force refresh after uploads
+      return `${fullUrl}?t=${Date.now()}`;
+    }
+    return defaultAvatar;
+  }, [previewAvatar, currentUser?.avatarUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -65,8 +65,6 @@ function Profile() {
 
   const handleEditProfile = () => {
     setIsEditing(true);
-    // setErrorMessage('');
-    // clearErrors();
     setFormState(prev => ({
       ...prev,
       errors: {},
@@ -169,6 +167,7 @@ function Profile() {
       return acc;
     }, {});
 
+    const errors = validateForm(formState.data);
     const isValid = Object.keys(errors).length === 0;
 
     setFormState(prev => ({ ...prev, touched: allTouched }));
@@ -192,7 +191,7 @@ function Profile() {
       if (result.user) {
         setCurrentUser(prevUser => ({
           ...result.user,
-          avatar: prevUser.avatar // Preserve current avatar
+          avatarUrl: prevUser.avatarUrl // Preserve current avatar
         }));
         setIsEditing(false);
         toast.success('Profile updated successfully!');
@@ -202,14 +201,14 @@ function Profile() {
         setCurrentUser(prevUser => ({
           ...prevUser,
           ...trimmedData,
-          avatar: prevUser.avatar
+          avatarUrl: prevUser.avatarUrl
         }));
 
         setIsEditing(false);
         toast.success(result?.message || 'Profile updated successfully!');
       }
-        // Reset form state to clean
-        setFormState(prev => ({ ...prev, isDirty: false }));
+      // Reset form state to clean
+      setFormState(prev => ({ ...prev, isDirty: false }));
 
     } catch (error) {
       console.error('Profile update failed:', error);
@@ -286,20 +285,20 @@ function Profile() {
     }
 
     setIsLoadingAvatar(true);
-    const previousAvatar = avatar;
 
     try {
       if (fileReaderRef.current) {
         fileReaderRef.current.abort();
       }
 
+      // Show preview immediately
       fileReaderRef.current = new FileReader();
       fileReaderRef.current.onload = (event) => {
-        setAvatar(event.target.result);
+        setPreviewAvatar(event.target.result);
       };
       fileReaderRef.current.onerror = () => {
         toast.error('Failed to read image file');
-        setAvatar(previousAvatar);
+        setPreviewAvatar(null);
       };
       fileReaderRef.current.readAsDataURL(file);
 
@@ -307,13 +306,12 @@ function Profile() {
       const result = await updateAvatar(file);
 
       if (result.avatarUrl) {
-        const fullAvatarUrl = getFullAvatarUrl(result.avatarUrl);
-        setAvatar(fullAvatarUrl);
+        // Clear preview and update user
+        setPreviewAvatar(null);
 
-        // Update the auth context with the new avatar
         setCurrentUser(prev => ({
           ...prev,
-          avatar: result.avatarUrl
+          avatarUrl: result.avatarUrl
         }));
 
         toast.success('Avatar updated successfully!');
@@ -321,9 +319,9 @@ function Profile() {
     } catch (error) {
       console.error('Upload failed:', error);
 
-      // Revert to previous avatar on error
-      setAvatar(previousAvatar);
-      toast.error('Failed to upload avatar. Please try again.');
+      // Clear preview on error
+      setPreviewAvatar(null);
+      toast.error(error.message || 'Failed to upload avatar. Please try again.');
     } finally {
       setIsLoadingAvatar(false);
       fileReaderRef.current = null;
@@ -374,7 +372,7 @@ function Profile() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-lg font-medium text-[var(--text-light)]">Manage your profile</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
             </div>
           </div>
         </header>
@@ -440,7 +438,7 @@ function Profile() {
                   <div className="relative mb-4">
                     <div className="w-32 h-32 rounded-full overflow-hidden bg-[var(--border)] border-4 border-[var(--bg-container)]">
                       <img
-                          src={avatar}
+                          src={avatarUrl}
                           alt="Profile"
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -650,9 +648,9 @@ function Profile() {
                         </div>
 
                         {currentUser?.githubUsername && (
-                          <div className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 cursor-default">
-                            {currentUser?.githubUsername && 'Connected'}
-                          </div>
+                            <div className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 cursor-default">
+                              {currentUser?.githubUsername && 'Connected'}
+                            </div>
                         )}
 
                         {/*</button>*/}

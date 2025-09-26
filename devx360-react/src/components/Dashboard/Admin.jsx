@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Mail, Github, Ban, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getUsers, deleteUser, getTeams } from "../../services/admin";
+import {getUsers, deleteUser, getTeams, getUserAvatar, getUserAvatarUrl} from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
 import HeaderInfo from "../common/HeaderInfo";
 import WarningToast from "../common/WarningToast";
@@ -67,10 +67,15 @@ function Pagination({ page, setPage, totalItems, pageSize }) {
   );
 }
 
+const defaultAvatar = '/default-avatar.png';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
+
 function Admin() {
   const { currentUser } = useAuth();
-  const defaultAvatar = '/default-avatar.png';
-  const [avatar, setAvatar] = useState(defaultAvatar);
+  // const defaultAvatar = '/default-avatar.png';
+  // const [avatar, setAvatar] = useState(defaultAvatar);
+  const [userAvatar, setUserAvatar] = useState(null);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,12 +150,28 @@ function Admin() {
     }
   }
 
-  const getAvatarUrl = (avatarPath) => {
-    if (!avatarPath) return defaultAvatar;
+  // const getAvatarUrl = (userId) => {
+  //   setUserAvatar(getUserAvatar(userId));
+  //   return getFullAvatarUrl(getUserAvatar(userId)) || defaultAvatar;
+  // };
 
-    const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5500";
-    return avatarPath.startsWith("http") ? avatarPath : `${baseUrl}/uploads/${avatarPath}`;
+  const getFullAvatarUrl = (avatarUrl) => {
+    if (!avatarUrl) return defaultAvatar;
+    if (avatarUrl.startsWith('http')) return avatarUrl;
+
+    // Handle the case where avatarUrl might not start with /
+    const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+    return `${API_BASE_URL}${cleanPath}`;
   };
+
+  const avatarUrl = useMemo(() => {
+    if (currentUser?.avatarUrl) {
+      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
+      // Add timestamp to force refresh after uploads
+      return `${fullUrl}?t=${Date.now()}`;
+    }
+    return defaultAvatar;
+  }, [currentUser?.avatarUrl]);
 
   const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
 
@@ -182,9 +203,6 @@ function Admin() {
 
     return relative ? `${relative} (${absolute})` : absolute;
   };
-
-
-
 
   const handleEditUser = (userId) => toast.custom(<WarningToast message={"Implement"} />);
 
@@ -373,15 +391,15 @@ function Admin() {
   }, [searchTerm, userSortField, userSortDirection, teamSortField, teamSortDirection]);
 
 
-  useEffect(() => {
-    // console.log(currentUser);
-    if (currentUser?.avatar) {
-      const avatarUrl = currentUser.avatar.startsWith('http')
-          ? currentUser.avatar
-          : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
-      setAvatar(avatarUrl);
-    }
-  }, [currentUser]);
+  // useEffect(() => {
+  //   // console.log(currentUser);
+  //   if (currentUser?.avatar) {
+  //     const avatarUrl = currentUser.avatar.startsWith('http')
+  //         ? currentUser.avatar
+  //         : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
+  //     setAvatar(avatarUrl);
+  //   }
+  // }, [currentUser]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil((filteredUsers?.length || 0) / pageSize));
@@ -447,7 +465,7 @@ function Admin() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-[var(--text-light)]">Manage users and teams</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
             </div>
           </div>
         </header>
@@ -577,7 +595,7 @@ function Admin() {
                                   <div className="flex items-center space-x-4">
                                     <div className="relative">
                                       <img
-                                          src={getAvatarUrl(user.avatar)}
+                                          src={getUserAvatarUrl(user._id)}
                                           alt={user.name}
                                           className="w-12 h-12 rounded-full border-2 border-[var(--border)] shadow-sm"
                                       />
