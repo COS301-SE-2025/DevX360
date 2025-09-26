@@ -1544,10 +1544,10 @@ const deploymentTrendData = getDeploymentTrendData();
             </div>
           ) : aiFeedback && Object.keys(parsedFeedback).length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {renderAiInsight('DEPLOYMENT FREQUENCY', parsedFeedback['DEPLOYMENT FREQUENCY'], 'deployment')}
-              {renderAiInsight('LEAD TIME FOR CHANGES', parsedFeedback['LEAD TIME FOR CHANGES'], 'leadtime')}
-              {renderAiInsight('CHANGE FAILURE RATE (CFR)', parsedFeedback['CHANGE FAILURE RATE (CFR)'], 'cfr')}
-              {renderAiInsight('MEAN TIME TO RECOVERY (MTTR)', parsedFeedback['MEAN TIME TO RECOVERY (MTTR)'], 'mttr')}
+        {renderAiInsight('DEPLOYMENT FREQUENCY', parsedFeedback['DEPLOYMENT FREQUENCY'] || parsedFeedback['Deployment Frequency'], 'deployment')}
+{renderAiInsight('LEAD TIME FOR CHANGES', parsedFeedback['LEAD TIME FOR CHANGES']  || parsedFeedback['Lead Time for Changes'], 'leadtime')}
+{renderAiInsight('CHANGE FAILURE RATE (CFR)', parsedFeedback['CHANGE FAILURE RATE (CFR)'] || parsedFeedback['Change Failure Rate (CFR)'], 'cfr')}
+{renderAiInsight('MEAN TIME TO RECOVERY (MTTR)', parsedFeedback['MEAN TIME TO RECOVERY (MTTR)']  || parsedFeedback['Mean Time to Recovery (MTTR)'], 'mttr')}
             </div>
           ) : aiStatus === 'not_started' ? (
             <div className="text-center py-12 bg-[var(--bg-container)] rounded-xl border border-[var(--border)]">
