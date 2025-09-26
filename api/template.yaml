@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: DevX360 API (serverless, free-tier conscious)
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 10
+    MemorySize: 256
+    Tracing: Active
+
+Resources:
+  ApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref StageName
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.handler
+      CodeUri: .
+      Events:
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            RouteKey: "ANY /{proxy+}"
+      Environment:
+        Variables:
+          DB_URL: "{{resolve:ssm:/devx360/api/DB_URL}}"
+          JWT_SECRET: "{{resolve:ssm-secure:/devx360/api/JWT_SECRET}}"
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
