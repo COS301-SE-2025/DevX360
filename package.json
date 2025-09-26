@@ -1,4 +1,7 @@
 {
+  "name": "devx360api",
+  "version": "1.0.0",
+  "main": "lambda.js",
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.1",
