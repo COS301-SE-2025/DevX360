@@ -785,7 +785,15 @@ const renderMemberCard = (member, isCreator = false) => {
   
 
   // Safe data access with fallbacks for missing DORA metrics
-
+const {
+  doraMetrics,
+  dataSummary, 
+  repositoryInfo,
+  deploymentFreq,
+  leadTime,
+  changeFailureRate,
+  mttr
+} = getMetricsForTimeRange();
   
 
   // Prepare chart data with safe fallbacks
