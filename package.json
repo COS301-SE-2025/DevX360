@@ -1,6 +1,12 @@
 {
   "type": "module",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "@octokit/core": "^7.0.2",
+    "@octokit/plugin-paginate-rest": "^13.1.0",
+    "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
+    "async": "^3.2.6",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
@@ -23,6 +29,6 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "reset": "rm -rf node_modules package-lock.json && npm install",
-    "test": "jest --config jest.config.js"
+    "test": "jest --config jest.config.mjs"
   }
 }
