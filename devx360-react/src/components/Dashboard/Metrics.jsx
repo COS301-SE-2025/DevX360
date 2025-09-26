@@ -108,6 +108,11 @@ function Metrics() {
     setAiProgress(0);
   };
 
+  // Handle time range change
+  const handleTimeRangeChange = (e) => {
+    setTimeRange(e.target.value);
+  };
+
   useEffect(() => {
   // Reset all component state when user changes
   setTeamData(null);
@@ -272,6 +277,12 @@ const handleMemberClick = (member) => {
   }
 }, [currentUser]);
 
+useEffect(() => {
+  if (selectedTeamId) {
+    fetchTeamMetrics();
+  }
+}, [timeRange]);
+
 // Also update the loading check to handle null user
 if (loading) {
   return (
@@ -302,6 +313,24 @@ if (!currentUser) {
     if (value >= thresholds.fair) return { status: 'Fair', color: 'yellow' };
     return { status: 'Needs Improvement', color: 'red' };
   };
+  const getMetricsForTimeRange = () => {
+  const timeRangeKey = `${timeRange}d`; // Convert 7/30/90 to "7d"/"30d"/"90d"
+  const metricsForRange = teamData.doraMetrics[timeRangeKey] || {};
+  // console.log('Time Range Key:', metricsForRange );
+  // console.log('Team Data:', teamData);
+  // console.log('Selected time range:', timeRangeKey);
+  //   console.log('Metrics for range:', metricsForRange);
+  return {
+    doraMetrics: metricsForRange,
+    dataSummary: metricsForRange.data_summary || {},
+    repositoryInfo: teamData.repositoryInfo || {},
+    deploymentFreq: metricsForRange.deployment_frequency || { perWeek: [] },
+    leadTime: metricsForRange.lead_time || {},
+    changeFailureRate: metricsForRange.change_failure_rate || {},
+    mttr: metricsForRange.mttr || {}
+
+  };
+};
 
   const getDeploymentStatus = (freq) => {
     return getMetricStatus(freq, { good: 0.1, fair: 0.05 });
@@ -335,6 +364,7 @@ if (!currentUser) {
     }));
   };
 
+  
   const renderAiInsight = (title, content, key) => {
     if (!content) return null;
 
@@ -755,13 +785,6 @@ const renderMemberCard = (member, isCreator = false) => {
   
 
   // Safe data access with fallbacks for missing DORA metrics
-const doraMetrics = teamData.doraMetrics || {};
-const dataSummary = doraMetrics.data_summary || {};
-const repositoryInfo = teamData.repositoryInfo || {};
-const deploymentFreq = doraMetrics.deployment_frequency || { perWeek: [] };
-const leadTime = doraMetrics.lead_time || {};
-const changeFailureRate = doraMetrics.change_failure_rate || {};
-const mttr = doraMetrics.mttr || {};
 
   
 
@@ -837,16 +860,16 @@ const deploymentTrendData = [
               
               {/* Time Range */}
               <div className="relative">
-                <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
-                >
-                  <option value="7">Last 7 days</option>
-                  <option value="30">Last 30 days</option>
-                  <option value="90">Last 90 days</option>
-                
-                </select>
+               <select
+  value={timeRange}
+  onChange={handleTimeRangeChange}
+  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
+>
+  
+  <option value="7">Last 7 days</option>
+  <option value="30">Last 30 days</option>
+  <option value="90">Last 90 days</option>
+</select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
               </div>
               
