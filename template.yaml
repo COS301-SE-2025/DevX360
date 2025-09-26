@@ -10,8 +10,8 @@ Parameters:
 Globals:
   Function:
     Runtime: nodejs20.x
-    Timeout: 10
-    MemorySize: 256
+    Timeout: 30
+    MemorySize: 512
     Tracing: Active
 
 Resources:
@@ -30,29 +30,31 @@ Resources:
           Type: HttpApi
           Properties:
             ApiId: !Ref ApiGateway
-            RouteKey: "ANY /{proxy+}"
+            Path: /{proxy+}
+            Method: ANY
       Environment:
         Variables:
           # Database
           DB_URL: "{{resolve:ssm:/devx360/api/DB_URL}}"
           MONGODB_URI: "{{resolve:ssm:/devx360/api/MONGODB_URI}}"
-          
+
           # Authentication
           JWT_SECRET: "{{resolve:ssm-secure:/devx360/api/JWT_SECRET}}"
           MCP_API_TOKEN: "{{resolve:ssm-secure:/devx360/api/MCP_API_TOKEN}}"
-          
+
           # GitHub
           GITHUB_CLIENT_ID: "{{resolve:ssm-secure:/devx360/api/GITHUB_CLIENT_ID}}"
           GITHUB_CLIENT_SECRET: "{{resolve:ssm-secure:/devx360/api/GITHUB_CLIENT_SECRET}}"
           GITHUB_TOKEN_1: "{{resolve:ssm-secure:/devx360/api/GITHUB_TOKEN_1}}"
           GITHUB_TOKEN_2: "{{resolve:ssm-secure:/devx360/api/GITHUB_TOKEN_2}}"
-          
+
           # OpenAI
           OPENAI_API_KEY: "{{resolve:ssm-secure:/devx360/api/OPENAI_API_KEY}}"
-          
-          # Application
+
+          # App
           NODE_ENV: "production"
-          FRONTEND_URL: "https://your-frontend-domain.com"  # Update this with your actual frontend URL
+          FRONTEND_URL: "http://localhost:3000"
+
 Outputs:
   ApiUrl:
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
