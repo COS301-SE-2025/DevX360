@@ -34,6 +34,8 @@ import {
 import RepoMetrics from "./models/RepoMetrics.js";
 import { hashPassword, comparePassword, generateToken, authenticateMCP } from "./utils/auth.js";
 import { authorizeTeamAccess } from "./middlewares/authorizeTeamAccess.js";
+import SystemEvent from "./models/SystemEvent.js";
+import { logSystemEvent } from "./middlewares/logSystemEvent.js";
 import { env } from "process";
 
 // --------------------------------------------------------------------------
@@ -110,7 +112,16 @@ app.use(express.json());
  */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10000,
+  max: 100,
+  handler: async (req, res) => {
+    await logSystemEvent({
+      type: "rate_limit",
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      details: { endpoint: req.originalUrl },
+    });
+    res.status(429).json({ message: "Too many requests, please try again later" });
+  },
 });
 app.use(limiter);
 
@@ -555,8 +566,42 @@ app.post("/api/login", async (req, res) => {
 
     const isPasswordValid = await comparePassword(password, user.password);
 
-    if (!isPasswordValid)
+    if (!isPasswordValid){
+      // Detect brute-force: 5+ fails in 15m
+      const cutoff = new Date(Date.now() - 15 * 60 * 1000);
+      const failCount = await SystemEvent.countDocuments({
+        type: "login_failure",
+        email,
+        timestamp: { $gte: cutoff },
+      });
+
+      // Check if a brute-force event already exists in this window
+      const existingBruteForce = await SystemEvent.findOne({
+        type: "brute_force",
+        email,
+        timestamp: { $gte: cutoff },
+      });
+
+      if (failCount >= 5 && !existingBruteForce) {
+        await logSystemEvent({
+          type: "brute_force",
+          email,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+          details: { attempts: failCount, timeframe: "15m" },
+        });
+      }
+
+      await logSystemEvent({
+        type: "login_failure",
+        email,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+        details: { reason: "Invalid credentials" },
+      });
+
       return res.status(401).json({ message: "Invalid password" });
+    }
 
     User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } }).exec();
 
@@ -1320,6 +1365,38 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
       error: err.message,
       suggestion: "Check repository access and AI service availability",
     });
+  }
+});
+
+/**
+ * Gets system anomalies (admin only).
+ * @route GET /api/anomalies
+ * @middleware authenticateToken
+ * @access Admin
+ * @description 
+ *   - Returns system anomalies from the last 7 days.
+ *   - Anomalies include failed logins, brute-force attempts, rate limit hits, etc.
+ *   - Sorted by most recent first.
+ * @returns {Object[]} anomalies - Array of anomaly events
+ */
+app.get("/api/anomalies", authenticateToken, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+
+  try {
+    // Calculate cutoff: last 7 days
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Fetch anomalies from DB
+    const events = await SystemEvent.find({ timestamp: { $gte: cutoff } })
+      .sort({ timestamp: -1 }) // newest first
+      .lean();
+
+    res.json({ anomalies: events });
+  } catch (err) {
+    console.error("Error fetching anomalies:", err);
+    res.status(500).json({ message: "Failed to fetch anomalies" });
   }
 });
 
