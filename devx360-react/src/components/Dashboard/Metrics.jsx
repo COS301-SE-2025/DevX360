@@ -4,11 +4,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, Bell, X, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import HeaderInfo from "../common/HeaderInfo";
+import {useAvatar} from "../../hooks/useAvatar";
 
 function Metrics() {
   const { currentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
   const [avatar, setAvatar] = useState(defaultAvatar);
+  const avatarUrl = useAvatar();
   const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -107,6 +109,8 @@ function Metrics() {
     setAiStatus('checking');
     setAiProgress(0);
   };
+
+  console.log('Team Data:');
 
   // Handle time range change
   const handleTimeRangeChange = (e) => {
@@ -915,7 +919,7 @@ const deploymentTrendData = getDeploymentTrendData();
               
             </div>
             
-            <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
           </div>
         </div>
       </header>

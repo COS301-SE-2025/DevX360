@@ -20,6 +20,7 @@ import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
 import TeamInfo from './Team/TeamInfo';
 import ErrorBoundary from '../common/ErrorBoundary';
+import {useAvatar} from "../../hooks/useAvatar";
 
 
 
@@ -211,6 +212,7 @@ const normalizeTeamData = (rawTeam) => {
 function Team() {
   const { currentUser } = useAuth();
   // const [avatar, setAvatar] = useState(defaultAvatar);
+  const avatarUrl = useAvatar();
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState(null);
 
@@ -304,7 +306,6 @@ function Team() {
   };
 
   const { paginatedTeams, totalPages, totalItems, filteredTeams } = useMemo(() => {
-    console.log('Recalculating filtered teams...'); // You'll see this in console when it recalculates
 
     if (!teams || teams.length === 0) {
       return { paginatedTeams: [], totalPages: 0, totalItems: 0, filteredTeams: [] };
@@ -356,24 +357,6 @@ function Team() {
     resetPagination();
   };
 
-  const getFullAvatarUrl = (avatarUrl) => {
-    if (!avatarUrl) return defaultAvatar;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-
-    // Handle the case where avatarUrl might not start with /
-    const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
-    return `${API_BASE_URL}${cleanPath}`;
-  };
-
-  const avatarUrl = useMemo(() => {
-    if (currentUser?.avatarUrl) {
-      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
-      // Add timestamp to force refresh after uploads
-      return `${fullUrl}?t=${Date.now()}`;
-    }
-    return defaultAvatar;
-  }, [currentUser?.avatarUrl]);
-
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
     // Scroll to top when changing pages
@@ -385,7 +368,7 @@ function Team() {
 
   useEffect(() => {
     resetPagination();
-  }, [debouncedSearchTerm, sortBy, filterOwnership, resetPagination]);
+  }, [debouncedSearchTerm, sortBy, filterOwnership]);
 
   useEffect(() => {
     // if (currentUser?.avatarUrl) {

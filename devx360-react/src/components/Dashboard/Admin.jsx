@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import { Users, UserCog, Loader, Edit, Trash2, Eye, Search, Mail, Github, Ban, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import {getUsers, deleteUser, getTeams, getUserAvatar, getUserAvatarUrl} from "../../services/admin";
+import {getUsers, deleteUser, getTeams, getUserAvatarUrl} from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
 import HeaderInfo from "../common/HeaderInfo";
 import WarningToast from "../common/WarningToast";
@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import ModalPortal from "./modal/ModalPortal";
 import {useNavigate} from "react-router-dom";
+import {useAvatar} from "../../hooks/useAvatar";
 
 function Pagination({ page, setPage, totalItems, pageSize }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -67,15 +68,13 @@ function Pagination({ page, setPage, totalItems, pageSize }) {
   );
 }
 
+
 const defaultAvatar = '/default-avatar.png';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 
 function Admin() {
   const { currentUser } = useAuth();
-  // const defaultAvatar = '/default-avatar.png';
-  // const [avatar, setAvatar] = useState(defaultAvatar);
-  const [userAvatar, setUserAvatar] = useState(null);
+  const avatarUrl = useAvatar();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,23 +154,23 @@ function Admin() {
   //   return getFullAvatarUrl(getUserAvatar(userId)) || defaultAvatar;
   // };
 
-  const getFullAvatarUrl = (avatarUrl) => {
-    if (!avatarUrl) return defaultAvatar;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-
-    // Handle the case where avatarUrl might not start with /
-    const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
-    return `${API_BASE_URL}${cleanPath}`;
-  };
-
-  const avatarUrl = useMemo(() => {
-    if (currentUser?.avatarUrl) {
-      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
-      // Add timestamp to force refresh after uploads
-      return `${fullUrl}?t=${Date.now()}`;
-    }
-    return defaultAvatar;
-  }, [currentUser?.avatarUrl]);
+  // const getFullAvatarUrl = (avatarUrl) => {
+  //   if (!avatarUrl) return defaultAvatar;
+  //   if (avatarUrl.startsWith('http')) return avatarUrl;
+  //
+  //   // Handle the case where avatarUrl might not start with /
+  //   const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+  //   return `${API_BASE_URL}${cleanPath}`;
+  // };
+  //
+  // const avatarUrl = useMemo(() => {
+  //   if (currentUser?.avatarUrl) {
+  //     const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
+  //     // Add timestamp to force refresh after uploads
+  //     return `${fullUrl}?t=${Date.now()}`;
+  //   }
+  //   return defaultAvatar;
+  // }, [currentUser?.avatarUrl]);
 
   const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
 
@@ -372,18 +371,20 @@ function Admin() {
     // if (useServerPagination) return users;
     const start = (usersPage - 1) * pageSize;
     return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, users, usersPage, pageSize]);
+  }, [filteredUsers, usersPage, pageSize]);
 
   const pagedTeams = useMemo(() => {
     // if (useServerPagination) return teams;
     const start = (teamsPage - 1) * pageSize;
     return filteredTeams.slice(start, start + pageSize);
-  }, [filteredTeams, teams, teamsPage, pageSize]);
+  }, [filteredTeams, teamsPage, pageSize]);
 
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     setUsersPage(1);
@@ -400,6 +401,7 @@ function Admin() {
   //     setAvatar(avatarUrl);
   //   }
   // }, [currentUser]);
+
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil((filteredUsers?.length || 0) / pageSize));

@@ -1,23 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import StatCard from '../common/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import HeaderInfo from "../common/HeaderInfo";
+import {useAvatar} from "../../hooks/useAvatar";
 
 function Overview() {
   const { currentUser } = useAuth();
   const defaultAvatar = '/default-avatar.png';
-  const [avatar, setAvatar] = useState(defaultAvatar);
-
-  useEffect(() => {
-    if (currentUser?.avatar) {
-      const avatarUrl = currentUser.avatar.startsWith('http') 
-        ? currentUser.avatar 
-        : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
-      setAvatar(avatarUrl);
-    } else {
-      setAvatar(defaultAvatar);
-    }
-  }, [currentUser]);
+  const avatarUrl = useAvatar();
 
   return (
     <div
@@ -49,7 +39,7 @@ function Overview() {
                 Overview
               </p>
             </div>
-            <HeaderInfo currentUser={currentUser} avatar={avatar} defaultAvatar={defaultAvatar} />
+            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
           </div>
         </div>
       </header>
