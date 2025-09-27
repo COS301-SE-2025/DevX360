@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {updateAvatar, updateProfile} from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
@@ -6,9 +6,12 @@ import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from '
 import toast from "react-hot-toast";
 
 const defaultAvatar = '/default-avatar.png';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 const getFullAvatarUrl = (avatarUrl) => {
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
+
   if (!avatarUrl) return defaultAvatar;
   if (avatarUrl.startsWith('http')) return avatarUrl;
 
@@ -18,11 +21,14 @@ const getFullAvatarUrl = (avatarUrl) => {
 };
 
 function Profile() {
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
   const { currentUser, setCurrentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState(null);
+  const [isConnectingGitHub, setIsConnectingGitHub] = useState(false);
   const [formState, setFormState] = useState({
     data: {
       name: '',
@@ -49,6 +55,76 @@ function Profile() {
     }
     return defaultAvatar;
   }, [previewAvatar, currentUser?.avatarUrl]);
+
+  useEffect(() => {
+
+    const handleGitHubConnection = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tempToken = urlParams.get('temp_token');
+      const connected = urlParams.get('connected');
+      const error = urlParams.get('error');
+
+      // Handle success message
+      if (connected === 'true') {
+        toast.success('GitHub account connected successfully!');
+        // Clean up URL
+        window.history.replaceState({}, document.title, '/dashboard/profile');
+        return;
+      }
+
+      // Handle error message
+      if (error) {
+        toast.error(decodeURIComponent(error));
+
+        // Clean up URL
+        window.history.replaceState({}, document.title, '/dashboard/profile');
+        return;
+      }
+
+      // Handle temp token (complete the connection)
+      if (tempToken) {
+        try {
+          setIsConnectingGitHub(true);
+          const response = await fetch(`${API_BASE_URL}/api/profile/connect-github`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ tempToken })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // Update user context with new GitHub info
+
+            console.log('curr user:', currentUser);
+            setCurrentUser(prevUser => ({
+              ...prevUser,
+              githubUsername: data.user.githubUsername,
+              githubId: data.user.githubId
+            }));
+            console.log('updated user', currentUser);
+
+            toast.success('GitHub account connected successfully!');
+            window.history.replaceState({}, document.title, '/dashboard/profile');
+          } else {
+            const errorData = await response.json();
+            toast.error(errorData.message || 'Failed to connect GitHub account');
+            window.history.replaceState({}, document.title, '/dashboard/profile');
+          }
+        } catch (error) {
+          console.error('GitHub connection error:', error);
+          toast.error('Failed to connect GitHub account');
+          window.history.replaceState({}, document.title, '/dashboard/profile');
+        } finally {
+          setIsConnectingGitHub(false);
+        }
+      }
+    };
+
+    handleGitHubConnection();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -263,9 +339,16 @@ function Profile() {
     }
   };
 
-  /* const handleConnectGitHub = () => {
-    window.location.href = `${API_BASE_URL}/api/auth/github`;
-  };*/
+
+
+  const handleConnectGitHub = () => {
+
+    setIsConnectingGitHub(true);
+    setTimeout(() => {
+      window.location.href = `${API_BASE_URL}/api/auth/github?flow=connect&returnTo=/dashboard/profile`;
+    }, 100);
+  };
+
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
@@ -647,10 +730,19 @@ function Profile() {
                           </p>
                         </div>
 
-                        {currentUser?.githubUsername && (
+                        {currentUser?.githubUsername ? (
                             <div className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 cursor-default">
-                              {currentUser?.githubUsername && 'Connected'}
+                              Connected
                             </div>
+                        ) : (
+                            <button
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={handleConnectGitHub}
+                                disabled={isConnectingGitHub}
+                            >
+                              <Github size={16} />
+                              {isConnectingGitHub ? 'Connecting...' : 'Connect GitHub'}
+                            </button>
                         )}
 
                         {/*</button>*/}
