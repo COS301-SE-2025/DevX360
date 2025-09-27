@@ -8,11 +8,12 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('http://localhost:5500/api/profile', {
+        const response = await fetch(`${API_BASE_URL}/api/profile`, {
           credentials: 'include',
         });
         
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       const data = await loginUser(email, password);
       // Construct full avatar URL if needed
       if (data.user?.avatar) {
-        data.user.avatar = `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}/uploads/${data.user.avatar}`;
+        data.user.avatar = `${API_BASE_URL}/uploads/${data.user.avatar}`;
       }
       setCurrentUser(data.user);
       return { success: true };
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, role, email, password, inviteCode = '') => {
     try {
-      const response = await fetch('http://localhost:5500/api/register', {
+      const response = await fetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, role, email, password, inviteCode }),
@@ -72,7 +73,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:5500/api/logout', {
+      await fetch(`${API_BASE_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include',
       });
