@@ -9,7 +9,7 @@ const defaultAvatar = '/default-avatar.png';
 // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 const getFullAvatarUrl = (avatarUrl) => {
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 
   if (!avatarUrl) return defaultAvatar;
@@ -21,7 +21,7 @@ const getFullAvatarUrl = (avatarUrl) => {
 };
 
 function Profile() {
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   const { currentUser, setCurrentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
