@@ -29,12 +29,13 @@ function Metrics() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberStatsLoading, setMemberStatsLoading] = useState(false);
   const [showMemberStatsModal, setShowMemberStatsModal] = useState(false);
+ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   useEffect(() => {
     if (currentUser?.avatar) {
       const avatarUrl = currentUser.avatar.startsWith('http') 
         ? currentUser.avatar 
-        : `${process.env.REACT_APP_API_URL || 'http://localhost:5500'}${currentUser.avatar}`;
+        : `${API_BASE_URL}}${currentUser.avatar}`;
       setAvatar(avatarUrl);
     } else {
       setAvatar(defaultAvatar);
@@ -63,7 +64,7 @@ function Metrics() {
         throw new Error('Selected team not found');
       }
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+      // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
       const response = await fetch(`${API_BASE_URL}/api/teams/${targetTeamId}?teamId=${targetTeamId}`, {
         credentials: 'include',
       });
@@ -195,7 +196,7 @@ const handleMemberClick = (member) => {
 
     const checkAiFeedback = async () => {
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+        // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
         const response = await fetch(`${API_BASE_URL}/api/ai-review?teamId=${teamId}`, {
           credentials: 'include',
         });
