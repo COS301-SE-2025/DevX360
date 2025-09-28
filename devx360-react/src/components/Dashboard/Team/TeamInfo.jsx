@@ -15,11 +15,6 @@ import {
 } from "lucide-react";
 import {Link} from "react-router-dom";
 import {formatDate} from '../../../utils/dateUtils';
-import PeriodSelectorButton from "./PeriodSelector";
-
-
-
-
 
 //=============================================================Loading Overlay Component======================================
 const LoadingOverlay = ({ isVisible, message = "Loading...", variant = "default" }) => {
@@ -49,7 +44,6 @@ const LoadingOverlay = ({ isVisible, message = "Loading...", variant = "default"
       </div>
   );
 };
-
 
 // Custom hook for dropdown menu management
 const useDropdownMenu = () => {
@@ -153,9 +147,8 @@ const parseNumericValue = (value, hasPercentage = false) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-
 //=============================================================TeamInfo Component======================================
-function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, selectedPeriod, onPeriodChange }) {
+function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPeriods, onTeamPeriodChange }) {
   const { toggleMenu, closeMenu, isMenuOpen, registerMenuRef } = useDropdownMenu();
 
   const getMetricStatusMemoized = useMemo(() => {
@@ -249,11 +242,12 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, selectedP
         {teams.map((team, index) => {
           const isDeleting = deletingTeamIds.has(team.id);
           const menuId = `team-menu-${team.id}`;
+          const teamPeriod = teamPeriods.get(team.id) || '30d';
 
           return (
               <div
                   key={team.id || index}
-                  className={`bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden hover:shadow-lg transition-all duration-300 relative ${
+                  className={`bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] hover:shadow-lg transition-all duration-300 relative ${
                       isDeleting ? 'pointer-events-none' : ''
                   }`}
               >
@@ -458,17 +452,61 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, selectedP
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-[var(--text-light)]"/>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-[var(--text)]">Analysis Period</p>
-                          <p className="text-xs text-[var(--text-light)]">
-                            {formatDate(team.doraMetrics?.analysis_period.start_date)} - {formatDate(team.doraMetrics?.analysis_period.end_date)}
-                          </p>
+                        <div className="flex-1 relative">
+                          <button
+                              data-menu-button={`period-menu-${team.id}`}
+                              onClick={() => toggleMenu(`period-menu-${team.id}`, isDeleting)}
+                              disabled={isDeleting}
+                              className="w-full text-left group hover:bg-[var(--bg-container)] rounded-md px-2 py-1 transition-colors duration-200"
+                          >
+                            <p className="text-xs font-medium text-[var(--text)] group-hover:text-[var(--primary)] flex items-center justify-between">
+                              Analysis Period ({teamPeriod.toUpperCase()})
+                              <svg className={`w-3 h-3 transition-transform duration-200 ${isMenuOpen(`period-menu-${team.id}`) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </p>
+                            <p className="text-xs text-[var(--text-light)]">
+                              {formatDate(team.doraMetrics?.analysis_period.start_date)} - {formatDate(team.doraMetrics?.analysis_period.end_date)}
+                            </p>
+                          </button>
+
+                          {isMenuOpen(`period-menu-${team.id}`) && !isDeleting && (
+                              <div
+                                  ref={(el) => registerMenuRef(`period-menu-${team.id}`, el)}
+                                  className="absolute left-0 top-full mt-2 w-40 bg-[var(--bg-container)] border border-[var(--border)] rounded-lg shadow-lg z-50 overflow-hidden"
+                                  role="menu"
+                              >
+                                {getAvailablePeriods(team).map((period) => {
+                                  const periodLabels = {
+                                    '7d': '7 Days',
+                                    '30d': '30 Days',
+                                    '90d': '90 Days'
+                                  };
+
+                                  return (
+                                      <button
+                                          key={period}
+                                          role="menuitem"
+                                          className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg)] transition-colors duration-200 ${
+                                              teamPeriod === period
+                                                  ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium'
+                                                  : 'text-[var(--text)]'
+                                          }`}
+                                          onClick={() => {
+                                            onTeamPeriodChange(team.id, period);
+                                            closeMenu();
+                                          }}
+                                      >
+                                        {periodLabels[period]}
+                                        {teamPeriod === period && (
+                                            <span className="float-right">✓</span>
+                                        )}
+                                      </button>
+                                  );
+                                })}
+                              </div>
+                          )}
                         </div>
-                        <PeriodSelectorButton
-                            selectedPeriod={selectedPeriod}
-                            onPeriodChange={onPeriodChange}
-                            availablePeriods={getAvailablePeriods(team)}
-                        />
                       </div>
 
                       {team.repositoryInfo?.url && (

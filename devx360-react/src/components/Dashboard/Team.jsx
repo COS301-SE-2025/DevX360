@@ -21,8 +21,6 @@ import TeamInfo from './Team/TeamInfo';
 import ErrorBoundary from '../common/ErrorBoundary';
 import {useAvatar} from "../../hooks/useAvatar";
 
-
-
 // Pagination config
 const TEAMS_PER_PAGE = 6;
 
@@ -41,7 +39,6 @@ const FilterPill = ({ isActive, onClick, label }) => {
       </button>
   );
 };
-
 
 //=============================================================Pagination Component======================================
 const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange }) => {
@@ -166,13 +163,10 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-
 //=============================================================Team Component======================================
 function Team() {
   const { currentUser } = useAuth();
-  // const [avatar, setAvatar] = useState(defaultAvatar);
   const avatarUrl = useAvatar();
-  const [teams, setTeams] = useState([]);
   const [rawTeamsData, setRawTeamsData] = useState([]);
   const [error, setError] = useState(null);
 
@@ -182,7 +176,8 @@ function Team() {
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [isJoiningTeam, setIsJoiningTeam] = useState(false);
 
-  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+  // Individual period selection for each team
+  const [teamPeriods, setTeamPeriods] = useState(new Map());
 
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [deletingTeamIds, setDeletingTeamIds] = useState(new Set());
@@ -196,14 +191,14 @@ function Team() {
   const [sortBy, setSortBy] = useState('name_asc');
   const [filterOwnership, setFilterOwnership] = useState('all');
 
-  const [searchInput, setSearchInput] = useState(''); // What user types
-  const debouncedSearchTerm = useDebounce(searchInput, 300); // Actual search after 300ms delay
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearchTerm = useDebounce(searchInput, 300);
 
   const resetPagination = useCallback(() => {
     setCurrentPage(prev => prev === 1 ? prev : 1);
   }, []);
 
-  const normalizeTeamDataWithPeriod = (rawTeam, selectedPeriod) => {
+  const normalizeTeamDataWithPeriod = useCallback((rawTeam, selectedPeriod) => {
     const periodMetrics = rawTeam.doraMetrics?.[selectedPeriod] ||
         rawTeam.doraMetrics?.['30d'] ||
         rawTeam.doraMetrics?.['7d'] ||
@@ -264,18 +259,36 @@ function Team() {
       allDoraMetrics: rawTeam.doraMetrics || {},
       currentPeriod: selectedPeriod
     };
-  };
+  }, []);
 
+  // Compute normalized teams from raw data and periods
+  const teams = useMemo(() => {
+    if (!rawTeamsData.length) return [];
+
+    return rawTeamsData.map(team => {
+      const period = teamPeriods.get(team.id) || '30d';
+      return normalizeTeamDataWithPeriod(team, period);
+    });
+  }, [rawTeamsData, teamPeriods, normalizeTeamDataWithPeriod]);
 
   const loadTeams = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       const userTeams = await getMyTeams();
-      // const normalizedTeams = userTeams.map(normalizeTeamData);
       setRawTeamsData(userTeams);
-      const normalizedTeams = userTeams.map(team => normalizeTeamDataWithPeriod(team, '30d'));
-      setTeams(normalizedTeams);
+
+      // Initialize periods for new teams only
+      setTeamPeriods(currentPeriods => {
+        const newPeriods = new Map(currentPeriods);
+        userTeams.forEach(team => {
+          if (!newPeriods.has(team.id)) {
+            newPeriods.set(team.id, '30d');
+          }
+        });
+        return newPeriods;
+      });
+
       resetPagination();
     } catch (error) {
       console.error('Error loading teams:', error);
@@ -284,8 +297,6 @@ function Team() {
       setIsLoading(false);
     }
   }, [resetPagination]);
-
-  console.log('Teams:', teams);
 
   const handleCreateTeam = async () => {
     try {
@@ -313,12 +324,19 @@ function Team() {
   };
 
   const confirmDeleteTeam = async () => {
-    if (!teamToDelete || deletingTeamIds.has(teamToDelete)) return;
+    if (!teamToDelete || deletingTeamIds.has(teamToDelete.id)) return;
 
-    // setIsDeleting(true);
     setDeletingTeamIds(prev => new Set([...prev, teamToDelete.id]));
     try {
       await deleteTeam(teamToDelete.name, teamToDelete.id);
+
+      // Remove the deleted team's period from the map
+      setTeamPeriods(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(teamToDelete.id);
+        return newMap;
+      });
+
       await loadTeams();
       setShowDeleteModal(false);
       setTeamToDelete(null);
@@ -332,18 +350,20 @@ function Team() {
         newSet.delete(teamToDelete.id);
         return newSet;
       });
-      // setIsDeleting(false);
     }
   };
 
-  const { paginatedTeams, totalPages, totalItems, filteredTeams } = useMemo(() => {
+  // Handle individual team period changes
+  const handleTeamPeriodChange = useCallback((teamId, newPeriod) => {
+    setTeamPeriods(prev => new Map(prev.set(teamId, newPeriod)));
+  }, []);
 
+  const { paginatedTeams, totalPages, totalItems } = useMemo(() => {
     if (!teams || teams.length === 0) {
-      return { paginatedTeams: [], totalPages: 0, totalItems: 0, filteredTeams: [] };
+      return { paginatedTeams: [], totalPages: 0, totalItems: 0 };
     }
 
     let filtered = teams.filter(team => {
-      // USE debouncedSearchTerm here instead of searchTerm
       const matchesSearch = team.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
           team.creator?.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
@@ -378,7 +398,7 @@ function Team() {
     const endIndex = startIndex + TEAMS_PER_PAGE;
     const paginatedTeams = filtered.slice(startIndex, endIndex);
 
-    return { paginatedTeams, totalPages, totalItems, filteredTeams: filtered };
+    return { paginatedTeams, totalPages, totalItems };
   }, [teams, debouncedSearchTerm, sortBy, filterOwnership, currentUser?._id, currentPage]);
 
   const clearFilters = () => {
@@ -390,21 +410,9 @@ function Team() {
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    // Scroll to top when changing pages
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePeriodChange = useCallback((newPeriod) => {
-    setSelectedPeriod(newPeriod);
-
-    // Re-normalize from stored raw data
-    if (rawTeamsData.length > 0) {
-      const normalizedTeams = rawTeamsData.map(team => normalizeTeamDataWithPeriod(team, newPeriod));
-      setTeams(normalizedTeams);
-    }
-  }, [rawTeamsData]);
-
-  // const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
   const hasActiveFilters = debouncedSearchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
 
   useEffect(() => {
@@ -412,17 +420,10 @@ function Team() {
   }, [resetPagination, debouncedSearchTerm, sortBy, filterOwnership]);
 
   useEffect(() => {
-    // if (currentUser?.avatarUrl) {
-    //   setAvatar(getFullAvatarUrl(currentUser.avatarUrl));
-    // } else {
-    //   setAvatar(defaultAvatar);
-    // }
-
     if (currentUser) {
-      loadTeams()
+      loadTeams();
     }
   }, [currentUser, loadTeams]);
-
 
   if (isLoading) {
     return (
@@ -483,9 +484,9 @@ function Team() {
                           onClick={() => setShowCreateModal(true)}
                           disabled={isCreatingTeam}
                           className={`flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 ${
-                            isCreatingTeam 
-                            ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
-                            : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
+                              isCreatingTeam
+                                  ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
+                                  : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
                           }`}
                       >
                         Create Team
@@ -494,9 +495,9 @@ function Team() {
                           onClick={() => setShowJoinModal(true)}
                           disabled={isJoiningTeam}
                           className={`flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 ${
-                            isJoiningTeam
-                            ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
-                            : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
+                              isJoiningTeam
+                                  ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
+                                  : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
                           }`}
 
                       >
@@ -565,8 +566,6 @@ function Team() {
                         </p>
                       </div>
                   )}
-
-
                 </div>
               </div>
             </div>
@@ -578,8 +577,8 @@ function Team() {
                   currentUser={currentUser}
                   onDeleteTeam={handleDeleteTeam}
                   deletingTeamIds={deletingTeamIds}
-                  selectedPeriod={selectedPeriod}
-                  onPeriodChange={handlePeriodChange}
+                  teamPeriods={teamPeriods}
+                  onTeamPeriodChange={handleTeamPeriodChange}
               />
             </div>
 
