@@ -5,7 +5,7 @@ import {checkMembership, joinTeam, searchTeams} from "../../../services/teams";
 import toast from 'react-hot-toast';
 
 
-function JoinTeamModal({onCloseJoin, onTeamJoined}) {
+function JoinTeamModal({onCloseJoin, onTeamJoined, setIsJoiningTeam}) {
   const [currentStep, setCurrentStep] = useState('searching'); // 'searching', 'enteringPassword', 'alreadyJoined'
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResult, setSearchResult] = useState([]);
@@ -29,6 +29,7 @@ function JoinTeamModal({onCloseJoin, onTeamJoined}) {
     }
 
     setIsLoading(true);
+    setIsJoiningTeam(true);
     try {
       const result = await searchTeams(searchTerm);
       console.log(result);
@@ -43,6 +44,7 @@ function JoinTeamModal({onCloseJoin, onTeamJoined}) {
       setSearchResult([]);
     } finally {
       setIsLoading(false);
+      setIsJoiningTeam(false);
     }
   };
 

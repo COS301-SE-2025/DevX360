@@ -2,17 +2,14 @@ import React, {useState} from "react";
 import { X, Github, Users, Lock, AlertCircle } from 'lucide-react';
 import {createTeam} from "../../../services/teams";
 import toast from 'react-hot-toast';
-// import WarningToast from '../../common/WarningToast';
 
-function CreateTeamModal({onCloseCreate, onTeamCreated}) {
+function CreateTeamModal({onCloseCreate, onTeamCreated, setIsCreatingTeam}) {
   const [teamName, setTeamName] = useState('');
   const [teamPassword, setTeamPassword] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const modalRef = React.useRef(null);
 
   const [isLoading, setIsLoading] = useState(false);
-  // const [successMessage, setSuccessMessage] = useState('');
-  // const [errorMessage, setErrorMessage] = useState('');
 
   const [nameError, setNameError] = useState('');
   const [urlError, setUrlError] = useState('');
@@ -32,12 +29,6 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
       handleCreateTeam().catch(console.error);
     }
   };
-
-  // const showCustomToast = () => {
-  //     toast.custom(<WarningToast message={"Team created, but repository analysis failed!"} />,  {
-  //         duration: 6000
-  //     });
-  // };
 
   const clearErrors = () => {
     setNameError('');
@@ -69,6 +60,7 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
     const loadingToast = toast.loading('Creating team...');
 
     setIsLoading(true);
+    setIsCreatingTeam(true);
     clearErrors();
 
     try {
@@ -92,12 +84,11 @@ function CreateTeamModal({onCloseCreate, onTeamCreated}) {
       } else if (error.message.includes('Repository')) {
         toast.dismiss(loadingToast);
         setUrlError(error.message || 'Failed to create team');
-        // showCustomToast();                // onCloseCreate();
-        // onCloseCreate();
       }
     }
     finally {
       setIsLoading(false);
+      setIsCreatingTeam(false);
     }
   };
 

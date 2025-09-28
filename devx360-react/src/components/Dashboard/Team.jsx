@@ -27,8 +27,6 @@ import {useAvatar} from "../../hooks/useAvatar";
 // Pagination config
 const TEAMS_PER_PAGE = 6;
 const defaultAvatar = '/default-avatar.png';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-
 
 //=============================================================FilterPill Component======================================
 const FilterPill = ({ isActive, onClick, label }) => {
@@ -219,6 +217,9 @@ function Team() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [isJoiningTeam, setIsJoiningTeam] = useState(false);
+
   const [teamToDelete, setTeamToDelete] = useState(null);
   // const [isDeleting, setIsDeleting] = useState(false);
   const [deletingTeamIds, setDeletingTeamIds] = useState(new Set());
@@ -408,7 +409,7 @@ function Team() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-base text-[var(--text-light)]">Manage and monitor your development teams</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl}  />
             </div>
           </div>
         </header>
@@ -439,8 +440,13 @@ function Team() {
                     {/* Action Buttons */}
                     <div className="flex gap-3 w-full sm:w-auto">
                       <button
-                          className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
                           onClick={() => setShowCreateModal(true)}
+                          disabled={isCreatingTeam}
+                          className={`flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 ${
+                            isCreatingTeam 
+                            ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
+                            : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
+                          }`}
                       >
                         Create Team
                       </button>
@@ -545,6 +551,7 @@ function Team() {
           <CreateTeamModal
               onCloseCreate={() => setShowCreateModal(false)}
               onTeamCreated={handleCreateTeam}
+              setIsCreatingTeam={setIsCreatingTeam}
           />
         </ModalPortal>
 
@@ -552,6 +559,7 @@ function Team() {
           <JoinTeamModal
               onCloseJoin={() => setShowJoinModal(false)}
               onTeamJoined={handleJoinTeam}
+              setIsJoiningTeam={setIsJoiningTeam}
           />
         </ModalPortal>
 
