@@ -1,32 +1,13 @@
-import { useEffect, useState } from "react";
-import {getUserAvatar} from "../../../services/admin";
+import { useMemo } from "react";
 
 const defaultAvatar = "/default-avatar.png";
 
-function UserAvatar({ userId, alt, size = 40, className = "" }) {
-  const [src, setSrc] = useState(defaultAvatar);
+function UserAvatar({ userAvatar, contentType = "image/png", alt, size = 40, className = "" }) {
+  const src = useMemo(() => {
+    if (!userAvatar) return defaultAvatar;
+    return `data:${contentType};base64,${userAvatar}`;
+  }, [userAvatar, contentType]);
 
-  useEffect(() => {
-    let active = true;
-
-    if (!userId) {
-      setSrc(defaultAvatar);
-      return;
-    }
-
-    getUserAvatar(userId)
-        .then((url) => {
-          if (active) setSrc(url);
-        })
-        .catch(() => setSrc(defaultAvatar));
-
-    return () => {
-      active = false;
-      if (src && src !== defaultAvatar) {
-        URL.revokeObjectURL(src);
-      }
-    };
-  }, [userId]);
 
   return (
       <img

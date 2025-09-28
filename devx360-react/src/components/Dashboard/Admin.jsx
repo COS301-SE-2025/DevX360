@@ -38,7 +38,6 @@ function Admin() {
   const avatarUrl = useAvatar();
   const mountedRef = useRef(true);
 
-
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +83,7 @@ function Admin() {
   const [showFullIPs, setShowFullIPs] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [usersData, teamsData, anomaliesData] = await Promise.all([
@@ -114,9 +113,9 @@ function Admin() {
       if (mountedRef.current)
         setIsLoading(false);
     }
-  };
+  }, []);
 
-  const refreshTeams = async (page = teamsPage) => {
+  const refreshTeams = useCallback(async (page = teamsPage) => {
     try {
       const teamsList = await getTeams()
       setTeams(teamsList);
@@ -124,9 +123,9 @@ function Admin() {
     } catch (error) {
       console.error('Error refreshing teams:', error);
     }
-  }
+  }, [teamsPage]);
 
-  const refreshUsers = async () => {
+  const refreshUsers = useCallback(async () => {
     try {
       const userList = await getUsers();
       setUsers(userList);
@@ -134,11 +133,11 @@ function Admin() {
     } catch (error) {
       console.error('Error refreshing users:', error);
     }
-  }
+  }, []);
 
-  const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
+  const formatDate = useCallback((dateString) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A', []);
 
-  const formatDateTime = (dateString) => {
+  const formatDateTime = useCallback((dateString) => {
     if (!dateString) return 'N/A';
 
     const date = new Date(dateString);
@@ -165,27 +164,34 @@ function Admin() {
     });
 
     return relative ? `${relative} (${absolute})` : absolute;
-  };
+  }, []);
 
-  const handleEditUser = (userId) => toast.custom(<WarningToast message={"Implement"} />);
+  const handleEditUser = useCallback((userId) => toast.custom(<WarningToast message={"Implement"} />), []);
 
-  const handleViewTeam = (teamId, teamName) => {
+  const handleViewTeam = useCallback((teamId, teamName) => {
     navigate(`/dashboard/metrics`);
-  };
+  }, [navigate]);
 
-  const handleDeleteUser = (name, userId, email) => {
+  // New function to handle member click
+  const handleMemberClick = useCallback((memberEmail) => {
+    setActiveTab('users');
+    setSearchTerm(memberEmail);
+    setUsersPage(1);
+  }, []);
+
+  const handleDeleteUser = useCallback((name, userId, email) => {
     setUserToDelete({name: name, id: userId, email: email});
     setTeamToDelete(null);
     setShowDeleteModal(true);
-  };
+  }, []);
 
-  const handleDeleteTeam = (teamId, teamName) => {
+  const handleDeleteTeam = useCallback((teamId, teamName) => {
     setTeamToDelete({ id: teamId, name: teamName });
     setUserToDelete(null);
     setShowDeleteModal(true);
-  };
+  }, []);
 
-  const confirmDeleteUser = async () => {
+  const confirmDeleteUser = useCallback(async () => {
     if (!userToDelete) return;
 
     setIsDeleting(true);
@@ -202,12 +208,10 @@ function Admin() {
       setShowDeleteModal(false);
       setUserToDelete(null);
     }
-  }
+  }, [userToDelete, refreshUsers]);
 
-  const confirmDeleteTeam = async () => {
+  const confirmDeleteTeam = useCallback(async () => {
     if (!teamToDelete) return;
-
-    // console.log('teamToDelete', teamToDelete);
 
     setIsDeletingTeam(true);
     try {
@@ -223,25 +227,25 @@ function Admin() {
       setShowDeleteModal(false);
       setTeamToDelete(null);
     }
-  };
+  }, [teamToDelete, refreshTeams]);
 
-  const handleUserSort = (field) => {
+  const handleUserSort = useCallback((field) => {
     if (userSortField === field) {
       setUserSortDirection(userSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setUserSortField(field);
       setUserSortDirection('asc');
     }
-  };
+  }, [userSortField, userSortDirection]);
 
-  const handleTeamSort = (field) => {
+  const handleTeamSort = useCallback((field) => {
     if (teamSortField === field) {
       setTeamSortDirection(teamSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setTeamSortField(field);
       setTeamSortDirection('asc');
     }
-  };
+  }, [teamSortField, teamSortDirection]);
 
   const sortedUsers = useMemo(() => {
     return [...users].sort((a, b) => {
@@ -273,11 +277,6 @@ function Admin() {
           valueB = b.name || '';
       }
 
-     /* if (userSortDirection === 'asc') {
-        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-      } else {
-        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-      }*/
       const modifier = userSortDirection === 'asc' ? 1 : -1;
       if (typeof valueA === 'number' && typeof valueB === 'number') {
         return (valueA - valueB) * modifier;
@@ -312,12 +311,6 @@ function Admin() {
           valueB = b.name || '';
       }
 
-      /*if (teamSortDirection === 'asc') {
-        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-      } else {
-        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-      }*/
-
       const modifier = teamSortDirection === 'asc' ? 1 : -1;
       if (typeof valueA === 'number' && typeof valueB === 'number') {
         return (valueA - valueB) * modifier;
@@ -334,7 +327,6 @@ function Admin() {
     );
   }, [sortedUsers, searchTerm]);
 
-  // Filter sorted teams
   const filteredTeams = useMemo(() => {
     return sortedTeams.filter(team =>
         team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -346,7 +338,6 @@ function Admin() {
     const totalItems = filteredUsers.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-    // Fix pagination bounds
     const safePage = Math.max(1, Math.min(usersPage, totalPages));
     const start = (safePage - 1) * pageSize;
     const pagedUsers = filteredUsers.slice(start, start + pageSize);
@@ -358,7 +349,6 @@ function Admin() {
     const totalItems = filteredTeams.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-    // Fix pagination bounds
     const safePage = Math.max(1, Math.min(teamsPage, totalPages));
     const start = (safePage - 1) * pageSize;
     const pagedTeams = filteredTeams.slice(start, start + pageSize);
@@ -422,7 +412,7 @@ function Admin() {
     return { pagedAnomalies, anomaliesTotalPages: totalPages };
   }, [filteredAnomalies, anomaliesPage, pageSize]);
 
-  const toggleRowExpansion = (anomalyId) => {
+  const toggleRowExpansion = useCallback((anomalyId) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
       if (newSet.has(anomalyId)) {
@@ -432,28 +422,28 @@ function Admin() {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleAnomalySort = (field) => {
+  const handleAnomalySort = useCallback((field) => {
     if (anomalySortField === field) {
       setAnomalySortDirection(anomalySortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setAnomalySortField(field);
       setAnomalySortDirection('asc');
     }
-  };
+  }, [anomalySortField, anomalySortDirection]);
 
-  const options = [
+  const options = useMemo(() => [
     { value: 'all', label: 'All Types' },
     { value: 'login_failure', label: 'Login Failures' },
     { value: 'brute_force', label: 'Brute Force' },
     { value: 'rate_limit', label: 'Rate Limits' }
-  ];
+  ], []);
 
-  const handleAnomaliesPageChange = (newPage) => {
+  const handleAnomaliesPageChange = useCallback((newPage) => {
     setAnomaliesPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   const resetAnomaliesPagination = useCallback(() => {
     setAnomaliesPage(prev => prev === 1 ? prev : 1);
@@ -463,7 +453,7 @@ function Admin() {
     resetAnomaliesPagination();
   }, [searchTerm, anomalySortField, anomalySortDirection, anomalyFilterType, resetAnomaliesPagination]);
 
-  const getAnomalyIcon = (type) => {
+  const getAnomalyIcon = useCallback((type) => {
     switch (type) {
       case 'login_failure':
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
@@ -474,9 +464,9 @@ function Admin() {
       default:
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
     }
-  };
+  }, []);
 
-  const getAnomalyBadgeColor = (type) => {
+  const getAnomalyBadgeColor = useCallback((type) => {
     switch (type) {
       case 'login_failure':
         return 'bg-red-100 text-red-700 border-red-200';
@@ -487,9 +477,9 @@ function Admin() {
       default:
         return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     }
-  };
+  }, []);
 
-  const getEventDetails = (anomaly) => {
+  const getEventDetails = useCallback((anomaly) => {
     switch (anomaly.type) {
       case 'login_failure':
         return anomaly.details?.reason || 'Invalid credentials';
@@ -500,9 +490,9 @@ function Admin() {
       default:
         return 'Security event detected';
     }
-  };
+  }, []);
 
-  const formatDetailsForExpanded = (anomaly) => {
+  const formatDetailsForExpanded = useCallback((anomaly) => {
     switch (anomaly.type) {
       case 'login_failure':
         return `Reason: ${anomaly.details?.reason || 'Invalid credentials'}`;
@@ -513,29 +503,21 @@ function Admin() {
       default:
         return anomaly.details ? JSON.stringify(anomaly.details, null, 2) : 'No additional details';
     }
-  };
+  }, []);
 
-  const maskIP = (ip = false) => {
+  const maskIP = useCallback((ip = false) => {
     if (showFullIPs) return ip;
     if (ip?.includes(':')) {
       return ip.split(':').slice(0, 2).join(':') + ':****:****:****:****';
     }
     return ip?.split('.').slice(0, 2).join('.') + '.***.***.';
-  };
+  }, [showFullIPs]);
 
   useEffect(() => {
     if (currentUser) {
       fetchData();
     }
-  }, [currentUser]);
-
-  // console.log('anomalies', anomalies);
-
-  useEffect(() => {
-    setUsersPage(1);
-    setTeamsPage(1);
-  }, [searchTerm, userSortField, userSortDirection, teamSortField, teamSortDirection]);
-
+  }, [currentUser, fetchData]);
 
   useEffect(() => {
     resetUsersPagination();
@@ -545,17 +527,20 @@ function Admin() {
     resetTeamsPagination();
   }, [searchTerm, teamSortField, teamSortDirection, resetTeamsPagination]);
 
-
-  const handleUsersPageChange = (newPage) => {
+  const handleUsersPageChange = useCallback((newPage) => {
     setUsersPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleTeamsPageChange = (newPage) => {
+  const handleTeamsPageChange = useCallback((newPage) => {
     setTeamsPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
+  const handleTabSwitch = (tab) => {
+    setActiveTab(tab);
+    setSearchTerm('');
+  };
 
 
   if (isLoading) {
@@ -610,7 +595,7 @@ function Admin() {
               <div className="flex items-center space-x-6">
                 <h1 className="text-2xl font-bold text-[var(--text)]">Admin Dashboard</h1>
                 <div className="h-6 w-px bg-[var(--border)]"></div>
-                <p className="text-[var(--text-light)]">Manage users and teams</p>
+                <p className="text-[var(--text-light)]">Manage users, teams, and monitor security events</p>
               </div>
               <HeaderInfo currentUser={currentUser} avatar={avatarUrl}  />
             </div>
@@ -661,7 +646,8 @@ function Admin() {
                             ? 'bg-[var(--primary)] text-[var(--bg)] shadow-lg '
                             : 'text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)]'
                     }`}
-                    onClick={() => setActiveTab('users')}
+                    // onClick={() => setActiveTab('users')}
+                    onClick={() => handleTabSwitch('users')}
                 >
                   <UserCog className="w-5 h-5"/>
                   <span>Users</span>
@@ -675,7 +661,8 @@ function Admin() {
                             ? 'bg-[var(--primary)] text-white shadow-lg'
                             : 'text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)]'
                     }`}
-                    onClick={() => setActiveTab('teams')}
+                    // onClick={() => setActiveTab('teams')}
+                    onClick={() => handleTabSwitch('teams')}
                 >
                   <Users className="w-5 h-5"/>
                   <span>Teams</span>
@@ -690,7 +677,8 @@ function Admin() {
                             ? 'bg-[var(--primary)] text-white shadow-lg'
                             : 'text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)]'
                     }`}
-                    onClick={() => setActiveTab('security')}
+                    // onClick={() => setActiveTab('security')}
+                    onClick={() => handleTabSwitch('security')}
                 >
                   <Shield className="w-5 h-5"/>
                   <span>Security</span>
@@ -760,7 +748,13 @@ function Admin() {
                                 <td className="px-6 py-4">
                                   <div className="flex items-center space-x-4">
                                     <div key={user._id} className="relative">
-                                      <UserAvatar userId={user._id} alt={user.name} size={32} className="border-white" />
+                                      <UserAvatar
+                                          userAvatar={user.avatar?.data}
+                                          contentType={user.avatar?.contentType}
+                                          alt={user.name}
+                                          size={32}
+                                          className="border-white"
+                                      />
                                     </div>
                                     <div>
                                       <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
@@ -928,24 +922,23 @@ function Admin() {
                                   <p className="text-xs text-[var(--text-light)]">Email: {team.creator?.email || 'Unknown'}</p>
                                 </td>
                                 <td className="px-6 py-4">
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex -space-x-2">
-                                      {team.members?.slice(0, 3).map(member => (
-                                          <div key={member._id} className="relative">
-                                            <UserAvatar userId={member._id} alt={member.name} size={32} className="border-white" />
-                                          </div>
+                                  <div className="space-y-2">
+                                    {/* Display all members as clickable badges */}
+                                    <div className="flex flex-wrap gap-1 max-h-10 overflow-y-auto">
+                                      {team.members?.map((member) => (
+                                          <button
+                                              key={member._id}
+                                              onClick={() => handleMemberClick(member.email)}
+                                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 transition-colors cursor-pointer"
+                                              title={`Click to view ${member.name} in users tab`}
+                                          >
+                                            {member.name}
+                                          </button>
                                       ))}
                                     </div>
-                                    {team.members?.length > 3 && (
-                                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border-2 border-white">
-                <span className="text-xs font-semibold text-[var(--text-light)]">
-                  +{team.members.length - 3}
-                </span>
-                                        </div>
-                                    )}
-                                    <span className="text-xs text-[var(--text-light)] ml-2">
-              {team.members?.length || 0} member{(team.members?.length || 0) !== 1 ? 's' : ''}
-            </span>
+                                    <p className="text-xs text-[var(--text-light)]">
+                                      {team.members?.length || 0} member{(team.members?.length || 0) !== 1 ? 's' : ''} total
+                                    </p>
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
@@ -1060,88 +1053,85 @@ function Admin() {
                       </thead>
                       <tbody className="divide-y divide-[var(--border)]">
                       {pagedAnomalies.length > 0 ? (
-                        pagedAnomalies.map((anomaly) => (
-                            <React.Fragment key={anomaly._id}>
+                          pagedAnomalies.map((anomaly) => (
+                              <React.Fragment key={anomaly._id}>
 
-                              <tr key={anomaly._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center space-x-3">
-                                    {getAnomalyIcon(anomaly.type)}
-                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getAnomalyBadgeColor(anomaly.type)}`}>
+                                <tr key={anomaly._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center space-x-3">
+                                      {getAnomalyIcon(anomaly.type)}
+                                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getAnomalyBadgeColor(anomaly.type)}`}>
                     {anomaly.type.replace('_', ' ').toUpperCase()}
                   </span>
-                                  </div>
-                                </td>
+                                    </div>
+                                  </td>
 
-                                <td className="px-6 py-4">
-                                  <div className="space-y-1">
-                                    <p className="text-sm text-[var(--text)] font-medium">
-                                      {getEventDetails(anomaly)}
-                                    </p>
-                                    {anomaly.email && (
-                                        <div className="flex items-center space-x-2">
-                                          <Mail className="w-4 h-4 text-[var(--text-light)]" />
-                                          <span className="text-sm text-[var(--text-light)]">{anomaly.email}</span>
-                                        </div>
-                                    )}
-                                  </div>
-                                </td>
+                                  <td className="px-6 py-4">
+                                    <div className="space-y-1">
+                                      <p className="text-sm text-[var(--text)] font-medium">
+                                        {getEventDetails(anomaly)}
+                                      </p>
+                                      {anomaly.email && (
+                                          <div className="flex items-center space-x-2">
+                                            <Mail className="w-4 h-4 text-[var(--text-light)]" />
+                                            <span className="text-sm text-[var(--text-light)]">{anomaly.email}</span>
+                                          </div>
+                                      )}
+                                    </div>
+                                  </td>
 
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center space-x-2">
-                                    <MapPin className="w-4 h-4 text-[var(--text-light)]" />
-                                    <span className="text-sm text-[var(--text)]">{maskIP(anomaly.ip)}</span>
-                                  </div>
-                                </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center space-x-2">
+                                      <MapPin className="w-4 h-4 text-[var(--text-light)]" />
+                                      <span className="text-sm text-[var(--text)]">{maskIP(anomaly.ip)}</span>
+                                    </div>
+                                  </td>
 
-                                <td className="px-6 py-4">
+                                  <td className="px-6 py-4">
                               <span className="text-sm text-[var(--text)] font-medium">
                                 {formatDateTime(anomaly.timestamp)}
                               </span>
-                                </td>
+                                  </td>
 
-                                <td className="px-6 py-4">
-                                  <button
-                                      onClick={() => toggleRowExpansion(anomaly._id)}
-                                      className="flex items-center space-x-1 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm"
-                                  >
-                                    {expandedRows.has(anomaly._id) ? (
-                                        <ChevronUp className="w-4 h-4" />
-                                    ) : (
-                                        <ChevronDown className="w-4 h-4" />
-                                    )}
-                                    <span>Details</span>
-                                  </button>
-                                </td>
-                              </tr>
+                                  <td className="px-6 py-4">
+                                    <button
+                                        onClick={() => toggleRowExpansion(anomaly._id)}
+                                        className="flex items-center space-x-1 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm"
+                                    >
+                                      {expandedRows.has(anomaly._id) ? (
+                                          <ChevronUp className="w-4 h-4" />
+                                      ) : (
+                                          <ChevronDown className="w-4 h-4" />
+                                      )}
+                                      <span>Details</span>
+                                    </button>
+                                  </td>
+                                </tr>
 
-                              {expandedRows.has(anomaly._id) && (
-                                  <tr>
-                                    <td colSpan="5" className="px-6 py-4 bg-[var(--bg)]">
-                                      <div className="space-y-3">
-                                        <div>
-                                          <h4 className="text-sm font-medium text-[var(--text)] mb-2">User Agent</h4>
-                                          <p className="text-sm text-[var(--text-light)] font-mono bg-[var(--bg-container)] p-2 rounded border border-[var(--border)]">
-                                            {anomaly.userAgent || 'Not available'}
-                                          </p>
-                                        </div>
+                                {expandedRows.has(anomaly._id) && (
+                                    <tr>
+                                      <td colSpan="5" className="px-6 py-4 bg-[var(--bg)]">
+                                        <div className="space-y-3">
+                                          <div>
+                                            <h4 className="text-sm font-medium text-[var(--text)] mb-2">User Agent</h4>
+                                            <p className="text-sm text-[var(--text-light)] font-mono bg-[var(--bg-container)] p-2 rounded border border-[var(--border)]">
+                                              {anomaly.userAgent || 'Not available'}
+                                            </p>
+                                          </div>
 
-                                        {anomaly.details && (
-                                            <div>
-                                              <h4 className="text-sm font-medium text-[var(--text)] mb-2">Event Details</h4>
-                                              {/*<div className="text-sm text-[var(--text-light)] bg-[var(--bg-container)] p-2 rounded border border-[var(--border)]">*/}
-                                              {/*  {JSON.stringify(anomaly.details, null, 2)}*/}
-                                              {/*</div>*/}
-                                              <pre className="text-sm text-[var(--text-light)] bg-[var(--bg-container)] p-2 rounded border border-[var(--border)] whitespace-pre-wrap">
+                                          {anomaly.details && (
+                                              <div>
+                                                <h4 className="text-sm font-medium text-[var(--text)] mb-2">Event Details</h4>
+                                                <pre className="text-sm text-[var(--text-light)] bg-[var(--bg-container)] p-2 rounded border border-[var(--border)] whitespace-pre-wrap">
                                               {formatDetailsForExpanded(anomaly)}
                                               </pre>
-                                            </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                              )}
-                            </React.Fragment>
+                                              </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                )}
+                              </React.Fragment>
 
                           ))
                       ) : (

@@ -11,14 +11,23 @@ export const useAvatar = () => {
 
   useEffect(() => {
     let active = true;
-    if (!currentUser?._id) {
-      setAvatarUrl(defaultAvatar);
-      return;
+
+    async function fetchAvatar() {
+      if (!currentUser?._id) {
+        setAvatarUrl(defaultAvatar);
+        return;
+      }
+
+      try {
+        const url = await getUserAvatar(currentUser._id);
+        if (active) setAvatarUrl(url);
+      } catch (error) {
+        console.error("Error fetching avatar:", error);
+        setAvatarUrl(defaultAvatar);
+      }
     }
 
-    getUserAvatar(currentUser._id).then((url) => {
-      if (active) setAvatarUrl(url);
-    });
+    fetchAvatar();
 
     return () => {
       active = false;
@@ -27,6 +36,7 @@ export const useAvatar = () => {
       }
     };
   }, [currentUser?._id]);
+
 
   return avatarUrl;
 };
