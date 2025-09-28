@@ -22,8 +22,10 @@ import cron from "node-cron";
 import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import { updateAllTeams } from "../services/teamUpdater.js";
 import mongoose from "mongoose";
-import { getRepositoryInfo, extractOwnerAndRepo } from "../Data Collection/repository-info-service.js";
-import { getDORAMetrics } from "../Data Collection/universal-dora-service.js";
+import { getRepositoryInfo, extractOwnerAndRepo } from "../Data-Collection/repository-info-service.js";
+import { getDORAMetrics } from "../Data-Collection/universal-dora-service.js";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+const lambda = new LambdaClient();
 //import { analyzeRepository } from "../services/metricsService.js";
 //import { runAIAnalysis } from "../services/analysisService.js";
 import {
@@ -75,6 +77,9 @@ const allowedOrigins = [
   "http://localhost:5500",
   "http://localhost:5050",
   "http://localhost:3000",
+  "https://d2ba0wcuk00uxg.cloudfront.net",
+  "https://www.devx360.app",
+  "https://devx360.app",
 ];
 
 /**
@@ -92,6 +97,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.options('*', cors());
 
 /**
  * Middleware for parsing JSON request bodies.
@@ -136,10 +143,10 @@ app.use(limiter);
  */
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
-  if (!token) return res.sendStatus(401);
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) return res.status(403).json({ message: "Invalid or expired token" });
     req.user = user;
     next();
   });
@@ -263,7 +270,7 @@ app.post("/api/register", async (req, res) => {
     const newUser = new User({
       name: name.trim(),
       email: email.trim().toLowerCase(),
-      role: role.trim(),
+      role: 'user',
       password: hashedPassword,
       inviteCode: inviteCode || null,
       isEmailVerified: true,
@@ -280,8 +287,8 @@ app.post("/api/register", async (req, res) => {
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
+        secure: true,
+        sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .status(201)
@@ -384,7 +391,7 @@ app.get("/api/auth/github/callback", async (req, res) => {
       }, process.env.JWT_SECRET, { expiresIn: '10m' });
 
       // Redirect to frontend with temp token
-      return res.redirect(`${frontendUrl}/profile/connect-github?temp_token=${tempToken}`);
+      return res.redirect(`${frontendUrl}/dashboard/profile?temp_token=${tempToken}`);
     }
 
     // Handle signup/login flow
@@ -449,8 +456,8 @@ app.get("/api/auth/github/callback", async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      secure: true,
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -458,7 +465,20 @@ app.get("/api/auth/github/callback", async (req, res) => {
     res.redirect(redirectUrl);
   } catch (error) {
     console.error("GitHub OAuth error:", error);
-    res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
+    // res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
+    let returnTo = '/login';
+    if (req.query.state) {
+      try {
+        const stateParams = JSON.parse(Buffer.from(req.query.state, 'base64').toString());
+        if (stateParams.flow === 'connect') {
+          returnTo = '/dashboard/profile';
+        }
+      } catch (e) {
+        // Use default
+      }
+    }
+
+    res.redirect(`${frontendUrl}${returnTo}?error=${encodeURIComponent('GitHub authentication failed')}`);
   }
 });
 
@@ -614,8 +634,8 @@ app.post("/api/login", async (req, res) => {
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
+        secure: true,
+        sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .json({
@@ -639,7 +659,12 @@ app.post("/api/login", async (req, res) => {
  */
 app.post("/api/logout", authenticateToken, (req, res) => {
   console.log("User logged out:", { email: req.user.email });
-  res.clearCookie("token").json({ message: "Logged out" });
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+  });
+  res.json({ message: "Logged out" });
 });
 
 // --------------------------------------------------------------------------
@@ -654,10 +679,19 @@ app.post("/api/logout", authenticateToken, (req, res) => {
  */
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password").lean();
+    const user = await User.findById(req.user.userId).select("-password -avatar").lean();
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Check if user has avatar (without loading the data)
+    const hasAvatar = await User.findById(req.user.userId)
+      .select("avatar.data")
+      .lean();
+    
+    // Add avatar URL only if avatar exists, but don't include the actual data
+    if (hasAvatar?.avatar?.data) {
+      user.avatarUrl = `/api/avatar/${user._id}`;
+    }
     // Ensure userId is an ObjectId
     const userObjectId = new mongoose.Types.ObjectId(req.user.userId);
 
@@ -669,6 +703,14 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
           localField: "creator",
           foreignField: "_id",
           as: "creator",
+          pipeline: [
+            { $project: { 
+              name: 1, 
+              email: 1, 
+              _id: 1,
+              hasAvatar: { $toBool: "$avatar.data" }
+            }}
+          ]
         },
       },
       {
@@ -677,9 +719,24 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
           localField: "members",
           foreignField: "_id",
           as: "members",
+          pipeline: [
+            { $project: { 
+              name: 1, 
+              email: 1, 
+              _id: 1,
+              // Check if avatar exists without loading data
+              hasAvatar: { $toBool: "$avatar.data" }
+            }}
+          ]
         },
       },
       { $unwind: "$creator" },
+      { $project: { 
+        name: 1, 
+        creator: 1, 
+        members: 1,
+        _id: 1
+      }}
     ]);
 
     // Get all repo metrics in a single query
@@ -690,23 +747,29 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 
     const teamsWithMetrics = teams.map(team => {
       const repoData = repoDataList.find(r => r.teamId.toString() === team._id.toString());
+      // Add avatar URLs for members who have avatars
+      const membersWithAvatars = team.members.map(member => ({
+        ...member,
+        avatarUrl: member.hasAvatar ? `/api/avatar/${member._id}` : undefined
+      }));
+      
+      // Add avatar URL for creator if they have one
+      const creatorWithAvatar = {
+        ...team.creator,
+        avatarUrl: team.creator.hasAvatar ? `/api/avatar/${team.creator._id}` : undefined
+      };
+
       return {
         id: team._id,
         name: team.name,
-        creator: team.creator,
-        members: team.members,
+        creator: creatorWithAvatar,
+        members: membersWithAvatars,
         doraMetrics: repoData?.metrics || null,
         repositoryInfo: repoData?.repositoryInfo || null,
       };
     });
 
     user.teams = teamsWithMetrics;
-
-    if (user.avatar) {
-      console.log("User has avatar");
-      user.avatarUrl = user.avatar ? `/api/avatar/${user._id}` : null;
-      delete user.avatar;
-    }
 
     res.json({ user });
   } catch (error) {
@@ -738,7 +801,7 @@ app.put("/api/profile", authenticateToken, async (req, res) => {
     }
 
     // Only fetch user once
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId).select("-avatar");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -786,7 +849,16 @@ app.put("/api/profile", authenticateToken, async (req, res) => {
       user._id,
       { $set: updates },
       { new: true, runValidators: true, select: "-password" }
-    ).select("-password");
+    ).select("-password -avatar");
+
+    // Check if user has avatar and add avatarUrl
+    const hasAvatar = await User.findById(req.user.userId)
+      .select("avatar.data")
+      .lean();
+    
+    if (hasAvatar?.avatar?.data) {
+      updatedUser.avatar = `/api/avatar/${user._id}`;
+    }
 
     res.json({
       message: "Profile updated successfully",
@@ -811,9 +883,48 @@ app.get("/api/users", authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== "admin")
       return res.status(403).json({ message: "Admin access required" });
-    const users = await User.find({}).select("-password").lean();
+    const users = await User.find({}).select("-password -avatar").lean();
     res.json({ users });
   } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+/** 
+ * Update a user's role by ID (admin only).
+ * @route PUT /api/users/:id/role
+ * @middleware authenticateToken
+ * @param {string} role - New role ('user' or 'admin').
+ */
+app.put("/api/users/:id/role", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !["user", "admin"].includes(role)) {
+      return res.status(400).json({ message: "Invalid or missing role" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent changing own role
+    if (user._id.toString() === req.user.userId) {
+      return res.status(400).json({ message: "Cannot change your own role" });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: "User role updated successfully", user: { _id: user._id, role: user.role } });
+  } catch (error) {
+    console.error("Update user role error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -1049,10 +1160,28 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       metrics: analysis.metrics,
       repositoryInfo: analysis.metadata,
       lastUpdated: new Date(),
+      analysisStatus: "pending",
     });
 
-    // Non-blocking AI analysis
-    setTimeout(() => safeRunAIAnalysis(team._id), 0);
+    if (process.env.AWS_EXECUTION_ENV) {
+      // Fire-and-forget Lambda trigger in production
+      lambda.send(new InvokeCommand({
+        FunctionName: process.env.ANALYSIS_LAMBDA,
+        InvocationType: "Event",
+        Payload: JSON.stringify({ teamId: team._id.toString() }),
+      }))
+      .then(() => {
+        console.log(`Triggered async AI analysis for team ${team._id}`);
+      })
+      .catch(err => {
+        console.error(`Failed to trigger async AI analysis for team ${team._id}:`, err);
+      });
+
+    } else {
+      // Local environment — run the analysis locally, non-blocking
+      console.log(`[LOCAL DEV] Running local AI analysis for team ${team._id}...`);
+      setTimeout(() => safeRunAIAnalysis(team._id), 0);
+    }
 
     res.status(201).json({
       message: "Team created successfully",
@@ -1063,6 +1192,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       },
       repositoryInfo: analysis.metadata,
     });
+
   } catch (error) {
     console.error("Team creation error:", error);
 
@@ -1322,6 +1452,15 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
         aiFeedback: ["Mock feedback: All good!", "Mock feedback: Write more tests."],
         analysisMetadata: { mocked: true, lastUpdated: new Date() },
         status: "completed",
+      });
+    }
+
+    if (metricsEntry.analysisStatus === 'failed') {
+      return res.status(500).json({
+        status: 'failed',
+        message: metricsEntry.aiAnalysis?.error?.message || "AI analysis failed",
+        errorDetails: metricsEntry.aiAnalysis?.error || {},
+        lastFailed: metricsEntry.aiAnalysis?.lastFailed || null
       });
     }
 

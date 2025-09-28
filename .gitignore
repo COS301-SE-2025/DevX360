@@ -80,3 +80,32 @@ jspm_packages/
 *.tmp
 *.temp
 test-*.js 
+
+# AWS SAM
+.aws-sam/
+*.build/
+samconfig.toml
+
+# AWS CloudFormation
+*.template
+*.cf.yaml
+
+# Build directories
+build/
+dist/
+
+# Lambda deployment packages
+*.zip
+
+# MongoDB
+data/
+mongodb/
+
+# Cookies and session data
+cookies.txt
+session.json
+
+# IDE
+.idea/
+*.swp
+*.swo

@@ -452,10 +452,12 @@ export async function performDORAAnalysis(owner, repo, metrics) {
 
   try {
     // Analyze repository structure (much faster than file content analysis)
+    console.log('Step 1: Analyzing repository structure');
     const repositoryAnalysis = await analyzeRepositoryStructure(owner, repo);
     console.log(`Repository structure analyzed in ${Date.now() - startTime}ms`);
 
     // Generate DORA insights
+    console.log('Step 2: Generating DORA insights');
     const insights = await generateDORAInsights(repositoryAnalysis, metrics);
     console.log(`DORA insights generated in ${Date.now() - startTime}ms`);
 

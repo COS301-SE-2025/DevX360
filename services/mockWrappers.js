@@ -1,7 +1,7 @@
 // services/mockWrappers.js
 import { analyzeRepository } from "./metricsService.js";
 import { runAIAnalysis } from "./analysisService.js";
-import { collectMemberActivity } from "../Data Collection/repository-info-service.js";
+import { collectMemberActivity } from "../Data-Collection/repository-info-service.js";
 
 const MOCK_MODE = process.env.MOCK_MODE === "true";
 

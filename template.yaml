@@ -49,7 +49,27 @@ Resources:
 
           # App
           NODE_ENV: "production"
-          FRONTEND_URL: "http://localhost:3000"
+          FRONTEND_URL: "{{resolve:ssm:/devx360/api/FRONTEND_URL}}"
+          MOCK_MODE: "{{resolve:ssm:/devx360/api/MOCK_MODE}}"
+          
+          # Point to analysis Lambda
+          ANALYSIS_LAMBDA: !Ref AnalysisFunction
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AnalysisFunction
+
+  AnalysisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: analysisRunner.handler   # <-- new worker file
+      CodeUri: .
+      MemorySize: 2048                  # more memory for heavy AI analysis
+      Timeout: 900                      # max 15 minutes
+      Environment:
+        Variables:
+          MONGODB_URI: "{{resolve:ssm:/devx360/api/MONGODB_URI}}"
+          OPENAI_API_KEY: "{{resolve:ssm:/devx360/api/OPENAI_API_KEY}}"
+          MOCK_MODE: "{{resolve:ssm:/devx360/api/MOCK_MODE}}"
 
 Outputs:
   ApiUrl:

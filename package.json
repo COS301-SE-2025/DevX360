@@ -4,6 +4,7 @@
   "main": "lambda.js",
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.896.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@octokit/core": "^7.0.2",
     "@octokit/plugin-paginate-rest": "^13.1.0",

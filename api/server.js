@@ -2,7 +2,7 @@ import 'dotenv/config';
 import mongoose from "mongoose";
 import app from "./app.js";
 
-mongoose.set('strictQuery', false); // Add this line before mongoose.connect()
+mongoose.set('strictQuery', false);
 
 class Server {
   constructor() {
@@ -27,14 +27,35 @@ class Server {
     }
 
     try {
-      mongoose.connect(this.MONGODB_URI, {
+      // Lambda-optimized MongoDB connection settings
+      const mongooseOptions = {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        maxPoolSize: 20,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-      });
+        maxPoolSize: 5, // Reduced for Lambda
+        serverSelectionTimeoutMS: 15000, // 15 seconds
+        socketTimeoutMS: 20000, // 20 seconds
+        connectTimeoutMS: 15000, // 15 seconds
+        bufferMaxEntries: 0, // Disable mongoose buffering
+        bufferCommands: false, // Disable mongoose buffering
+      };
+
+      console.log("Connecting to MongoDB with URI:", this.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@'));
+      
+      await mongoose.connect(this.MONGODB_URI, mongooseOptions);
       console.log("Connected to MongoDB Atlas");
+
+      // Handle connection events
+      mongoose.connection.on('error', (err) => {
+        console.error('MongoDB connection error:', err);
+      });
+
+      mongoose.connection.on('disconnected', () => {
+        console.log('MongoDB disconnected');
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        console.log('MongoDB reconnected');
+      });
 
       this.server = app.listen(this.PORT, () => {
         console.log(`Server running on port ${this.PORT}`);
@@ -57,22 +78,6 @@ class Server {
     console.log('MongoDB connection closed');
   }
 }
-/*
-// Create and start the server instance
-const server = new Server();
-server.start();
-
-// Graceful shutdown handling
-process.on('SIGINT', async () => {
-  await server.stop();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  await server.stop();
-  process.exit(0);
-});
-*/
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const server = new Server();

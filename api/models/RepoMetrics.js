@@ -15,7 +15,12 @@ const RepoMetricsSchema = new mongoose.Schema({
       filesAnalyzed: Number,
       doraMetricsCovered: [String],
       processingTimeMs: Number
-    }
+    },
+    error: {
+      message: String,
+      stack: String,
+      name: String
+    },
   },
   memberStats: {
     type: Map,

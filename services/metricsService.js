@@ -1,5 +1,5 @@
-import { getDORAMetrics } from "../Data Collection/universal-dora-service.js";
-import { getRepositoryInfo } from "../Data Collection/repository-info-service.js";
+import { getDORAMetrics } from "../Data-Collection/universal-dora-service.js";
+import { getRepositoryInfo } from "../Data-Collection/repository-info-service.js";
 
 async function analyzeRepository(url) {
   try {
