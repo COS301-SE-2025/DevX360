@@ -193,7 +193,7 @@ function Login() {
               border: '1px solid #fcc',
               borderRadius: '4px'
             }}>
-              DEBUG: Error is: "{error}" (Type: {typeof error})
+              {error}
             </div>
           )}
           
