@@ -7,7 +7,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
   Search
 } from "lucide-react";
 import HeaderInfo from "../common/HeaderInfo";
@@ -26,7 +25,6 @@ import {useAvatar} from "../../hooks/useAvatar";
 
 // Pagination config
 const TEAMS_PER_PAGE = 6;
-const defaultAvatar = '/default-avatar.png';
 
 //=============================================================FilterPill Component======================================
 const FilterPill = ({ isActive, onClick, label }) => {
@@ -168,43 +166,6 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-const normalizeTeamData = (rawTeam) => {
-  return {
-    id: rawTeam.id,
-    name: rawTeam.name || 'Unnamed Team',
-    creator: rawTeam.creator || {_id: null, name: 'Unknown'},
-    members: rawTeam.members || [],
-    repositoryInfo: rawTeam.repositoryInfo || null,
-    doraMetrics: {
-      analysis_period: rawTeam.doraMetrics?.analysis_period || {
-        start_date: null,
-        end_date: null
-      },
-      deployment_frequency: rawTeam.doraMetrics?.deployment_frequency || {
-        frequency_per_day: '0',
-        total_deployments: '0',
-        status: 'No deployments found'
-      },
-      lead_time: rawTeam.doraMetrics?.lead_time || {
-        average_days: '0.00',
-        min_days: '0.00',
-        max_days: '0.00',
-        total_prs_analyzed: '0',
-        status: 'No pull requests analysed'
-      },
-      change_failure_rate: rawTeam.doraMetrics?.change_failure_rate || {
-        failure_rate: '0.00%',
-        deployment_failures: '0',
-        total_deployments: '0'
-      },
-      mttr: rawTeam.doraMetrics?.mttr || {
-        average_days: '0.00',
-        total_incidents_analyzed: '0',
-        status: 'No incidents analyzed'
-      }
-    }
-  };
-}
 
 //=============================================================Team Component======================================
 function Team() {
@@ -212,6 +173,7 @@ function Team() {
   // const [avatar, setAvatar] = useState(defaultAvatar);
   const avatarUrl = useAvatar();
   const [teams, setTeams] = useState([]);
+  const [rawTeamsData, setRawTeamsData] = useState([]);
   const [error, setError] = useState(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -220,8 +182,9 @@ function Team() {
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [isJoiningTeam, setIsJoiningTeam] = useState(false);
 
+  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+
   const [teamToDelete, setTeamToDelete] = useState(null);
-  // const [isDeleting, setIsDeleting] = useState(false);
   const [deletingTeamIds, setDeletingTeamIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -230,7 +193,6 @@ function Team() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter and search states
-  // const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name_asc');
   const [filterOwnership, setFilterOwnership] = useState('all');
 
@@ -241,12 +203,78 @@ function Team() {
     setCurrentPage(prev => prev === 1 ? prev : 1);
   }, []);
 
+  const normalizeTeamDataWithPeriod = (rawTeam, selectedPeriod) => {
+    const periodMetrics = rawTeam.doraMetrics?.[selectedPeriod] ||
+        rawTeam.doraMetrics?.['30d'] ||
+        rawTeam.doraMetrics?.['7d'] ||
+        {};
+
+    return {
+      id: rawTeam.id,
+      name: rawTeam.name || 'Unnamed Team',
+      creator: rawTeam.creator || {_id: null, name: 'Unknown'},
+      members: rawTeam.members || [],
+      repositoryInfo: rawTeam.repositoryInfo || null,
+
+      // Current period metrics (flattened for existing component compatibility)
+      doraMetrics: {
+        analysis_period: periodMetrics.analysis_period || {
+          start_date: null,
+          end_date: null,
+          days_back: null
+        },
+        deployment_frequency: periodMetrics.deployment_frequency || {
+          frequency_per_day: '0',
+          total_deployments: '0',
+          analysis_period_days: 0,
+          status: 'No deployments found'
+        },
+        lead_time: periodMetrics.lead_time || {
+          average_days: '0.00',
+          min_days: '0.00',
+          max_days: '0.00',
+          total_prs_analyzed: '0',
+          status: 'No pull requests analyzed'
+        },
+        change_failure_rate: periodMetrics.change_failure_rate || {
+          deployment_failure_rate: '0.00%',
+          deployment_failures: '0',
+          total_deployments: '0',
+          confidence_score: 0,
+          status: 'No deployments found'
+        },
+        mttr: periodMetrics.mttr || {
+          average_days: '0.00',
+          min_days: '0.00',
+          max_days: '0.00',
+          total_incidents_analyzed: '0',
+          status: 'No incidents analyzed'
+        },
+        data_summary: periodMetrics.data_summary || {
+          releases_count: 0,
+          tags_count: 0,
+          commits_count: 0,
+          pull_requests_count: 0,
+          issues_count: 0,
+          analysis_period_days: 0
+        }
+      },
+
+      // Store all periods for the selector
+      allDoraMetrics: rawTeam.doraMetrics || {},
+      currentPeriod: selectedPeriod
+    };
+  };
+
+
   const loadTeams = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       const userTeams = await getMyTeams();
-      const normalizedTeams = userTeams.map(normalizeTeamData);
+      // const normalizedTeams = userTeams.map(normalizeTeamData);
+      setRawTeamsData(userTeams);
+      const normalizedTeams = userTeams.map(team => normalizeTeamDataWithPeriod(team, '30d'));
       setTeams(normalizedTeams);
       resetPagination();
     } catch (error) {
@@ -256,6 +284,8 @@ function Team() {
       setIsLoading(false);
     }
   }, [resetPagination]);
+
+  console.log('Teams:', teams);
 
   const handleCreateTeam = async () => {
     try {
@@ -364,12 +394,22 @@ function Team() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handlePeriodChange = useCallback((newPeriod) => {
+    setSelectedPeriod(newPeriod);
+
+    // Re-normalize from stored raw data
+    if (rawTeamsData.length > 0) {
+      const normalizedTeams = rawTeamsData.map(team => normalizeTeamDataWithPeriod(team, newPeriod));
+      setTeams(normalizedTeams);
+    }
+  }, [rawTeamsData]);
+
   // const hasActiveFilters = searchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
   const hasActiveFilters = debouncedSearchTerm || sortBy !== 'name_asc' || filterOwnership !== 'all';
 
   useEffect(() => {
     resetPagination();
-  }, [debouncedSearchTerm, sortBy, filterOwnership]);
+  }, [resetPagination, debouncedSearchTerm, sortBy, filterOwnership]);
 
   useEffect(() => {
     // if (currentUser?.avatarUrl) {
@@ -451,8 +491,14 @@ function Team() {
                         Create Team
                       </button>
                       <button
-                          className="flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base"
                           onClick={() => setShowJoinModal(true)}
+                          disabled={isJoiningTeam}
+                          className={`flex-1 sm:flex-none px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors duration-200 ${
+                            isJoiningTeam
+                            ? 'bg-[var(--border)] text-[var(--text-light)] cursor-not-allowed'
+                            : 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-sm sm:text-base'
+                          }`}
+
                       >
                         Join Team
                       </button>
@@ -532,6 +578,8 @@ function Team() {
                   currentUser={currentUser}
                   onDeleteTeam={handleDeleteTeam}
                   deletingTeamIds={deletingTeamIds}
+                  selectedPeriod={selectedPeriod}
+                  onPeriodChange={handlePeriodChange}
               />
             </div>
 

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {Link} from "react-router-dom";
 import {formatDate} from '../../../utils/dateUtils';
+import PeriodSelectorButton from "./PeriodSelector";
 
 
 
@@ -154,7 +155,7 @@ const parseNumericValue = (value, hasPercentage = false) => {
 
 
 //=============================================================TeamInfo Component======================================
-function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
+function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, selectedPeriod, onPeriodChange }) {
   const { toggleMenu, closeMenu, isMenuOpen, registerMenuRef } = useDropdownMenu();
 
   const getMetricStatusMemoized = useMemo(() => {
@@ -207,6 +208,13 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
     };
   }, []);
 
+  const getAvailablePeriods = (team) => {
+    const periods = [];
+    if (team.allDoraMetrics?.['7d']) periods.push('7d');
+    if (team.allDoraMetrics?.['30d']) periods.push('30d');
+    if (team.allDoraMetrics?.['90d']) periods.push('90d');
+    return periods.length > 0 ? periods : ['30d']; // fallback
+  };
 
   // Close all menus when teams change (e.g., after filtering)
   useEffect(() => {
@@ -339,9 +347,9 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                 {/* DORA Metrics Grid */}
                 <div className={`p-6 transition-opacity duration-200 ${isDeleting ? 'opacity-50' : ''}`}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
                     {/* Deployment Frequency */}
-                    <div
-                        className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                           <GitBranch className="w-4 h-4 text-blue-600"/>
@@ -349,17 +357,16 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
                             getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0'), 'deployment').color
                         }`}>
-                    {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0'), 'deployment').status}
-                  </span>
+          {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0'), 'deployment').status}
+        </span>
                       </div>
-                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Deployment
-                        Frequency</h4>
+                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Deployment Frequency</h4>
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
                         {getMetricValue(team, 'doraMetrics.deployment_frequency.frequency_per_day', '0')}/day
                       </p>
                       <p className="text-xs text-[var(--text-light)]">
                         {getMetricValue(team, 'doraMetrics.deployment_frequency.total_deployments', '0') > 0 ? (
-                            `${getMetricValue(team, 'doraMetrics.deployment_frequency.total_deployments', '0')} deployments`
+                            `${getMetricValue(team, 'doraMetrics.deployment_frequency.total_deployments', '0')} deployments in ${getMetricValue(team, 'doraMetrics.deployment_frequency.analysis_period_days', '30')} days`
                         ) : (
                             getMetricValue(team, 'doraMetrics.deployment_frequency.status', 'No deployments found')
                         )}
@@ -367,8 +374,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                     </div>
 
                     {/* Lead Time */}
-                    <div
-                        className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                           <Clock className="w-4 h-4 text-green-600"/>
@@ -376,54 +382,53 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
                             getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.lead_time.average_days', '0'), 'leadtime').color
                         }`}>
-                    {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.lead_time.average_days', '0'), 'leadtime').status}
-                  </span>
+          {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.lead_time.average_days', '0'), 'leadtime').status}
+        </span>
                       </div>
-                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Lead
-                        Time</h4>
+                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Lead Time for Changes</h4>
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
                         {getMetricValue(team, 'doraMetrics.lead_time.average_days', '0.00')} days
                       </p>
                       <p className="text-xs text-[var(--text-light)]">
                         {getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', '0') > 0 ? (
-                            `${getMetricValue(team, 'doraMetrics.lead_time.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.lead_time.max_days', '0.00')} days`
+                            `From ${getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', '0')} pull requests (${getMetricValue(team, 'doraMetrics.lead_time.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.lead_time.max_days', '0.00')} days)`
                         ) : (
-                            getMetricValue(team, 'doraMetrics.lead_time.status', 'No pull requests analysed')
+                            getMetricValue(team, 'doraMetrics.lead_time.status', 'No pull requests analyzed')
                         )}
                       </p>
                     </div>
 
                     {/* Change Failure Rate */}
-                    <div
-                        className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-orange-600"/>
                         </div>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                            getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%'), 'cfr').color
+                            getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failure_rate', '0.00%'), 'cfr').color
                         }`}>
-                    {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%'), 'cfr').status}
-                  </span>
+          {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failure_rate', '0.00%'), 'cfr').status}
+        </span>
                       </div>
-                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Change
-                        Failure Rate</h4>
+                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Change Failure Rate</h4>
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
-                        {getMetricValue(team, 'doraMetrics.change_failure_rate.failure_rate', '0.00%')}
+                        {getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0') > 0 ? (
+                            getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failure_rate', '0.00%')
+                        ) : (
+                            'N/A'
+                        )}
                       </p>
                       <p className="text-xs text-[var(--text-light)]">
                         {getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0') > 0 ? (
-                            `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failures
-                    out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')} deployments`
+                            `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failed deployments out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')}`
                         ) : (
-                            getMetricValue(team, 'doraMetrics.deployment_frequency.status', 'No deployments found')
+                            `Cannot calculate - no deployments found`
                         )}
                       </p>
                     </div>
 
                     {/* MTTR */}
-                    <div
-                        className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                           <Zap className="w-4 h-4 text-purple-600"/>
@@ -431,17 +436,16 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
                             getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00'), 'mttr').color
                         }`}>
-                    {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00'), 'mttr').status}
-                  </span>
+          {getMetricStatusMemoized(getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00'), 'mttr').status}
+        </span>
                       </div>
-                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Mean
-                        Time to Recovery</h4>
+                      <h4 className="text-xs font-semibold text-[var(--text-light)] uppercase tracking-wider mb-2">Mean Time to Recovery</h4>
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
                         {getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00')} days
                       </p>
                       <p className="text-xs text-[var(--text-light)]">
                         {getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0') > 0 ? (
-                            `${getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0')} incidents`
+                            `Average recovery time from ${getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0')} incidents (range: ${getMetricValue(team, 'doraMetrics.mttr.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.mttr.max_days', '0.00')} days)`
                         ) : (
                             getMetricValue(team, 'doraMetrics.mttr.status', 'No incidents analyzed')
                         )}
@@ -454,13 +458,17 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds }) {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-[var(--text-light)]"/>
-                        <div>
+                        <div className="flex-1">
                           <p className="text-xs font-medium text-[var(--text)]">Analysis Period</p>
-                          {/*<p className="text-xs text-[var(--text-light)]">{new Date(team.doraMetrics?.analysis_period.start_date).toLocaleDateString() || 'N/A'} - {new Date(team.doraMetrics?.analysis_period.end_date).toLocaleDateString() || 'N/A'}</p>*/}
                           <p className="text-xs text-[var(--text-light)]">
                             {formatDate(team.doraMetrics?.analysis_period.start_date)} - {formatDate(team.doraMetrics?.analysis_period.end_date)}
                           </p>
                         </div>
+                        <PeriodSelectorButton
+                            selectedPeriod={selectedPeriod}
+                            onPeriodChange={onPeriodChange}
+                            availablePeriods={getAvailablePeriods(team)}
+                        />
                       </div>
 
                       {team.repositoryInfo?.url && (
