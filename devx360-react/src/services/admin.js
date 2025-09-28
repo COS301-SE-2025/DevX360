@@ -3,7 +3,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 //=============================================================get all users Function======================================
 // This function fetches all users from the API and returns them as an array.
 export async function getUsers() {
-  const response = await fetch(`${API_BASE_URL}/api/users`, {
+  const response = await fetch(`${API_BASE_URL}/users`, {
     method: 'GET',
     credentials: 'include',
   });
@@ -19,7 +19,7 @@ export async function getUsers() {
 }
 
 export async function getTeams() {
-    const response = await fetch(`${API_BASE_URL}/api/teams`, {
+    const response = await fetch(`${API_BASE_URL}/teams`, {
         method: 'GET',
         credentials: 'include',
     });
@@ -34,14 +34,23 @@ export async function getTeams() {
     return data.teams;
 }
 
-export function getUserAvatarUrl(userId) {
-  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5500";
-  return `${baseUrl}/api/avatar/${userId}`;
+export async function getUserAvatar(userId) {
+  const response = await fetch(`${API_BASE_URL}/avatar/${userId}`, {
+    method: "GET",
+    credentials: "include", // send cookies for auth
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch avatar");
+  }
+
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
 }
 
 
 export async function deleteUser(userId) {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -56,7 +65,7 @@ export async function deleteUser(userId) {
 
 
 export async function getAnomalies() {
-  const response = await fetch(`${API_BASE_URL}/api/anomalies`, {
+  const response = await fetch(`${API_BASE_URL}/anomalies`, {
     method: 'GET',
     credentials: 'include',
   });

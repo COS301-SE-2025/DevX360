@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import React, {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import {
   Users,
   UserCog,
@@ -19,7 +19,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import {getUsers, deleteUser, getTeams, getUserAvatarUrl, anomalies, getAnomalies} from "../../services/admin";
+import {getUsers, deleteUser, getTeams, getAnomalies} from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
 import HeaderInfo from "../common/HeaderInfo";
 import WarningToast from "../common/WarningToast";
@@ -29,15 +29,16 @@ import ModalPortal from "./modal/ModalPortal";
 import {useNavigate} from "react-router-dom";
 import {useAvatar} from "../../hooks/useAvatar";
 import AdminPagination from "./Admin/Pagination";
-import SecurityAnomaliesComponent from "./Admin/Anomalies";
+import UserAvatar from "./Admin/Avatar";
 
 
-const defaultAvatar = '/default-avatar.png';
+const defaultAvatar = '../../../public/default-avatar.png';
 
 
 function Admin() {
   const { currentUser } = useAuth();
   const avatarUrl = useAvatar();
+  const mountedRef = useRef(true);
 
 
   const [users, setUsers] = useState([]);
@@ -85,8 +86,6 @@ function Admin() {
   const [showFullIPs, setShowFullIPs] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
 
-  // console.log(users);
-
   const fetchData = async () => {
     try {
       setIsLoading(true);
@@ -95,6 +94,9 @@ function Admin() {
         getTeams(),
         getAnomalies()
       ]);
+
+      if (!mountedRef.current) return;
+
       setUsers(usersData);
       setTeams(teamsData);
       setAnomalies(anomaliesData);
@@ -111,7 +113,8 @@ function Admin() {
         setError(err.message);
       }
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current)
+        setIsLoading(false);
     }
   };
 
@@ -248,35 +251,40 @@ function Admin() {
 
       switch (userSortField) {
         case 'name':
-          valueA = a.name?.toLowerCase() || '';
-          valueB = b.name?.toLowerCase() || '';
+          valueA = a.name || '';
+          valueB = b.name || '';
           break;
         case 'email':
-          valueA = a.email?.toLowerCase() || '';
-          valueB = b.email?.toLowerCase() || '';
+          valueA = a.email || '';
+          valueB = b.email || '';
           break;
         case 'role':
-          valueA = a.role?.toLowerCase() || '';
-          valueB = b.role?.toLowerCase() || '';
+          valueA = a.role || '';
+          valueB = b.role || '';
           break;
         case 'createdAt':
-          valueA = new Date(a.createdAt || 0);
-          valueB = new Date(b.createdAt || 0);
+          valueA = new Date(a.createdAt || 0).getTime();
+          valueB = new Date(b.createdAt || 0).getTime();
           break;
         case 'lastLogin':
-          valueA = new Date(a.lastLogin || 0);
-          valueB = new Date(b.lastLogin || 0);
+          valueA = new Date(a.lastLogin || 0).getTime();
+          valueB = new Date(b.lastLogin || 0).getTime();
           break;
         default:
-          valueA = a.name?.toLowerCase() || '';
-          valueB = b.name?.toLowerCase() || '';
+          valueA = a.name || '';
+          valueB = b.name || '';
       }
 
-      if (userSortDirection === 'asc') {
+     /* if (userSortDirection === 'asc') {
         return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
       } else {
         return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }*/
+      const modifier = userSortDirection === 'asc' ? 1 : -1;
+      if (typeof valueA === 'number' && typeof valueB === 'number') {
+        return (valueA - valueB) * modifier;
       }
+      return String(valueA).localeCompare(String(valueB)) * modifier;
     });
   }, [users, userSortField, userSortDirection]);
 
@@ -286,31 +294,37 @@ function Admin() {
 
       switch (teamSortField) {
         case 'name':
-          valueA = a.name?.toLowerCase() || '';
-          valueB = b.name?.toLowerCase() || '';
+          valueA = a.name || '';
+          valueB = b.name || '';
           break;
         case 'creator':
-          valueA = a.creator?.name?.toLowerCase() || '';
-          valueB = b.creator?.name?.toLowerCase() || '';
+          valueA = a.creator?.name || '';
+          valueB = b.creator?.name || '';
           break;
         case 'members':
           valueA = a.members?.length || 0;
           valueB = b.members?.length || 0;
           break;
         case 'createdAt':
-          valueA = new Date(a.createdAt || 0);
-          valueB = new Date(b.createdAt || 0);
+          valueA = new Date(a.createdAt || 0).getTime();
+          valueB = new Date(b.createdAt || 0).getTime();
           break;
         default:
-          valueA = a.name?.toLowerCase() || '';
-          valueB = b.name?.toLowerCase() || '';
+          valueA = a.name || '';
+          valueB = b.name || '';
       }
 
-      if (teamSortDirection === 'asc') {
+      /*if (teamSortDirection === 'asc') {
         return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
       } else {
         return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }*/
+
+      const modifier = teamSortDirection === 'asc' ? 1 : -1;
+      if (typeof valueA === 'number' && typeof valueB === 'number') {
+        return (valueA - valueB) * modifier;
       }
+      return String(valueA).localeCompare(String(valueB)) * modifier;
     });
   }, [teams, teamSortField, teamSortDirection]);
 
@@ -335,7 +349,7 @@ function Admin() {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     // Fix pagination bounds
-    const safePage = Math.min(usersPage, totalPages);
+    const safePage = Math.max(1, Math.min(usersPage, totalPages));
     const start = (safePage - 1) * pageSize;
     const pagedUsers = filteredUsers.slice(start, start + pageSize);
 
@@ -347,7 +361,7 @@ function Admin() {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     // Fix pagination bounds
-    const safePage = Math.min(teamsPage, totalPages);
+    const safePage = Math.max(1, Math.min(teamsPage, totalPages));
     const start = (safePage - 1) * pageSize;
     const pagedTeams = filteredTeams.slice(start, start + pageSize);
 
@@ -510,7 +524,7 @@ function Admin() {
     }
   }, [currentUser]);
 
-  console.log('anomalies', anomalies);
+  // console.log('anomalies', anomalies);
 
   useEffect(() => {
     setUsersPage(1);
@@ -740,12 +754,16 @@ function Admin() {
                               <tr key={user._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
                                 <td className="px-6 py-4">
                                   <div className="flex items-center space-x-4">
-                                    <div className="relative">
+                                   {/* <div className="relative">
                                       <img
-                                          src={getUserAvatarUrl(user._id)}
+                                          // src={getUserAvatarUrl(user._id)}
+                                          src={defaultAvatar}
                                           alt={user.name}
                                           className="w-12 h-12 rounded-full border-2 border-[var(--border)] shadow-sm"
                                       />
+                                    </div>*/}
+                                    <div key={user._id} className="relative">
+                                      <UserAvatar userId={user._id} alt={user.name} size={32} className="border-white" />
                                     </div>
                                     <div>
                                       <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
@@ -917,11 +935,7 @@ function Admin() {
                                     <div className="flex -space-x-2">
                                       {team.members?.slice(0, 3).map(member => (
                                           <div key={member._id} className="relative">
-                                            <img
-                                                src={defaultAvatar}
-                                                alt={member.name}
-                                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                                            />
+                                            <UserAvatar userId={member._id} alt={member.name} size={32} className="border-white" />
                                           </div>
                                       ))}
                                     </div>
