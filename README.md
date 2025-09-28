@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Assets/DevX360.png" alt="DevX360 Logo" width="200"/>
+</p>
+
 # DevX360: AI-Powered DevOps Analytics Platform
 
 ![Top Language](https://img.shields.io/github/languages/top/COS301-SE-2025/DevX360)
@@ -119,6 +123,10 @@ We use a collaborative workflow to manage progress and documentation.
 
 
 ## 👥 Team DOSKS
+
+<p align="center">
+  <img src="Assets/DevX360 Team.jpg" alt="DevX360 Team" width="600"/>
+</p>
 
 Welcome to **Team DOSKS**! We’re final-year Computer Science students at the University of Pretoria who love all things code, data, and UX. Get to know us below:
 
