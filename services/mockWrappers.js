@@ -26,7 +26,29 @@ export async function safeAnalyzeRepository(url) {
       },
     };
   }
-  return analyzeRepository(url);
+  
+  try {
+    return await analyzeRepository(url);
+  } catch (error) {
+    console.error("analyzeRepository failed, returning mock data:", error.message);
+    // Return mock data when GitHub tokens are not available
+    return {
+      metrics: {
+        deploymentFrequency: "daily",
+        leadTimeForChanges: "2h", 
+        changeFailureRate: "5%",
+        timeToRestoreService: "1h",
+      },
+      metadata: {
+        url,
+        name: "demo-repo",
+        owner: "demo-owner", 
+        description: "Demo repository analysis (GitHub tokens not available)",
+      },
+      error: "GitHub tokens not available in deployed environment",
+      mock: true
+    };
+  }
 }
 
 /**
