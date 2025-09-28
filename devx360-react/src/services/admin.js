@@ -48,6 +48,24 @@ export async function getUserAvatar(userId) {
   return URL.createObjectURL(blob);
 }
 
+export async function updateUserRole(userId, newRole) {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/role`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role: newRole }),
+  })
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update user role');
+  }
+
+  return typeof data === 'object' ? data : { message: data };
+}
+
 
 export async function deleteUser(userId) {
   const response = await fetch(`${API_BASE_URL}/users/${userId}`, {

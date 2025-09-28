@@ -16,13 +16,14 @@ import {
   Shield,
   MapPin,
   Monitor,
-  EyeOff
+  EyeOff,
+  Check,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import {getUsers, deleteUser, getTeams, getAnomalies} from "../../services/admin";
+import {getUsers, deleteUser, getTeams, getAnomalies, updateUserRole} from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
 import HeaderInfo from "../common/HeaderInfo";
-import WarningToast from "../common/WarningToast";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import ModalPortal from "./modal/ModalPortal";
@@ -31,8 +32,61 @@ import {useAvatar} from "../../hooks/useAvatar";
 import AdminPagination from "./Admin/Pagination";
 import UserAvatar from "./Admin/Avatar";
 import CustomDropdown from "./Admin/Dropdown";
+import RoleDropdown from "./Admin/RoleDropdown";
 
 
+const RoleEditor = ({ user, onSave, onCancel, isLoading }) => {
+  const [selectedRole, setSelectedRole] = useState(user.role);
+
+  const roleOptions = [
+    { value: 'user', label: 'User' },
+    { value: 'admin', label: 'Admin' }
+  ];
+
+  const handleSave = () => {
+    if (selectedRole !== user.role) {
+      onSave(user._id, selectedRole);
+    } else {
+      onCancel();
+    }
+  };
+
+  return (
+      <div className="flex items-center space-x-2 p-2 bg-[var(--bg)] rounded-lg border border-[var(--border)]">
+        {/* Remove the wrapping div and custom arrow - CustomDropdown handles this */}
+        <RoleDropdown
+            value={selectedRole}
+            onChange={setSelectedRole}
+            options={roleOptions}
+            disabled={isLoading}
+        />
+
+        <div className="flex items-center space-x-1">
+          <button
+              onClick={handleSave}
+              disabled={isLoading}
+              className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white disabled:opacity-50 transition-colors"
+              title="Save changes"
+          >
+            {isLoading ? (
+                <Loader className="w-3 h-3 animate-spin" />
+            ) : (
+                <Check className="w-3 h-3" />
+            )}
+          </button>
+
+          <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--gray)] hover:bg-[var(--text-light)] text-[var(--bg)] disabled:opacity-50 transition-colors"
+              title="Cancel"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+  );
+};
 function Admin() {
   const { currentUser } = useAuth();
   const avatarUrl = useAvatar();
@@ -49,6 +103,9 @@ function Admin() {
   const [pageSize] = useState(10);
   const [usersTotal, setUsersTotal] = useState(null);
   const [teamsTotal, setTeamsTotal] = useState(null);
+
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [isEditingRole, setIsEditingRole] = useState(false);
 
   const resetUsersPagination = useCallback(() => {
     setUsersPage(prev => prev === 1 ? prev : 1);
@@ -166,7 +223,42 @@ function Admin() {
     return relative ? `${relative} (${absolute})` : absolute;
   }, []);
 
-  const handleEditUser = useCallback((userId) => toast.custom(<WarningToast message={"Implement"} />), []);
+
+
+
+  const handleEditUser = useCallback((userId) => {
+    if (currentUser._id === userId) {
+      navigate('/dashboard/profile');
+    } else {
+      setEditingUserId(userId);
+    }
+  }, [currentUser._id, navigate]);
+
+  const handleSaveRole = useCallback(async (userId, newRole) => {
+    setIsEditingRole(true);
+    try {
+      await updateUserRole(userId, newRole);
+
+      // Update the user in the local state
+      setUsers(prevUsers =>
+          prevUsers.map(user =>
+              user._id === userId ? { ...user, role: newRole } : user
+          )
+      );
+
+      toast.success(`User role updated to ${newRole} successfully!`);
+      setEditingUserId(null);
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast.error('Failed to update user role.');
+    } finally {
+      setIsEditingRole(false);
+    }
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingUserId(null);
+  }, []);
 
   const handleViewTeam = useCallback((teamId, teamName) => {
     navigate(`/dashboard/metrics`);
@@ -301,10 +393,6 @@ function Admin() {
         case 'members':
           valueA = a.members?.length || 0;
           valueB = b.members?.length || 0;
-          break;
-        case 'createdAt':
-          valueA = new Date(a.createdAt || 0).getTime();
-          valueB = new Date(b.createdAt || 0).getTime();
           break;
         default:
           valueA = a.name || '';
@@ -540,6 +628,8 @@ function Admin() {
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
     setSearchTerm('');
+
+    setEditingUserId(null);
   };
 
 
@@ -784,17 +874,24 @@ function Admin() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
-          <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold -ml-2 ${
-                  user.role === 'admin'
-                      ? 'bg-red-100 text-red-700 border border-red-200'
-                      : user.role === 'developer'
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                          : 'bg-green-100 text-green-700 border border-green-200'
-              }`}
-          >
-            {user.role?.toUpperCase() || 'USER'}
-          </span>
+                                  {editingUserId === user._id ? (
+                                      <RoleEditor
+                                          user={user}
+                                          onSave={handleSaveRole}
+                                          onCancel={handleCancelEdit}
+                                          isLoading={isEditingRole}
+                                      />
+                                  ) : (
+                                      <span
+                                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold -ml-2 ${
+                                              user.role === 'admin'
+                                                  ? 'bg-red-100 text-red-700 border border-red-200'
+                                                  : 'bg-blue-100 text-blue-700 border border-blue-200'
+                                          }`}
+                                      >
+                                      {user.role?.toUpperCase() || 'USER'}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className="text-sm text-[var(--text)] font-medium">{formatDate(user.createdAt)}</span>
@@ -805,22 +902,18 @@ function Admin() {
                                 <td className="px-6 py-4">
                                   <div className="flex items-center justify-end space-x-2">
                                     <button
-                                        onClick={() => {
-                                          if (currentUser._id === user._id) {
-                                            navigate('/dashboard/profile');
-                                          } else {
-                                            handleEditUser(user._id);
-                                          }
-                                        }}
-                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200"
-                                        title={currentUser._id === user._id ? "Edit your profile" : "Edit user"}
+                                        onClick={() => handleEditUser(user._id)}
+                                        disabled={editingUserId === user._id}
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={currentUser._id === user._id ? "Edit your profile" : "Edit user role"}
                                     >
                                       <Edit className="w-4 h-4" />
                                     </button>
                                     {currentUser._id !== user._id ? (
                                         <button
                                             onClick={() => handleDeleteUser(user.name, user._id, user.email)}
-                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200"
+                                            disabled={editingUserId === user._id}
+                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:text-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Delete user"
                                         >
                                           <Trash2 className="w-4 h-4" />
@@ -891,14 +984,14 @@ function Admin() {
                         >
                           Members
                         </SortableHeader>
-                        <SortableHeader
+                        {/*<SortableHeader
                             field="createdAt"
                             currentField={teamSortField}
                             direction={teamSortDirection}
                             onClick={() => handleTeamSort('createdAt')}
                         >
                           Created
-                        </SortableHeader>
+                        </SortableHeader>*/}
                         <th className="px-6 py-4 text-right text-sm font-semibold text-[var(--text)] uppercase tracking-wider">Actions</th>
                       </tr>
                       </thead>
@@ -941,9 +1034,9 @@ function Admin() {
                                     </p>
                                   </div>
                                 </td>
-                                <td className="px-6 py-4">
+                                {/*<td className="px-6 py-4">
                                   <span className="text-sm text-[var(--text)] font-medium">{formatDate(team.createdAt)}</span>
-                                </td>
+                                </td>*/}
                                 <td className="px-6 py-4">
                                   <div className="flex items-center justify-end space-x-2">
                                     <button
