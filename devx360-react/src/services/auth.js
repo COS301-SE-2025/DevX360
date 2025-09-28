@@ -33,12 +33,12 @@ export async function loginUser(email, password) {
 
 //============================================================Register a USER Function======================================
 //Does the same thing as login user but this one just registers a user
-export async function registerUser(name, role, email, password, inviteCode = '') {
+export async function registerUser(name, email, password, inviteCode = '') {
   try {
     const response = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, role, email, password, inviteCode }),
+      body: JSON.stringify({ name, email, password, inviteCode }),
       credentials: 'include', // Send/receive cookies
     });
 
