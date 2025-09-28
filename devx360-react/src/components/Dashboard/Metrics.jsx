@@ -657,12 +657,7 @@ const MemberStatsModal = () => {
                 <p className="text-[var(--text-light)]">
                   {isCurrentUser ? 'Your stats will appear here once you start contributing.' : 'Member stats are being collected.'}
                 </p>
-                {/* Debug info - remove this in production */}
-                <div className="mt-4 text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 p-2 rounded">
-                  <p>Debug: memberIdStr={memberIdStr}, currentUserIdStr={currentUserIdStr}</p>
-                  <p>teamData.memberStats keys: {JSON.stringify(Object.keys(teamData.memberStats || {}))}</p>
-                  <p>teamData.myStats available: {teamData.myStats ? 'Yes' : 'No'}</p>
-                </div>
+               
               </div>
             )}
           </div>
