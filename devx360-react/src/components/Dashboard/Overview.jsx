@@ -39,7 +39,7 @@ function Overview() {
                 Overview
               </p>
             </div>
-            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
+            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
           </div>
         </div>
       </header>

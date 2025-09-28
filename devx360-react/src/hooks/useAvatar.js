@@ -1,25 +1,32 @@
-import { useMemo } from "react";
+import {useEffect, useState} from "react";
 import { useAuth } from "../context/AuthContext";
+import {getUserAvatar} from "../services/admin";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
 const defaultAvatar = '/default-avatar.png';
-
-const getFullAvatarUrl = (avatarUrl) => {
-  if (!avatarUrl) return defaultAvatar;
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-
-  const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
-  return `${API_BASE_URL}${cleanPath}`;
-};
 
 export const useAvatar = () => {
   const { currentUser } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState(defaultAvatar);
 
-  return useMemo(() => {
-    if (currentUser?.avatarUrl) {
-      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
-      return `${fullUrl}?t=${Date.now()}`;
+  useEffect(() => {
+    let active = true;
+    if (!currentUser?._id) {
+      setAvatarUrl(defaultAvatar);
+      return;
     }
-    return defaultAvatar;
-  }, [currentUser?.avatarUrl]);
+
+    getUserAvatar(currentUser._id).then((url) => {
+      if (active) setAvatarUrl(url);
+    });
+
+    return () => {
+      active = false;
+      if (avatarUrl && avatarUrl !== defaultAvatar) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [currentUser?._id]);
+
+  return avatarUrl;
 };

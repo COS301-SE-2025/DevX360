@@ -65,7 +65,7 @@ function Metrics() {
       }
 
       // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-      const response = await fetch(`${API_BASE_URL}/api/teams/${targetTeamId}?teamId=${targetTeamId}`, {
+      const response = await fetch(`${API_BASE_URL}/teams/${targetTeamId}?teamId=${targetTeamId}`, {
         credentials: 'include',
       });
 
@@ -111,7 +111,7 @@ function Metrics() {
     setAiProgress(0);
   };
 
-  console.log('Team Data:');
+  console.log('Team Data:', teamData);
 
   // Handle time range change
   const handleTimeRangeChange = (e) => {
@@ -197,7 +197,7 @@ const handleMemberClick = (member) => {
     const checkAiFeedback = async () => {
       try {
         // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-        const response = await fetch(`${API_BASE_URL}/api/ai-review?teamId=${teamId}`, {
+        const response = await fetch(`${API_BASE_URL}/ai-review?teamId=${teamId}`, {
           credentials: 'include',
         });
 
@@ -920,7 +920,7 @@ const deploymentTrendData = getDeploymentTrendData();
               
             </div>
             
-            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
+            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
           </div>
         </div>
       </header>

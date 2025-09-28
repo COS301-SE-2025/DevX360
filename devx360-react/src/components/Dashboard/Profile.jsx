@@ -1,29 +1,16 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
+import {useAvatar} from '../../hooks/useAvatar';
 import {updateAvatar, updateProfile} from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
 import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from 'lucide-react';
 import toast from "react-hot-toast";
 
-const defaultAvatar = '/default-avatar.png';
-// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-
-const getFullAvatarUrl = (avatarUrl) => {
- const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-
-
-  if (!avatarUrl) return defaultAvatar;
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-
-  // Handle the case where avatarUrl might not start with /
-  const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
-  return `${API_BASE_URL}${cleanPath}`;
-};
-
 function Profile() {
  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   const { currentUser, setCurrentUser } = useAuth();
+  const avatarUrl = useAvatar();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +32,7 @@ function Profile() {
   const fileInputRef = useRef(null);
   const fileReaderRef = useRef(null);
 
-  // Memoize avatar URL calculation
+ /* // Memoize avatar URL calculation
   const avatarUrl = useMemo(() => {
     if (previewAvatar) return previewAvatar;
     if (currentUser?.avatarUrl) {
@@ -54,7 +41,7 @@ function Profile() {
       return `${fullUrl}?t=${Date.now()}`;
     }
     return defaultAvatar;
-  }, [previewAvatar, currentUser?.avatarUrl]);
+  }, [previewAvatar, currentUser?.avatarUrl]);*/
 
   useEffect(() => {
 
@@ -85,7 +72,7 @@ function Profile() {
       if (tempToken) {
         try {
           setIsConnectingGitHub(true);
-          const response = await fetch(`${API_BASE_URL}/api/profile/connect-github`, {
+          const response = await fetch(`${API_BASE_URL}/profile/connect-github`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -345,7 +332,7 @@ function Profile() {
 
     setIsConnectingGitHub(true);
     setTimeout(() => {
-      window.location.href = `${API_BASE_URL}/api/auth/github?flow=connect&returnTo=/dashboard/profile`;
+      window.location.href = `${API_BASE_URL}/auth/github?flow=connect&returnTo=/dashboard/profile`;
     }, 100);
   };
 
@@ -455,7 +442,7 @@ function Profile() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-lg font-medium text-[var(--text-light)]">Manage your profile</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
             </div>
           </div>
         </header>
@@ -524,10 +511,6 @@ function Profile() {
                           src={avatarUrl}
                           alt="Profile"
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = defaultAvatar;
-                            e.target.onerror = null;
-                          }}
                       />
                       {isLoadingAvatar && (
                           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
