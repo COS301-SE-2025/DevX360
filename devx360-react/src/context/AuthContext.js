@@ -8,7 +8,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
- const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -49,12 +49,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, role, email, password, inviteCode = '') => {
+  const register = async (name, email, password, inviteCode = '') => {
     try {
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, role, email, password, inviteCode }),
+        body: JSON.stringify({ name, email, password, inviteCode }),
         credentials: 'include',
       });
 
@@ -105,4 +105,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
