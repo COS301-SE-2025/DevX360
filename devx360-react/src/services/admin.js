@@ -54,3 +54,18 @@ export async function deleteUser(userId) {
   return data;
 }
 
+
+export async function getAnomalies() {
+  const response = await fetch(`${API_BASE_URL}/api/anomalies`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch anomalies');
+  }
+
+  return data.anomalies;
+}
