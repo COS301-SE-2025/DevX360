@@ -35,7 +35,7 @@ export async function loginUser(email, password) {
 //Does the same thing as login user but this one just registers a user
 export async function registerUser(name, role, email, password, inviteCode = '') {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/register`, {
+    const response = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, role, email, password, inviteCode }),
