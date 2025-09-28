@@ -30,9 +30,7 @@ import {useNavigate} from "react-router-dom";
 import {useAvatar} from "../../hooks/useAvatar";
 import AdminPagination from "./Admin/Pagination";
 import UserAvatar from "./Admin/Avatar";
-
-
-const defaultAvatar = '../../../public/default-avatar.png';
+import CustomDropdown from "./Admin/Dropdown";
 
 
 function Admin() {
@@ -445,6 +443,13 @@ function Admin() {
     }
   };
 
+  const options = [
+    { value: 'all', label: 'All Types' },
+    { value: 'login_failure', label: 'Login Failures' },
+    { value: 'brute_force', label: 'Brute Force' },
+    { value: 'rate_limit', label: 'Rate Limits' }
+  ];
+
   const handleAnomaliesPageChange = (newPage) => {
     setAnomaliesPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -607,7 +612,7 @@ function Admin() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-[var(--text-light)]">Manage users and teams</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} defaultAvatar={defaultAvatar} />
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl}  />
             </div>
           </div>
         </header>
@@ -754,14 +759,6 @@ function Admin() {
                               <tr key={user._id} className="hover:bg-[var(--bg)] transition-colors duration-200">
                                 <td className="px-6 py-4">
                                   <div className="flex items-center space-x-4">
-                                   {/* <div className="relative">
-                                      <img
-                                          // src={getUserAvatarUrl(user._id)}
-                                          src={defaultAvatar}
-                                          alt={user.name}
-                                          className="w-12 h-12 rounded-full border-2 border-[var(--border)] shadow-sm"
-                                      />
-                                    </div>*/}
                                     <div key={user._id} className="relative">
                                       <UserAvatar userId={user._id} alt={user.name} size={32} className="border-white" />
                                     </div>
@@ -1009,27 +1006,21 @@ function Admin() {
                 {/* Filter Controls for Security */}
                 <div className="mb-6">
                   <div className="flex items-center space-x-4">
-                    <select
+                    <CustomDropdown
                         value={anomalyFilterType}
-                        onChange={(e) => setAnomalyFilterType(e.target.value)}
-                        className="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)]"
+                        onChange={(value) => setAnomalyFilterType(value)}
+                        options={options}
+                    />
+
+                    <button
+                        onClick={() => setShowFullIPs(!showFullIPs)}
+                        className="flex items-center space-x-2 px-3 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--bg)] text-[var(--text)]"
+                        title={showFullIPs ? "Hide full IPs" : "Show full IPs"}
                     >
-                      <option value="all">All Types</option>
-                      <option value="login_failure">Login Failures</option>
-                      <option value="brute_force">Brute Force</option>
-                      <option value="rate_limit">Rate Limits</option>
-                    </select>
+                      {showFullIPs ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      <span className="text-sm">IPs</span>
+                    </button>
                   </div>
-
-
-                  <button
-                      onClick={() => setShowFullIPs(!showFullIPs)}
-                      className="flex items-center space-x-2 px-3 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--bg)] text-[var(--text)]"
-                      title={showFullIPs ? "Hide full IPs" : "Show full IPs"}
-                  >
-                    {showFullIPs ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    <span className="text-sm">IPs</span>
-                  </button>
                 </div>
 
                 <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
