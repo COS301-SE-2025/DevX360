@@ -37,7 +37,7 @@ function Register() {
 
     try {
       await register(name, email, password, inviteCode);
-      navigate("/dashboard");
+      navigate("/login");
     } catch (err) {
       setError(err.message);
     } finally {
