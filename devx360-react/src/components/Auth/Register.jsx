@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import ThemeToggle from '../common/ThemeToggle';
-import AuthLayout from './AuthLayout';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import ThemeToggle from "../common/ThemeToggle";
+import AuthLayout from "./AuthLayout";
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5500";
 
 function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  // const [role, setRole] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showInviteField, setShowInviteField] = useState(false);
   const { register } = useAuth();
@@ -21,15 +21,15 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     if (!termsAccepted) {
-      setError('Please accept the terms and conditions');
+      setError("Please accept the terms and conditions");
       return;
     }
 
@@ -37,7 +37,7 @@ function Register() {
 
     try {
       await register(name, email, password, inviteCode);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,21 +47,46 @@ function Register() {
 
   return (
     <AuthLayout>
-      <div className="auth-form-container">
+      <div className="relative mx-auto w-full max-w-md rounded-2xl bg-white p-8 shadow-lg dark:bg-slate-800">
         <ThemeToggle position="absolute" />
-        <div className="logo">DevX360</div>
-        <div className="tagline">Engineering Intelligence Platform</div>
 
-        <div className="auth-tabs">
-          <div className="auth-tab" onClick={() => navigate('/login')}>Sign In</div>
-          <div className="auth-tab active">Sign Up</div>
+        {/* Logo + tagline */}
+        <div className="mb-2 text-center text-2xl font-bold text-slate-800 dark:text-slate-100">
+          DevX360
+        </div>
+        <div className="mb-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          Engineering Intelligence Platform
         </div>
 
-        <form className="auth-form active" onSubmit={handleSubmit}>
-          {error && <div className="error-message">{error}</div>}
+        {/* Tabs */}
+        <div className="mb-6 flex border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => navigate("/login")}
+            className="flex-1 pb-2 text-center text-sm font-medium text-slate-500 hover:text-indigo-500 dark:text-slate-400"
+          >
+            Sign In
+          </button>
+          <button className="flex-1 border-b-2 border-indigo-500 pb-2 text-center text-sm font-medium text-indigo-600 dark:text-indigo-400">
+            Sign Up
+          </button>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="register-name">Full Name</label>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-2 text-center text-sm text-red-600 dark:border-red-500 dark:bg-red-900 dark:text-red-200">
+              {error}
+            </div>
+          )}
+
+          {/* Name */}
+          <div>
+            <label
+              htmlFor="register-name"
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
+            >
+              Full Name
+            </label>
             <input
               type="text"
               id="register-name"
@@ -69,11 +94,18 @@ function Register() {
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
               required
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="register-email">Email</label>
+          {/* Email */}
+          <div>
+            <label
+              htmlFor="register-email"
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
+            >
+              Email
+            </label>
             <input
               type="email"
               id="register-email"
@@ -81,11 +113,18 @@ function Register() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="register-password">Password</label>
+          {/* Password */}
+          <div>
+            <label
+              htmlFor="register-password"
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
+            >
+              Password
+            </label>
             <input
               type="password"
               id="register-password"
@@ -93,11 +132,18 @@ function Register() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="register-confirm">Confirm Password</label>
+          {/* Confirm Password */}
+          <div>
+            <label
+              htmlFor="register-confirm"
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
+            >
+              Confirm Password
+            </label>
             <input
               type="password"
               id="register-confirm"
@@ -105,70 +151,110 @@ function Register() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
               required
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
 
+          {/* Invite Code Toggle */}
           <button
             type="button"
-            className="btn btn-secondary"
+            className="w-full rounded-md border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
             onClick={() => setShowInviteField(!showInviteField)}
           >
-            {showInviteField ? 'Hide Invite Code' : 'Have an invite code?'}
+            {showInviteField ? "Hide Invite Code" : "Have an invite code?"}
           </button>
 
+          {/* Invite Code Input */}
           {showInviteField && (
-            <div className="form-group">
-              <label htmlFor="invite-code">Invite Code (optional)</label>
+            <div>
+              <label
+                htmlFor="invite-code"
+                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
+              >
+                Invite Code (optional)
+              </label>
               <input
                 type="text"
                 id="invite-code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="Enter invite code if you have one"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               />
             </div>
           )}
 
-          <div className="form-group terms">
+          {/* Terms */}
+          <div className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               id="terms"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
               required
-              style={{
-                width: "16px",
-                height: "16px",
-                marginRight: "0.5rem",
-                verticalAlign: "middle"
-              }}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600"
             />
-            <label htmlFor="terms" style={{marginTop:"4px"}}>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+            <label
+              htmlFor="terms"
+              className="text-slate-600 dark:text-slate-300"
+            >
+              I agree to the{" "}
+              <a href="#" className="text-indigo-600 hover:underline dark:text-indigo-400">
+                Terms
+              </a>{" "}
+              and{" "}
+              <a href="#" className="text-indigo-600 hover:underline dark:text-indigo-400">
+                Privacy Policy
+              </a>
+            </label>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
 
-          <div className="divider">or sign up with</div>
-
-          <div className="social-logins">
-            <button
-              type="button"
-              className="github-btn"
-              onClick={() => window.location.href = `${API_BASE_URL}/api/auth/github`}
-            >
-              <img
-                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
-                className="social-icon"
-                alt="GitHub"
-              />
-              <span>Continue with GitHub</span>
-            </button>
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-300 dark:border-slate-600" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                or sign up with
+              </span>
+            </div>
           </div>
 
-          <div className="auth-footer">
-            Already have an account? <a href="#" onClick={() => navigate('/login')}>Sign in</a>
+          {/* Social login */}
+          <button
+            type="button"
+            onClick={() =>
+              (window.location.href = `${API_BASE_URL}/api/auth/github`)
+            }
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+          >
+            <img
+              src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
+              alt="GitHub"
+              className="h-5 w-5"
+            />
+            Continue with GitHub
+          </button>
+
+          {/* Footer */}
+          <div className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
+            Already have an account?{" "}
+            <a
+              href="/login"
+              className="text-indigo-600 hover:underline dark:text-indigo-400"
+            >
+              Sign in
+            </a>
           </div>
         </form>
       </div>
