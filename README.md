@@ -2,7 +2,7 @@
 
 ## 0. How the System Works 
 
-![DevX360 Graphical Model](./assets/DevX360 Graphical Model.png)
+![DevX360 Graphical Model](./Assets/DevX360 Graphical Model.png)
 
 When you log into DevX360, you begin on the dashboard in your web browser. This dashboard is your main control panel, where you can view metrics, manage your team, and request AI feedback. Every action you take is sent to the DevX360 service running in the cloud.
 
