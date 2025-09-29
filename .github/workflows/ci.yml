@@ -31,4 +31,4 @@ jobs:
 
       - name: Run Frontend Tests
         working-directory: ./devx360-react
-        run: npm test -- src/__tests__
+        run: npm test -- src/tests2
