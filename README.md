@@ -1,5 +1,22 @@
 # DevX360 User Manual
 
+## 0. How the System Works 
+
+![DevX360 Graphical Model](./assets/DevX360 Graphical Model.png)
+
+When you log into DevX360, you begin on the dashboard in your web browser. This dashboard is your main control panel, where you can view metrics, manage your team, and request AI feedback. Every action you take is sent to the DevX360 service running in the cloud.
+
+The cloud service acts like a messenger. If your request is about team details or stored information, it retrieves the data from the secure database. If it’s about repositories and commits, it connects to GitHub to fetch the latest activity. Alongside this, DevX360 has an AI assistant that analyses the data coming from GitHub and your stored metrics, then provides recommendations on how your team can improve.
+
+From the user’s perspective, this all happens seamlessly: you press a button, and the results appear on your screen. Behind the scenes, however, several parts are working together—the dashboard, the cloud service, the database, GitHub, and the AI—to make sure you always have accurate and useful insights.
+
+
+When you log into DevX360, you begin on the dashboard in your web browser. This dashboard is your main control panel, where you can view metrics, manage your team, and request AI feedback. Every action you take is sent to the DevX360 service running in the cloud.
+
+The cloud service acts like a messenger. If your request is about team details or stored information, it retrieves the data from the secure database. If it’s about repositories and commits, it connects to GitHub to fetch the latest activity. Alongside this, DevX360 has an AI assistant that analyses the data coming from GitHub and your stored metrics, then provides recommendations on how your team can improve.
+
+From the user’s perspective, this all happens seamlessly: you press a button, and the results appear on your screen. Behind the scenes, however, several parts are working together—the dashboard, the cloud service, the database, GitHub, and the AI—to make sure you always have accurate and useful insights.
+
 ## 1. Getting Started
 
 ### 1.1 Prerequisites Before Running the App
