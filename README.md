@@ -60,7 +60,7 @@ We use a collaborative workflow to manage progress and documentation.
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
 - [Architectural Requirements]()  
-- [Technical Installation Manual]()
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
 - [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
 
 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
@@ -96,7 +96,7 @@ We use a collaborative workflow to manage progress and documentation.
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/DevX360%20Coding%20Standards%20V3.pdf)  
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
 - [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/Architectural%20Requirements%20V4.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md)  
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)  
 
 </details>
 
@@ -108,9 +108,9 @@ We use a collaborative workflow to manage progress and documentation.
 - [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)
 - [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.3.3.pdf)  
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
-- [User Manual]()  
+- [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
 - [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.2.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/edit/feature/ai-analysis/README.md)
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
 - [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
 
 </details>
