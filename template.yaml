@@ -26,6 +26,12 @@ Resources:
       Handler: lambda.handler
       CodeUri: .
       Events:
+        RootPath:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /
+            Method: ANY
         Proxy:
           Type: HttpApi
           Properties:

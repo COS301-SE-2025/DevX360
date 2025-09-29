@@ -6,12 +6,20 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 // Prefer calling the deployed API via API_BASE_URL. Fallbacks remain only for
 // local development if the API endpoints are not yet available.
 
-const API_BASE_URL = process.env.API_BASE_URL || '';
-const MCP_API_TOKEN = process.env.MCP_API_TOKEN || 'testtoken';
+// Hardcoded values for demo - Claude Desktop environment variables not working
+const API_BASE_URL = 'https://qii20qjkfi.execute-api.us-east-1.amazonaws.com/dev';
+const MCP_API_TOKEN = '9bfed4676972d92a486f5a71f2c7dcfc1cae556dea29df18ff324b4b7ac1704e';
+
+// Debug logging
+console.error('MCP Server starting...');
+console.error('API_BASE_URL:', API_BASE_URL);
+console.error('MCP_API_TOKEN:', MCP_API_TOKEN ? 'SET' : 'NOT SET');
 
 function buildApiUrl(path, params = {}) {
   if (!API_BASE_URL) return '';
-  const url = new URL(path, API_BASE_URL);
+  // Ensure the path starts with /dev for API Gateway stage
+  const fullPath = path.startsWith('/dev') ? path : `/dev${path}`;
+  const url = new URL(fullPath, API_BASE_URL);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   }
@@ -20,6 +28,7 @@ function buildApiUrl(path, params = {}) {
 
 async function getJson(path, params) {
   const url = buildApiUrl(path, params);
+  console.error('Making API call to:', url);
   if (!url) throw new Error('API_BASE_URL is not set for MCP server');
   const res = await fetch(url, {
     credentials: 'omit',
@@ -27,6 +36,7 @@ async function getJson(path, params) {
       'x-mcp-token': MCP_API_TOKEN,
     }
   });
+  console.error('API response status:', res.status, res.statusText);
   if (!res.ok) {
     let body;
     try { body = await res.json(); } catch {}
@@ -228,7 +238,54 @@ class DevX360MCPServer {
         ],
         isError: false
       };
-    } catch (error) {
+      } catch (error) {
+        // If API returns 500 error, provide fallback analysis
+        if (error.message.includes('500 Internal Server Error')) {
+        console.error('API returned 500, providing fallback analysis for:', args.repositoryUrl);
+        
+        const fallbackAnalysis = {
+          metadata: {
+            url: args.repositoryUrl,
+            name: "demo-repo",
+            owner: "demo-owner",
+            description: "Demo repository analysis (API temporarily unavailable)",
+            stars: 0,
+            forks: 0,
+            language: "Unknown",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          metrics: {
+            deploymentFrequency: "daily",
+            leadTimeForChanges: "2h",
+            changeFailureRate: "5%",
+            timeToRestoreService: "1h"
+          },
+          analysis: {
+            health_score: 85,
+            recommendations: [
+              "API temporarily unavailable - using demo data",
+              "Consider implementing CI/CD pipeline",
+              "Monitor deployment frequency",
+              "Track lead time for changes"
+            ],
+            status: "demo_mode"
+          },
+          error: "API temporarily unavailable - showing demo analysis",
+          mock: true
+        };
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Repository analysis (demo data - API temporarily unavailable):\n\n` + JSON.stringify(fallbackAnalysis, null, 2)
+            }
+          ],
+          isError: false
+        };
+      }
+      
       return {
         content: [
           {
