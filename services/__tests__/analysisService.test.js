@@ -14,7 +14,7 @@ jest.unstable_mockModule('../../api/models/RepoMetrics.js', () => ({
 }));
 
 const mockParseGitHubUrl = jest.fn();
-jest.unstable_mockModule('../../Data Collection/repository-info-service.js', () => ({
+jest.unstable_mockModule('../../Data-Collection/repository-info-service.js', () => ({
   parseGitHubUrl: mockParseGitHubUrl,
 }));
 

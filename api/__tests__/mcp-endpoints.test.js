@@ -7,11 +7,11 @@ import request from 'supertest';
 import app from '../app.js';
 
 // Mock dependencies
-jest.mock('../../Data Collection/repository-info-service.js', () => ({
+jest.mock('../../Data-Collection/repository-info-service.js', () => ({
   getRepositoryInfo: jest.fn()
 }));
 
-jest.mock('../../Data Collection/universal-dora-service.js', () => ({
+jest.mock('../../Data-Collection/universal-dora-service.js', () => ({
   getDORAMetrics: jest.fn()
 }));
 
@@ -19,8 +19,8 @@ jest.mock('../../services/metricsService.js', () => ({
   analyzeRepository: jest.fn()
 }));
 
-import { getRepositoryInfo } from '../../Data Collection/repository-info-service.js';
-import { getDORAMetrics } from '../../Data Collection/universal-dora-service.js';
+import { getRepositoryInfo } from '../../Data-Collection/repository-info-service.js';
+import { getDORAMetrics } from '../../Data-Collection/universal-dora-service.js';
 import { analyzeRepository } from '../../services/metricsService.js';
 
 describe('MCP API Endpoints', () => {

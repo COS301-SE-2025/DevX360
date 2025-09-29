@@ -1,12 +1,12 @@
 import { jest, describe, beforeEach, afterEach, test, expect } from '@jest/globals';
 
-// Mock bcryptjs
+// Mock bcrypt
 const mockBcrypt = {
   genSalt: jest.fn(),
   hash: jest.fn(),
   compare: jest.fn(),
 };
-jest.unstable_mockModule('bcryptjs', () => ({
+jest.unstable_mockModule('bcrypt', () => ({
   default: mockBcrypt,
 }));
 
@@ -41,7 +41,7 @@ describe('Auth Utilities', () => {
 
       const hashedPassword = await hashPassword('plainPassword');
 
-      expect(mockBcrypt.genSalt).toHaveBeenCalledWith(12);
+      expect(mockBcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(mockBcrypt.hash).toHaveBeenCalledWith('plainPassword', 'mockSalt');
       expect(hashedPassword).toBe('hashedPassword123');
     });
@@ -49,16 +49,20 @@ describe('Auth Utilities', () => {
 
   describe('comparePassword', () => {
     test('should compare a plain password with a hashed password', async () => {
-      mockBcrypt.compare.mockResolvedValue(true);
+      mockBcrypt.compare.mockImplementation((plainPassword, hashedPassword, callback) => {
+        callback(null, true);
+      });
 
       const result = await comparePassword('plainPassword', 'hashedPassword');
 
-      expect(mockBcrypt.compare).toHaveBeenCalledWith('plainPassword', 'hashedPassword');
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('plainPassword', 'hashedPassword', expect.any(Function));
       expect(result).toBe(true);
     });
 
     test('should return false for incorrect password', async () => {
-      mockBcrypt.compare.mockResolvedValue(false);
+      mockBcrypt.compare.mockImplementation((plainPassword, hashedPassword, callback) => {
+        callback(null, false);
+      });
 
       const result = await comparePassword('wrongPassword', 'hashedPassword');
 
@@ -73,7 +77,10 @@ describe('Auth Utilities', () => {
 
       const token = generateToken(payload);
 
-      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test_secret', { expiresIn: '7d' });
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test_secret', { 
+        expiresIn: '7d',
+        algorithm: 'HS256'
+      });
       expect(token).toBe('mockToken');
     });
 

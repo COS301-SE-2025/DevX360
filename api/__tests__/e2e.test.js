@@ -11,11 +11,11 @@ import Team from '../models/Team.js';
 import RepoMetrics from '../models/RepoMetrics.js';
 
 // Mock external services with realistic responses
-jest.mock('../../Data Collection/repository-info-service.js', () => ({
+jest.mock('../../Data-Collection/repository-info-service.js', () => ({
   getRepositoryInfo: jest.fn()
 }));
 
-jest.mock('../../Data Collection/universal-dora-service.js', () => ({
+jest.mock('../../Data-Collection/universal-dora-service.js', () => ({
   getDORAMetrics: jest.fn()
 }));
 
@@ -27,8 +27,8 @@ jest.mock('../../services/analysisService.js', () => ({
   runAIAnalysis: jest.fn()
 }));
 
-import { getRepositoryInfo } from '../../Data Collection/repository-info-service.js';
-import { getDORAMetrics } from '../../Data Collection/universal-dora-service.js';
+import { getRepositoryInfo } from '../../Data-Collection/repository-info-service.js';
+import { getDORAMetrics } from '../../Data-Collection/universal-dora-service.js';
 import { analyzeRepository } from '../../services/metricsService.js';
 import { runAIAnalysis } from '../../services/analysisService.js';
 
