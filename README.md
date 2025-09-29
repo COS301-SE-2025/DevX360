@@ -29,7 +29,7 @@ Before launching the DevX360 app:
 
 1. **Start the API**  
    - Follow the setup instructions in the official README:
-     👉 [API Setup Guide](https://github.com/COS301-SE-2025/DevX360/tree/feature/ai-analysis#) Found in the "Installation" section of the README
+     👉 [API Setup Guide](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation) Found in the "Installation" section of the README
 
 2. **Run the Frontend App**
    - Navigate to the `devx360-react/src` folder:
