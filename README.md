@@ -55,7 +55,7 @@
 We use a collaborative workflow to manage progress and documentation.
 
 ## 📄 Latest Docs
-- [Project Planning and Role Allocation]()
+- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V5.pdf)
 - [System Requirements Specification (SRS)]()  
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
