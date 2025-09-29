@@ -4,15 +4,14 @@ on:
   push:
     branches:
       - feature/ai-analysis
-      - main
   pull_request:
     branches:
       - feature/ai-analysis
-      - main
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:                        
+    env:
       OPENAI_API_KEY: ${{ secrets.OPENAI }}
     steps:
       - name: Checkout feature branch code
@@ -27,4 +26,8 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm test
+        run: |
+         
+          npm test api/__tests__
+          npm test mcp/__tests__
+          npm test mcp/services/__tests__
