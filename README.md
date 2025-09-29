@@ -2,8 +2,9 @@
 
 ## 0. How the System Works 
 
+
 <p align="center">
-  <img src="Assets/DevX360.png" alt="DevX360 Logo" width="200"/>
+  <img src="Assets/DevX360 Graphical Model.png" alt="DevX360 Logo" height="600" width="600"/>
 </p>
 
 
