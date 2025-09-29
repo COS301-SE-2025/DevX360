@@ -1,71 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Calendar, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, Bell, X, Lock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, X, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import HeaderInfo from "../common/HeaderInfo";
-import {useAvatar} from "../../hooks/useAvatar";
+import { useAvatar } from "../../hooks/useAvatar";
 
 function Metrics() {
   const { currentUser } = useAuth();
-  const defaultAvatar = '/default-avatar.png';
-  const [avatar, setAvatar] = useState(defaultAvatar);
   const avatarUrl = useAvatar();
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
+  // Core data states
   const [teamData, setTeamData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // AI feedback states
   const [aiFeedback, setAiFeedback] = useState(null);
   const [parsedFeedback, setParsedFeedback] = useState({});
-  const [aiLoading, setAiLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
-  const [aiStatus, setAiStatus] = useState('checking');
+  const [aiStatus, setAiStatus] = useState('not_started');
   const [aiProgress, setAiProgress] = useState(0);
+
+  // Filter states
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [timeRange, setTimeRange] = useState('30');
-  const [environment, setEnvironment] = useState('all');
-  const [expandedInsights, setExpandedInsights] = useState({});
   
-  // New states for member stats popup
+  // UI states
+  const [expandedInsights, setExpandedInsights] = useState({});
   const [selectedMember, setSelectedMember] = useState(null);
-  const [memberStatsLoading, setMemberStatsLoading] = useState(false);
   const [showMemberStatsModal, setShowMemberStatsModal] = useState(false);
- const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
+  // Initialize selected team from currentUser
   useEffect(() => {
-    if (currentUser?.avatar) {
-      const avatarUrl = currentUser.avatar.startsWith('http') 
-        ? currentUser.avatar 
-        : `${API_BASE_URL}}${currentUser.avatar}`;
-      setAvatar(avatarUrl);
-    } else {
-      setAvatar(defaultAvatar);
-    }
-
     if (currentUser?.teams && currentUser.teams.length > 0 && !selectedTeamId) {
       setSelectedTeamId(currentUser.teams[0].id);
     }
   }, [currentUser, selectedTeamId]);
 
-  const fetchTeamMetrics = async (teamId = null) => {
+  // Fetch team metrics
+  const fetchTeamMetrics = useCallback(async () => {
     if (!selectedTeamId || !currentUser?.teams) {
       setError('No team assigned to user');
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       
-      const targetTeamId = selectedTeamId;
-      // console.log('Fetching metrics for team:', targetTeamId);
-      const targetTeam = currentUser.teams.find(team => team.id === targetTeamId);
+      const targetTeam = currentUser.teams.find(team => team.id === selectedTeamId);
       if (!targetTeam) {
         throw new Error('Selected team not found');
       }
 
-      // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-      const response = await fetch(`${API_BASE_URL}/teams/${targetTeamId}?teamId=${targetTeamId}`, {
+      const response = await fetch(`${API_BASE_URL}/teams/${selectedTeamId}?teamId=${selectedTeamId}`, {
         credentials: 'include',
       });
 
@@ -75,141 +67,82 @@ function Metrics() {
 
       const data = await response.json();
       setTeamData(data);
-      setLoading(false);
     } catch (err) {
+      console.error('Error fetching team metrics:', err);
       setError(err.message);
-      setLoading(false);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [selectedTeamId, currentUser?.teams, API_BASE_URL]);
 
-  useEffect(() => {
-  if (!currentUser) return;
-
-  const timer = setTimeout(() => {
-    if (currentUser.teams?.length > 0) {
-      setSelectedTeamId(currentUser.teams[0].id);
-    }
-  }, 100); // short delay so session is established
-
-  return () => clearTimeout(timer);
-}, [currentUser]);
-
+  // Load team metrics when team or time range changes
   useEffect(() => {
     if (selectedTeamId && currentUser?.teams) {
       fetchTeamMetrics();
     }
-  }, [selectedTeamId, currentUser?.teams]);
+  }, [selectedTeamId, currentUser?.teams, timeRange, fetchTeamMetrics]);
 
+  // Handle team change
   const handleTeamChange = (e) => {
     const newTeamId = e.target.value;
     setSelectedTeamId(newTeamId);
+    // Reset AI states
     setAiFeedback(null);
     setParsedFeedback({});
-    setAiLoading(true);
+    setAiLoading(false);
     setAiError(null);
-    setAiStatus('checking');
+    setAiStatus('not_started');
     setAiProgress(0);
   };
-
-  console.log('Team Data:', teamData);
 
   // Handle time range change
   const handleTimeRangeChange = (e) => {
     setTimeRange(e.target.value);
   };
 
+  // Reset all states when user changes
   useEffect(() => {
-  // Reset all component state when user changes
-  setTeamData(null);
-  setLoading(true);
-  setError(null);
-  setAiFeedback(null);
-  setParsedFeedback({});
-  setAiLoading(true);
-  setAiError(null);
-  setAiStatus('checking');
-  setAiProgress(0);
-  setSelectedTeamId('');
-  setExpandedInsights({});
-  setSelectedMember(null);
-  setShowMemberStatsModal(false);
+    if (!currentUser) {
+      setTeamData(null);
+      setIsLoading(false);
+      setError('User not authenticated');
+      setAiFeedback(null);
+      setParsedFeedback({});
+      setAiLoading(false);
+      setAiError(null);
+      setAiStatus('not_started');
+      setAiProgress(0);
+      setSelectedTeamId('');
+      setExpandedInsights({});
+      setSelectedMember(null);
+      setShowMemberStatsModal(false);
+      return;
+    }
 
-  // Set initial team for new user
-  if (currentUser?.teams && currentUser.teams.length > 0) {
-    setSelectedTeamId(currentUser.teams[0].id);
-  } else {
-    setSelectedTeamId('');
-  }
-}, [currentUser]); // Add currentUser as dependency
+    // Set initial team for new user
+    if (currentUser?.teams && currentUser.teams.length > 0 && !selectedTeamId) {
+      setSelectedTeamId(currentUser.teams[0].id);
+    }
+  }, [currentUser, selectedTeamId]);
 
-  // Check if current user is the creator of the selected team
-  const isTeamCreator = () => {
-
-    return teamData?.creator?._id === currentUser?._id;
-  };
-
-  // Handle member click
-const handleMemberClick = (member) => {
-  if (!member || !currentUser) return;
-  
-  const memberIdStr = String(member._id);
-  const currentUserIdStr = String(currentUser._id);
-  
-  // console.log('Member ID (string):', memberIdStr);
-  // console.log('Current User ID (string):', currentUserIdStr);
-  // console.log('Is Creator:', isTeamCreator());
-  // console.log('Is Own Profile:', memberIdStr === currentUserIdStr);
-  
-  // RBAC Logic:
-  // - Team creators can view anyone's stats
-  // - Regular members can only view their own stats
-  const canViewStats = isTeamCreator() || memberIdStr === currentUserIdStr;
-  
-  if (!canViewStats) {
-    // Show access denied message for restricted access
-    alert('Access Restricted: You can only view your own stats. Team creators have access to all member stats.');
-    return;
-  }
-
-  setSelectedMember(member);
-  setShowMemberStatsModal(true);
-  
-  // The stats should already be available in teamData.memberStats[memberIdStr]
-  // No need to fetch again since we get all stats from the initial team API call
-};
-
-
-  
-  // Close member stats modal
-  const closeMemberStatsModal = () => {
-    setShowMemberStatsModal(false);
-    setSelectedMember(null);
-  };
-
-  // Fixed AI feedback useEffect
+  // AI feedback polling
   useEffect(() => {
-    // console.log('Fetching AI feedback for team:', selectedTeamId);
-    if (!selectedTeamId) return;
-    // console.log('Checking AI feedback for team:', teamData?.team?._id);
-    const teamId = selectedTeamId || teamData?.team?._id;
+    if (!selectedTeamId || !teamData) return;
+
     let pollInterval;
+    setAiLoading(true);
 
     const checkAiFeedback = async () => {
       try {
-        // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
-        const response = await fetch(`${API_BASE_URL}/ai-review?teamId=${teamId}`, {
+        const response = await fetch(`${API_BASE_URL}/ai-review?teamId=${selectedTeamId}`, {
           credentials: 'include',
         });
 
         const data = await response.json();
-        // console.log('AI feedback response:', data);
 
         if (response.ok && data.status === 'completed' && data.aiFeedback) {
-          // Successfully got completed analysis
           setAiFeedback(data.aiFeedback);
-          // console.log('AI Feedback:', data.aiFeedback);
           
-          // Parse the feedback sections - improved regex to handle the format better
           const feedbackSections = {};
           const matches = [...data.aiFeedback.matchAll(/## ([^\n]+)\n([\s\S]*?)(?=\n---\n|$)/g)];
           matches.forEach(([_, title, content]) => {
@@ -221,25 +154,21 @@ const handleMemberClick = (member) => {
           setAiError(null);
           clearInterval(pollInterval);
         } else if (response.status === 202 || (data.status && data.status !== 'completed')) {
-          // Analysis is still pending
           setAiStatus('pending');
-          setAiProgress(data.progress || 50); // Use progress from response or default
+          setAiProgress(data.progress || 50);
           setAiLoading(false);
           setAiError(null);
           
-          // Continue polling if not already polling
           if (!pollInterval) {
             pollInterval = setInterval(checkAiFeedback, 30000);
           }
         } else if (response.status === 404 || !data.aiFeedback) {
-          // No analysis found yet - this might be normal for new teams
           setAiStatus('not_started');
           setAiLoading(false);
           setAiError(null);
           
-          // Start polling to check if analysis gets initiated
           if (!pollInterval) {
-            pollInterval = setInterval(checkAiFeedback, 60000); // Less frequent polling
+            pollInterval = setInterval(checkAiFeedback, 60000);
           }
         } else {
           throw new Error(data.message || 'Failed to fetch AI analysis');
@@ -253,7 +182,6 @@ const handleMemberClick = (member) => {
       }
     };
 
-    // Initial check
     checkAiFeedback();
 
     return () => {
@@ -261,120 +189,58 @@ const handleMemberClick = (member) => {
         clearInterval(pollInterval);
       }
     };
-  }, [teamData]);
+  }, [selectedTeamId, teamData, API_BASE_URL]);
 
-  useEffect(() => {
-  // Handle logout scenario - if user becomes null, reset all states
-  if (currentUser === null) {
-    setTeamData(null);
-    setLoading(false); // Important: set loading to false
-    setError('User not authenticated');
-    setAiFeedback(null);
-    setParsedFeedback({});
-    setAiLoading(false);
-    setAiError(null);
-    setAiStatus('not_started');
-    setAiProgress(0);
-    setSelectedTeamId('');
-    setExpandedInsights({});
-    setSelectedMember(null);
+  // Helper functions
+  const isTeamCreator = () => {
+    return teamData?.creator?._id === currentUser?._id;
+  };
+
+  const handleMemberClick = (member) => {
+    if (!member || !currentUser) return;
+    
+    const memberIdStr = String(member._id);
+    const currentUserIdStr = String(currentUser._id);
+    const canViewStats = isTeamCreator() || memberIdStr === currentUserIdStr;
+    
+    if (!canViewStats) {
+      alert('Access Restricted: You can only view your own stats. Team creators have access to all member stats.');
+      return;
+    }
+
+    setSelectedMember(member);
+    setShowMemberStatsModal(true);
+  };
+
+  const closeMemberStatsModal = () => {
     setShowMemberStatsModal(false);
-  }
-}, [currentUser]);
+    setSelectedMember(null);
+  };
 
-useEffect(() => {
-  if (selectedTeamId) {
-    fetchTeamMetrics();
-  }
-}, [timeRange]);
-
-// Also update the loading check to handle null user
-if (loading) {
-  return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
-        <span className="ml-3 text-[var(--text)]">Loading metrics...</span>
-      </div>
-    </div>
-  );
-}
-
-// Add this check right after the loading check
-if (!currentUser) {
-  return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-      <div className="text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <div className="text-xl font-semibold text-[var(--text)] mb-2">Authentication Required</div>
-        <div className="text-[var(--text-light)]">Please log in to view metrics.</div>
-      </div>
-    </div>
-  );
-}
+  const getMetricsForTimeRange = () => {
+    const timeRangeKey = `${timeRange}d`;
+    const metricsForRange = teamData?.doraMetrics?.[timeRangeKey] || {};
+    
+    return {
+      doraMetrics: metricsForRange,
+      dataSummary: metricsForRange.data_summary || {},
+      repositoryInfo: teamData?.repositoryInfo || {},
+      deploymentFreq: metricsForRange.deployment_frequency || { perWeek: [] },
+      leadTime: metricsForRange.lead_time || {},
+      changeFailureRate: metricsForRange.change_failure_rate || {},
+      mttr: metricsForRange.mttr || {}
+    };
+  };
 
   const getMetricStatus = (value, thresholds) => {
     if (value >= thresholds.good) return { status: 'Good', color: 'green' };
     if (value >= thresholds.fair) return { status: 'Fair', color: 'yellow' };
     return { status: 'Needs Improvement', color: 'red' };
   };
-  const getMetricsForTimeRange = () => {
-  const timeRangeKey = `${timeRange}d`; // Convert 7/30/90 to "7d"/"30d"/"90d"
-  const metricsForRange = teamData.doraMetrics[timeRangeKey] || {};
-  // console.log('Time Range Key:', metricsForRange );
-  // console.log('Team Data:', teamData);
-  // console.log('Selected time range:', timeRangeKey);
-  //   console.log('Metrics for range:', metricsForRange);
-  return {
-    doraMetrics: metricsForRange,
-    dataSummary: metricsForRange.data_summary || {},
-    repositoryInfo: teamData.repositoryInfo || {},
-    deploymentFreq: metricsForRange.deployment_frequency || { perWeek: [] },
-    leadTime: metricsForRange.lead_time || {},
-    changeFailureRate: metricsForRange.change_failure_rate || {},
-    mttr: metricsForRange.mttr || {}
-
-  };
-};
 
   const getDeploymentStatus = (freq) => {
     return getMetricStatus(freq, { good: 0.1, fair: 0.05 });
   };
-
-  const getDeploymentTrendData = () => {
-  const timeRangeNum = parseInt(timeRange);
-  
-  if (timeRangeNum === 7) {
-    // For 7 days, use perDay data
-    const perDay = deploymentFreq.perDay || [];
-    return perDay.map((deployments, index) => ({
-      date: `Day ${index + 1}`,
-      deployments: deployments
-    }));
-  } else if (timeRangeNum === 30) {
-    // For 30 days, use perWeek data (4 weeks)
-    const perWeek = deploymentFreq.perWeek || [];
-    return perWeek.map((deployments, index) => ({
-      date: `Week ${index + 1}`,
-      deployments: deployments
-    }));
-  } else if (timeRangeNum === 90) {
-    // For 90 days, use perWeek data (should have ~12-13 weeks)
-    const perWeek = deploymentFreq.perWeek || [];
-    return perWeek.map((deployments, index) => ({
-      date: `Week ${index + 1}`,
-      deployments: deployments
-    }));
-  }
-  
-  // Fallback to weekly data
-  const perWeek = deploymentFreq.perWeek || [];
-  return perWeek.map((deployments, index) => ({
-    date: `Week ${index + 1}`,
-    deployments: deployments
-  }));
-};
-
 
   const getLeadTimeStatus = (days) => {
     return getMetricStatus(10 - days, { good: 8, fair: 6 });
@@ -387,14 +253,43 @@ if (!currentUser) {
     return { status: 'Critical', color: 'red' };
   };
 
+  const getDeploymentTrendData = () => {
+    const { deploymentFreq } = getMetricsForTimeRange();
+    const timeRangeNum = parseInt(timeRange);
+    
+    if (timeRangeNum === 7) {
+      const perDay = deploymentFreq.perDay || [];
+      return perDay.map((deployments, index) => ({
+        date: `Day ${index + 1}`,
+        deployments: deployments
+      }));
+    } else if (timeRangeNum === 30) {
+      const perWeek = deploymentFreq.perWeek || [];
+      return perWeek.map((deployments, index) => ({
+        date: `Week ${index + 1}`,
+        deployments: deployments
+      }));
+    } else if (timeRangeNum === 90) {
+      const perWeek = deploymentFreq.perWeek || [];
+      return perWeek.map((deployments, index) => ({
+        date: `Week ${index + 1}`,
+        deployments: deployments
+      }));
+    }
+    
+    const perWeek = deploymentFreq.perWeek || [];
+    return perWeek.map((deployments, index) => ({
+      date: `Week ${index + 1}`,
+      deployments: deployments
+    }));
+  };
+
   const getCurrentSelection = () => {
     const teamName = selectedTeamId ? 
       currentUser?.teams.find(t => t.id === selectedTeamId)?.name || 'Unknown Team' : 
       'All Teams';
     const timeRangeText = `Last ${timeRange} days`;
-    const environmentText = environment === 'all' ? 'All Environments' : 
-      environment.charAt(0).toUpperCase() + environment.slice(1);
-    return `${teamName} • ${timeRangeText} • ${environmentText}`;
+    return `${teamName} • ${timeRangeText}`;
   };
 
   const toggleInsight = (key) => {
@@ -404,7 +299,6 @@ if (!currentUser) {
     }));
   };
 
-  
   const renderAiInsight = (title, content, key) => {
     if (!content) return null;
 
@@ -440,17 +334,16 @@ if (!currentUser) {
   };
 
   // Member Stats Modal Component
-const MemberStatsModal = () => {
-  if (!showMemberStatsModal || !selectedMember) return null;
+  const MemberStatsModal = () => {
+    if (!showMemberStatsModal || !selectedMember) return null;
 
-  const memberIdStr = String(selectedMember._id);
-  const currentUserIdStr = String(currentUser._id);
-  const isCurrentUser = memberIdStr === currentUserIdStr;
-  const canViewStats = isTeamCreator() || isCurrentUser;
+    const memberIdStr = String(selectedMember._id);
+    const currentUserIdStr = String(currentUser._id);
+    const isCurrentUser = memberIdStr === currentUserIdStr;
+    const canViewStats = isTeamCreator() || isCurrentUser;
 
-  if (!canViewStats) {
-    return (
-      <>
+    if (!canViewStats) {
+      return (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-md">
             <div className="p-6 text-center">
@@ -468,22 +361,17 @@ const MemberStatsModal = () => {
             </div>
           </div>
         </div>
-      </>
-    );
-  }
+      );
+    }
 
-  // Fixed stats access logic for modal
-  let memberStats = null;
-  if (isTeamCreator()) {
-    // Team creators can access any member's stats from memberStats object
-    memberStats = teamData.memberStats?.[memberIdStr];
-  } else if (isCurrentUser) {
-    // Regular users accessing their own stats - try both locations
-    memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
-  }
+    let memberStats = null;
+    if (isTeamCreator()) {
+      memberStats = teamData.memberStats?.[memberIdStr];
+    } else if (isCurrentUser) {
+      memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
+    }
 
-  return (
-    <>
+    return (
       <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-[var(--bg-container)] rounded-xl shadow-xl border border-[var(--border)] w-full max-w-2xl max-h-[90vh] overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
@@ -512,7 +400,6 @@ const MemberStatsModal = () => {
           <div className="p-6 overflow-y-auto max-h-[70vh]">
             {memberStats ? (
               <div className="space-y-6">
-                {/* GitHub Profile Info */}
                 {memberStats.githubUsername && (
                   <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
                     <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
@@ -528,23 +415,10 @@ const MemberStatsModal = () => {
                         <span className="text-sm text-[var(--text-light)]">Activity Score</span>
                         <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Last Activity</span>
-                        <span className="text-sm font-medium text-[var(--text)]">
-                          {memberStats.lastActivity ? new Date(memberStats.lastActivity).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-[var(--text-light)]">Data Collected</span>
-                        <span className="text-sm font-medium text-[var(--text)]">
-                          {memberStats.collectedAt ? new Date(memberStats.collectedAt).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Commit Stats */}
                 <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
                   <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
                     <GitCommit className="w-4 h-4 mr-2" />
@@ -562,7 +436,6 @@ const MemberStatsModal = () => {
                   </div>
                 </div>
 
-                {/* Pull Requests Stats */}
                 <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
                   <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
                     <GitPullRequest className="w-4 h-4 mr-2" />
@@ -587,68 +460,6 @@ const MemberStatsModal = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Issues Stats */}
-                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                    <Bug className="w-4 h-4 mr-2" />
-                    Issues
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[var(--text)]">{memberStats.issues?.total || 0}</div>
-                      <div className="text-sm text-[var(--text-light)]">Total</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{memberStats.issues?.open || 0}</div>
-                      <div className="text-sm text-[var(--text-light)]">Open</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{memberStats.issues?.closed || 0}</div>
-                      <div className="text-sm text-[var(--text-light)]">Closed</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Performance Metrics */}
-                <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
-                  <h3 className="font-semibold text-[var(--text)] mb-3 flex items-center">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Performance
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-[var(--text-light)]">Activity Score</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min((memberStats.activityScore || 0) / 100 * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-[var(--text)]">{memberStats.activityScore || 0}</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-[var(--text-light)]">PR Success Rate</span>
-                      <span className="text-sm font-medium text-[var(--text)]">
-                        {memberStats.pullRequests?.total > 0 
-                          ? `${Math.round((memberStats.pullRequests.merged / memberStats.pullRequests.total) * 100)}%`
-                          : 'N/A'
-                        }
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-[var(--text-light)]">Issue Resolution Rate</span>
-                      <span className="text-sm font-medium text-[var(--text)]">
-                        {memberStats.issues?.total > 0 
-                          ? `${Math.round((memberStats.issues.closed / memberStats.issues.total) * 100)}%`
-                          : 'N/A'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="text-center py-12">
@@ -657,181 +468,277 @@ const MemberStatsModal = () => {
                 <p className="text-[var(--text-light)]">
                   {isCurrentUser ? 'Your stats will appear here once you start contributing.' : 'Member stats are being collected.'}
                 </p>
-               
               </div>
             )}
           </div>
         </div>
       </div>
-    </>
-  );
-};
+    );
+  };
 
-  // Render member card with access control
-const renderMemberCard = (member, isCreator = false) => {
-  const memberIdStr = String(member._id);
-  const currentUserIdStr = String(currentUser._id);
-  const isCurrentUser = memberIdStr === currentUserIdStr;
-  const canViewStats = isTeamCreator() || isCurrentUser;
-  
-  // Fixed stats access logic:
-  let memberStats = null;
-  if (canViewStats) {
-    if (isTeamCreator()) {
-      // Creators can see all member stats from memberStats object
-      memberStats = teamData.memberStats?.[memberIdStr];
-    } else if (isCurrentUser) {
-      // Regular users can only see their own stats
-      // First try memberStats[currentUserId], then fallback to myStats
-      memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
+  const renderMemberCard = (member, isCreator = false) => {
+    const memberIdStr = String(member._id);
+    const currentUserIdStr = String(currentUser._id);
+    const isCurrentUser = memberIdStr === currentUserIdStr;
+    const canViewStats = isTeamCreator() || isCurrentUser;
+    
+    let memberStats = null;
+    if (canViewStats) {
+      if (isTeamCreator()) {
+        memberStats = teamData.memberStats?.[memberIdStr];
+      } else if (isCurrentUser) {
+        memberStats = teamData.memberStats?.[currentUserIdStr] || teamData.myStats;
+      }
     }
-  }
 
-  return (
-    <div 
-      key={member._id} 
-      className={`bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] transition-all duration-200 ${
-        canViewStats 
-          ? 'hover:shadow-md hover:border-[var(--primary)] cursor-pointer' 
-          : 'cursor-default opacity-75'
-      }`}
-      onClick={() => handleMemberClick(member)}
-    >
-      <div className="flex items-center space-x-3">
-        <div className={`w-12 h-12 ${
-          isCreator 
-            ? 'bg-gradient-to-br from-purple-500 to-pink-600' 
-            : 'bg-gradient-to-br from-blue-500 to-green-600'
-        } rounded-full flex items-center justify-center flex-shrink-0 relative`}>
-          <span className="text-white font-semibold text-sm">
-            {member.name ? member.name.charAt(0).toUpperCase() : (isCreator ? 'C' : 'M')}
-          </span>
-          {!canViewStats && (
-            <div className="absolute inset-0 bg-black bg-opacity-20 rounded-full flex items-center justify-center">
-              <Lock className="w-4 h-4 text-white opacity-80" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2">
-            <p className="font-medium text-[var(--text)] truncate">
-              {member.name || (isCreator ? 'Team Creator' : 'Team Member')}
-              {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-1">(You)</span>}
-            </p>
-            {canViewStats && (
-              <ExternalLink className="w-3 h-3 text-[var(--text-light)]" />
-            )}
-          </div>
-          <p className="text-sm text-[var(--text-light)] truncate">
-            {member.email || 'No email provided'}
-          </p>
-          <div className="flex items-center space-x-2 mt-2">
-            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-              isCreator
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-            }`}>
-              {isCreator ? 'Creator' : 'Member'}
+    return (
+      <div 
+        key={member._id} 
+        className={`bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] transition-all duration-200 ${
+          canViewStats 
+            ? 'hover:shadow-md hover:border-[var(--primary)] cursor-pointer' 
+            : 'cursor-default opacity-75'
+        }`}
+        onClick={() => handleMemberClick(member)}
+      >
+        <div className="flex items-center space-x-3">
+          <div className={`w-12 h-12 ${
+            isCreator 
+              ? 'bg-gradient-to-br from-purple-500 to-pink-600' 
+              : 'bg-gradient-to-br from-blue-500 to-green-600'
+          } rounded-full flex items-center justify-center flex-shrink-0 relative`}>
+            <span className="text-white font-semibold text-sm">
+              {member.name ? member.name.charAt(0).toUpperCase() : (isCreator ? 'C' : 'M')}
             </span>
-            {canViewStats && memberStats && (
-              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                Stats Available
-              </span>
-            )}
             {!canViewStats && (
-              <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex items-center">
-                <Lock className="w-3 h-3 mr-1" />
-                Restricted
-              </span>
+              <div className="absolute inset-0 bg-black bg-opacity-20 rounded-full flex items-center justify-center">
+                <Lock className="w-4 h-4 text-white opacity-80" />
+              </div>
             )}
           </div>
-          
-          {canViewStats && memberStats ? (
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="bg-[var(--bg-container)] rounded p-2">
-                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
-                <div className="text-xs text-[var(--text-light)]">Commits</div>
-              </div>
-              <div className="bg-[var(--bg-container)] rounded p-2">
-                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
-                <div className="text-xs text-[var(--text-light)]">PRs</div>
-              </div>
-              <div className="bg-[var(--bg-container)] rounded p-2">
-                <div className="text-sm font-semibold text-[var(--text)]">{memberStats.activityScore || 0}</div>
-                <div className="text-xs text-[var(--text-light)]">Score</div>
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2">
+              <p className="font-medium text-[var(--text)] truncate">
+                {member.name || (isCreator ? 'Team Creator' : 'Team Member')}
+                {isCurrentUser && <span className="text-sm text-[var(--text-light)] ml-1">(You)</span>}
+              </p>
+              {canViewStats && (
+                <ExternalLink className="w-3 h-3 text-[var(--text-light)]" />
+              )}
             </div>
-          ) : canViewStats && !memberStats ? (
-            <div className="mt-3 text-center">
-              <div className="bg-[var(--bg-container)] rounded p-2">
-                <div className="text-xs text-[var(--text-light)]">Click to view stats</div>
-              </div>
+            <p className="text-sm text-[var(--text-light)] truncate">
+              {member.email || 'No email provided'}
+            </p>
+            <div className="flex items-center space-x-2 mt-2">
+              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                isCreator
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+              }`}>
+                {isCreator ? 'Creator' : 'Member'}
+              </span>
+              {canViewStats && memberStats && (
+                <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                  Stats Available
+                </span>
+              )}
+              {!canViewStats && (
+                <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex items-center">
+                  <Lock className="w-3 h-3 mr-1" />
+                  Restricted
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="mt-3 text-center">
-              <div className="bg-[var(--bg-container)] rounded p-2 flex items-center justify-center space-x-2">
-                <Lock className="w-4 h-4 text-red-500" />
-                <div className="text-xs text-red-600 dark:text-red-400">Access Restricted</div>
+            
+            {canViewStats && memberStats && (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="bg-[var(--bg-container)] rounded p-2">
+                  <div className="text-sm font-semibold text-[var(--text)]">{memberStats.commits?.total || 0}</div>
+                  <div className="text-xs text-[var(--text-light)]">Commits</div>
+                </div>
+                <div className="bg-[var(--bg-container)] rounded p-2">
+                  <div className="text-sm font-semibold text-[var(--text)]">{memberStats.pullRequests?.total || 0}</div>
+                  <div className="text-xs text-[var(--text-light)]">PRs</div>
+                </div>
+                <div className="bg-[var(--bg-container)] rounded p-2">
+                  <div className="text-sm font-semibold text-[var(--text)]">{memberStats.activityScore || 0}</div>
+                  <div className="text-xs text-[var(--text-light)]">Score</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
-  if (loading) {
+    );
+  };
+
+  // Loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
-          <span className="ml-3 text-[var(--text)]">Loading metrics...</span>
+        <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] py-4">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <h1 className="text-2xl font-bold text-[var(--text)]">DevX360</h1>
+                <div className="h-6 w-px bg-[var(--border)]"></div>
+                <h2 className="text-lg font-medium text-[var(--text-light)]">DORA Metrics Dashboard</h2>
+              </div>
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
+            </div>
+          </div>
+        </header>
+        
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader className="w-12 h-12 animate-spin text-[var(--primary)] mx-auto mb-4" />
+            <p className="text-lg font-medium text-[var(--text)]">Loading metrics...</p>
+            <p className="text-sm text-[var(--text-light)] mt-2">Please wait while we fetch the data</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !teamData) {
+  // No team state
+  if (!currentUser?.teams || currentUser.teams.length === 0 || !teamData) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <div className="text-xl font-semibold text-[var(--text)] mb-2">Error Loading Data</div>
-          <div className="text-[var(--text-light)]">{error || 'No team data available'}</div>
+      <div className="min-h-screen bg-[var(--bg)]">
+        <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] py-4">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <h1 className="text-2xl font-bold text-[var(--text)]">DevX360</h1>
+                <div className="h-6 w-px bg-[var(--border)]"></div>
+                <h2 className="text-lg font-medium text-[var(--text-light)]">DORA Metrics Dashboard</h2>
+              </div>
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
+            </div>
+          </div>
+        </header>
+        
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-[var(--bg-container)] rounded-xl shadow-lg border border-[var(--border)] overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-8 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-[var(--text)] mb-2">No Team Assigned</h2>
+                <p className="text-[var(--text-light)] mb-6">
+                  You're not currently part of any team. Join or create a team to start tracking metrics.
+                </p>
+              </div>
+              
+              <div className="p-8">
+                <div className="space-y-4">
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">1</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[var(--text)] mb-1">Create a New Team</h3>
+                        <p className="text-sm text-[var(--text-light)]">
+                          Start fresh by creating your own team and inviting members to collaborate.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-green-600 dark:text-green-400 font-bold text-sm">2</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[var(--text)] mb-1">Join an Existing Team</h3>
+                        <p className="text-sm text-[var(--text-light)]">
+                          Ask your team creator for an invitation to join their team.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-purple-600 dark:text-purple-400 font-bold text-sm">3</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[var(--text)] mb-1">Start Tracking Metrics</h3>
+                        <p className="text-sm text-[var(--text-light)]">
+                          Once you're part of a team, you'll see DORA metrics, AI insights, and performance data.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 text-center">
+              <p className="text-sm text-[var(--text-light)]">
+                Need help? Contact your administrator or check the documentation.
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)]">
+        <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] py-4">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <h1 className="text-2xl font-bold text-[var(--text)]">DevX360</h1>
+                <div className="h-6 w-px bg-[var(--border)]"></div>
+                <h2 className="text-lg font-medium text-[var(--text-light)]">DORA Metrics Dashboard</h2>
+              </div>
+              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
+            </div>
+          </div>
+        </header>
+        
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-[var(--text)] mb-2">Error Loading Data</h3>
+            <p className="text-[var(--text-light)] mb-4">{error}</p>
+            <button
+              onClick={() => fetchTeamMetrics()}
+              className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const currentSelectedTeam = currentUser?.teams.find(team => team.id === selectedTeamId);
+  // Get metrics for current time range
+  const {
+    dataSummary, 
+    repositoryInfo,
+    deploymentFreq,
+    leadTime,
+    changeFailureRate,
+    mttr
+  } = getMetricsForTimeRange();
 
-  //  <option value="7">Last 7 days</option>
-  //                 <option value="30">Last 30 days</option>
-  //                 <option value="90">Last 90 days</option>
-
-  //if these options are in play then we need to adjust the data fetching logic to support these ranges
-
-  //if timeRange is 7 then const doraMetrics = teamData.doraMetrics.7d || {};
-
-  //else if timeRange is 30 then const doraMetrics = teamData.doraMetrics.30d || {};
-
-  //else if timeRange is 90 then const doraMetrics = teamData.doraMetrics.90d || {};
-
-  
-
-  // Safe data access with fallbacks for missing DORA metrics
-const {
-  doraMetrics,
-  dataSummary, 
-  repositoryInfo,
-  deploymentFreq,
-  leadTime,
-  changeFailureRate,
-  mttr
-} = getMetricsForTimeRange();
-  
-
-  // Prepare chart data with safe fallbacks
+  // Prepare chart data
   const activityData = [
     { name: 'Commits', value: dataSummary.commits_count || 0, color: '#3B82F6' },
     { name: 'PRs', value: repositoryInfo.open_pull_requests || 0, color: '#10B981' },
@@ -839,27 +746,26 @@ const {
     { name: 'Releases', value: dataSummary.releases_count || 0, color: '#EF4444' }
   ];
 
-const deploymentTrendData = getDeploymentTrendData();
+  const deploymentTrendData = getDeploymentTrendData();
 
+  const contributorData = (repositoryInfo.contributors || [])
+    .slice(0, 5)
+    .map((contributor, index) => {
+      const topContributor = repositoryInfo.contributors?.[0];
+      const topContributions = topContributor?.contributions || 1;
+      
+      return {
+        rank: index + 1,
+        name: contributor.username || 'Unknown',
+        contributions: contributor.contributions || 0,
+        avatar: contributor.avatar_url || '/default-avatar.png',
+        profile: contributor.profile_url || '#',
+        percentage: index === 0 ? 100 : 
+          (contributor.contributions ? (contributor.contributions / topContributions) * 100 : 0)
+      };
+    });
 
- const contributorData = (repositoryInfo.contributors || [])
-  .slice(0, 5)
-  .map((contributor, index) => {
-    const topContributor = repositoryInfo.contributors?.[0];
-    const topContributions = topContributor?.contributions || 1; // Avoid division by zero
-    
-    return {
-      rank: index + 1,
-      name: contributor.username || 'Unknown',
-      contributions: contributor.contributions || 0,
-      avatar: contributor.avatar_url || defaultAvatar,
-      profile: contributor.profile_url || '#',
-      percentage: index === 0 ? 100 : 
-        (contributor.contributions ? (contributor.contributions / topContributions) * 100 : 0)
-    };
-  });
-
-  // Get metric statuses with safe fallbacks
+  // Get metric statuses
   const deploymentStatus = getDeploymentStatus(parseFloat(deploymentFreq.frequency_per_day) || 0);
   const leadTimeStatus = getLeadTimeStatus(leadTime.average_days || 0);
   const cfrStatus = getCFRStatus(changeFailureRate.failure_rate || 0);
@@ -899,20 +805,17 @@ const deploymentTrendData = getDeploymentTrendData();
               
               {/* Time Range */}
               <div className="relative">
-               <select
-  value={timeRange}
-  onChange={handleTimeRangeChange}
-  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
->
-  
-  <option value="7">Last 7 days</option>
-  <option value="30">Last 30 days</option>
-  <option value="90">Last 90 days</option>
-</select>
+                <select
+                  value={timeRange}
+                  onChange={handleTimeRangeChange}
+                  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
+                >
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
               </div>
-              
-              
             </div>
             
             <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
@@ -935,7 +838,7 @@ const deploymentTrendData = getDeploymentTrendData();
           </div>
         </section>
 
-        {/* Metrics Overview - Full Width Grid */}
+        {/* Metrics Overview */}
         <section className="mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Deployment Frequency */}
@@ -1039,10 +942,11 @@ const deploymentTrendData = getDeploymentTrendData();
             </div>
           </div>
         </section>
-     {/* Repository Overview and Activity Summary - Equal Height */}
+
+        {/* Repository Overview and Activity Summary */}
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[400px]">
-           {/* Repository Overview */}
+            {/* Repository Overview */}
             <div className="lg:col-span-2">
               <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-full flex flex-col">
                 <div className="p-6 border-b border-[var(--border)]">
@@ -1108,12 +1012,6 @@ const deploymentTrendData = getDeploymentTrendData();
                           <span className="text-xs text-[var(--text-light)]">Default Branch</span>
                           <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.default_branch || 'N/A'}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-[var(--text-light)]">Repository Size</span>
-                          <span className="text-xs font-medium text-[var(--text)]">
-                            {repositoryInfo.size ? `${(repositoryInfo.size / 1024).toFixed(1)} MB` : 'N/A'}
-                          </span>
-                        </div>
                       </div>
                     </div>
                     <div className="space-y-3">
@@ -1131,58 +1029,12 @@ const deploymentTrendData = getDeploymentTrendData();
                           <span className="text-xs text-[var(--text-light)]">Contributors</span>
                           <span className="text-xs font-medium text-[var(--text)]">{repositoryInfo.total_contributors || 0}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-[var(--text-light)]">Last Updated</span>
-                          <span className="text-xs font-medium text-[var(--text)]">
-                            {repositoryInfo.updated_at ? new Date(repositoryInfo.updated_at).toLocaleDateString() : 'N/A'}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Language Breakdown */}
-                  {repositoryInfo.language_breakdown && repositoryInfo.language_breakdown.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-medium text-[var(--text)] text-xs uppercase tracking-wide mb-2">Language Breakdown</h4>
-                      <div className="space-y-2">
-                        {repositoryInfo.language_breakdown.slice(0, 4).map((lang, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-2 h-2 rounded-full ${
-                                lang.language === 'JavaScript' ? 'bg-yellow-400' :
-                                lang.language === 'TypeScript' ? 'bg-blue-500' :
-                                lang.language === 'Python' ? 'bg-green-500' :
-                                lang.language === 'Java' ? 'bg-red-500' :
-                                lang.language === 'C++' ? 'bg-blue-600' :
-                                lang.language === 'C#' ? 'bg-purple-500' :
-                                lang.language === 'HTML' ? 'bg-orange-500' :
-                                lang.language === 'CSS' ? 'bg-blue-400' :
-                                lang.language === 'Makefile' ? 'bg-gray-500' :
-                                lang.language === 'CMake' ? 'bg-gray-600' :
-                                'bg-gray-400'
-                              }`}></div>
-                              <span className="text-xs font-medium text-[var(--text)]">{lang.language}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-300"
-                                  style={{ width: lang.percentage }}
-                                ></div>
-                              </div>
-                              <span className="text-xs text-[var(--text-light)] min-w-[35px] text-right">
-                                {lang.percentage}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Repository Metrics Cards */}
-                  <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-[var(--bg)] rounded-lg p-3 text-center">
                       <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                         {repositoryInfo.stars?.toLocaleString() || '0'}
@@ -1200,27 +1052,6 @@ const deploymentTrendData = getDeploymentTrendData();
                         {repositoryInfo.watchers?.toLocaleString() || '0'}
                       </div>
                       <div className="text-xs text-[var(--text-light)] mt-1">Watchers</div>
-                    </div>
-                  </div>
-
-                  {/* Repository Status */}
-                  <div className="pt-3 border-t border-[var(--border)]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          repositoryInfo.is_archived ? 'bg-red-400' :
-                          repositoryInfo.is_disabled ? 'bg-gray-400' :
-                          'bg-green-400'
-                        }`}></div>
-                        <span className="text-xs text-[var(--text-light)]">
-                          {repositoryInfo.is_archived ? 'Archived' :
-                           repositoryInfo.is_disabled ? 'Disabled' :
-                           'Active'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[var(--text-light)]">
-                        Created: {repositoryInfo.created_at ? new Date(repositoryInfo.created_at).toLocaleDateString() : 'N/A'}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1254,26 +1085,12 @@ const deploymentTrendData = getDeploymentTrendData();
                           contentStyle={{
                             backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
                             borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+                            borderRadius: '8px'
                           }}
                         />
-                        <Bar dataKey="value">
-                          {activityData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
+                        <Bar dataKey="value" fill="#3B82F6" />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    {activityData.map((item, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                        <span className="text-xs text-[var(--text-light)]">{item.name}: {item.value}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -1281,77 +1098,67 @@ const deploymentTrendData = getDeploymentTrendData();
           </div>
         </section>
 
-        {/* Charts Row - Full Width */}
+        {/* Charts Row */}
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Deployment Trends */}
-          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
-  <div className="p-6 border-b border-[var(--border)]">
-    <div className="flex items-center justify-between">
-      <h3 className="text-lg font-semibold text-[var(--text)]">Deployment Trends</h3>
-      <span className="text-xs text-[var(--text-light)] px-2 py-1 bg-[var(--bg)] rounded">
-        {timeRange === '7' ? 'Daily View' : 
-         timeRange === '30' ? '4 Weeks View' : 
-         '12+ Weeks View'}
-      </span>
-    </div>
-  </div>
-  <div className="flex-1 p-6">
-    {deploymentTrendData && deploymentTrendData.length > 0 ? (
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={deploymentTrendData}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} 
-          />
-          <XAxis 
-            dataKey="date" 
-            stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
-            fontSize={12}
-            angle={timeRange === '90' ? -45 : 0}
-            textAnchor={timeRange === '90' ? 'end' : 'middle'}
-            height={timeRange === '90' ? 60 : 30}
-          />
-          <YAxis 
-            stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
-            fontSize={12} 
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
-              borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
-            }}
-            formatter={(value, name) => [
-              `${value} deployments`,
-              timeRange === '7' ? 'Daily' : 'Weekly'
-            ]}
-          />
-          <Line
-            type="monotone"
-            dataKey="deployments"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    ) : (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-[var(--text-light)]">No deployment data available</p>
-          <p className="text-xs text-[var(--text-light)] mt-1">
-            Data range: {timeRange} days
-          </p>
-        </div>
-      </div>
-    )}
-  </div>
-</div>
+            <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
+              <div className="p-6 border-b border-[var(--border)]">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-[var(--text)]">Deployment Trends</h3>
+                  <span className="text-xs text-[var(--text-light)] px-2 py-1 bg-[var(--bg)] rounded">
+                    {timeRange === '7' ? 'Daily View' : 
+                     timeRange === '30' ? '4 Weeks View' : 
+                     '12+ Weeks View'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex-1 p-6">
+                {deploymentTrendData && deploymentTrendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={deploymentTrendData}>
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#f0f0f0'} 
+                      />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
+                        fontSize={12}
+                        angle={timeRange === '90' ? -45 : 0}
+                        textAnchor={timeRange === '90' ? 'end' : 'middle'}
+                      />
+                      <YAxis 
+                        stroke={document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'} 
+                        fontSize={12} 
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : 'white',
+                          borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="deployments"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-[var(--text-light)]">No deployment data available</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Top Contributors */}
             <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] h-[400px] flex flex-col">
@@ -1369,7 +1176,7 @@ const deploymentTrendData = getDeploymentTrendData();
                           alt={contributor.name}
                           className="w-10 h-10 rounded-full"
                           onError={(e) => {
-                            e.target.src = defaultAvatar;
+                            e.target.src = '/default-avatar.png';
                           }}
                         />
                         <div>
@@ -1405,99 +1212,58 @@ const deploymentTrendData = getDeploymentTrendData();
           </div>
         </section>
 
-        {/* Team Members Section - Updated JSX */}
-<section className="mb-8">
-  <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)]">
-    <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
-        {isTeamCreator() && (
-          <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-            Creator Access
-          </span>
-        )}
-        {!isTeamCreator() && (
-          <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300">
-            <Users className="w-3 h-3 inline mr-1" />
-            Member View
-          </span>
-        )}
-      </div>
-      {isTeamCreator() && (
-        <button className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
-          Manage Team
-        </button>
-      )}
-    </div>
-    <div className="p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Team Creator - Always show */}
-        {teamData.creator && renderMemberCard(teamData.creator, true)}
-
-        {/* All Team Members - Show all, but limit interaction based on permissions */}
-        {teamData.members && teamData.members.length > 0 ? (
-          teamData.members.map((member) => renderMemberCard(member, false))
-        ) : (
-          // Show placeholder only if you're the creator and there are no members
-          isTeamCreator() && (
-            <div className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
+        {/* Team Members Section */}
+        <section className="mb-8">
+          <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)]">
+            <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Users className="w-6 h-6 text-gray-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[var(--text-light)]">No Members Yet</p>
-                  <p className="text-sm text-[var(--text-light)]">Invite team members</p>
-                </div>
+                <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
+                {isTeamCreator() && (
+                  <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    Creator Access
+                  </span>
+                )}
               </div>
             </div>
-          )
-        )}
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {/* Team Creator */}
+                {teamData.creator && renderMemberCard(teamData.creator, true)}
 
-        {/* Add Member Placeholders - only show for creators */}
-        {isTeamCreator() && Array.from({ length: Math.max(1, 3 - (teamData.members?.length || 0)) }).map((_, index) => (
-          <div key={`placeholder-${index}`} className="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] border-dashed opacity-50">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                <Users className="w-6 h-6 text-gray-400" />
+                {/* Team Members */}
+                {teamData.members && teamData.members.length > 0 && (
+                  teamData.members.map((member) => renderMemberCard(member, false))
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-[var(--text-light)]">Add Member</p>
-                <p className="text-sm text-[var(--text-light)]">Invite team member</p>
+              
+              {/* Team Stats Summary */}
+              <div className="mt-6 pt-6 border-t border-[var(--border)]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                  <div className="bg-[var(--bg)] rounded-lg p-4">
+                    <div className="text-2xl font-bold text-[var(--text)]">
+                      {(teamData.members?.length || 0) + (teamData.creator ? 1 : 0)}
+                    </div>
+                    <div className="text-sm text-[var(--text-light)]">Total Members</div>
+                  </div>
+                  <div className="bg-[var(--bg)] rounded-lg p-4">
+                    <div className="text-2xl font-bold text-[var(--text)]">
+                      {teamData.creator ? 1 : 0}
+                    </div>
+                    <div className="text-sm text-[var(--text-light)]">Creator</div>
+                  </div>
+                  <div className="bg-[var(--bg)] rounded-lg p-4">
+                    <div className="text-2xl font-bold text-[var(--text)]">
+                      {teamData.members?.length || 0}
+                    </div>
+                    <div className="text-sm text-[var(--text-light)]">Active Members</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Team Stats Summary */}
-      <div className="mt-6 pt-6 border-t border-[var(--border)]">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-          <div className="bg-[var(--bg)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-[var(--text)]">
-              {(teamData.members?.length || 0) + (teamData.creator ? 1 : 0)}
-            </div>
-            <div className="text-sm text-[var(--text-light)]">Total Members</div>
-          </div>
-          <div className="bg-[var(--bg)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-[var(--text)]">
-              {teamData.creator ? 1 : 0}
-            </div>
-            <div className="text-sm text-[var(--text-light)]">Creator</div>
-          </div>
-          <div className="bg-[var(--bg)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-[var(--text)]">
-              {teamData.members?.length || 0}
-            </div>
-            <div className="text-sm text-[var(--text-light)]">Active Members</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
         
-        {/* AI Analysis - Full Width */}
+        {/* AI Analysis */}
         <section className="pb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-[var(--text)]">AI Performance Analysis</h2>
@@ -1539,15 +1305,15 @@ const deploymentTrendData = getDeploymentTrendData();
 
           {aiLoading ? (
             <div className="flex items-center justify-center py-12 bg-[var(--bg-container)] rounded-xl border border-[var(--border)]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
-              <span className="ml-3 text-[var(--text)]">Loading AI analysis...</span>
+              <Loader className="w-8 h-8 animate-spin text-[var(--primary)] mr-3" />
+              <span className="text-[var(--text)]">Loading AI analysis...</span>
             </div>
           ) : aiFeedback && Object.keys(parsedFeedback).length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderAiInsight('DEPLOYMENT FREQUENCY', parsedFeedback['DEPLOYMENT FREQUENCY'] || parsedFeedback['Deployment Frequency'], 'deployment')}
-{renderAiInsight('LEAD TIME FOR CHANGES', parsedFeedback['LEAD TIME FOR CHANGES']  || parsedFeedback['Lead Time for Changes'], 'leadtime')}
-{renderAiInsight('CHANGE FAILURE RATE (CFR)', parsedFeedback['CHANGE FAILURE RATE (CFR)'] || parsedFeedback['Change Failure Rate (CFR)'] || parsedFeedback['CHANGE FAILURE RATE'] || parsedFeedback['Change Failure Rate'], 'cfr')}
-{renderAiInsight('MEAN TIME TO RECOVERY (MTTR)', parsedFeedback['MEAN TIME TO RECOVERY (MTTR)'] || parsedFeedback['MEAN TIME TO RECOVERY'] || parsedFeedback['Mean Time to Recovery (MTTR)'] || parsedFeedback['Mean Time to Recovery'], 'mttr')}
+              {renderAiInsight('DEPLOYMENT FREQUENCY', parsedFeedback['DEPLOYMENT FREQUENCY'] || parsedFeedback['Deployment Frequency'], 'deployment')}
+              {renderAiInsight('LEAD TIME FOR CHANGES', parsedFeedback['LEAD TIME FOR CHANGES'] || parsedFeedback['Lead Time for Changes'], 'leadtime')}
+              {renderAiInsight('CHANGE FAILURE RATE (CFR)', parsedFeedback['CHANGE FAILURE RATE (CFR)'] || parsedFeedback['Change Failure Rate (CFR)'] || parsedFeedback['CHANGE FAILURE RATE'] || parsedFeedback['Change Failure Rate'], 'cfr')}
+              {renderAiInsight('MEAN TIME TO RECOVERY (MTTR)', parsedFeedback['MEAN TIME TO RECOVERY (MTTR)'] || parsedFeedback['MEAN TIME TO RECOVERY'] || parsedFeedback['Mean Time to Recovery (MTTR)'] || parsedFeedback['Mean Time to Recovery'], 'mttr')}
             </div>
           ) : aiStatus === 'not_started' ? (
             <div className="text-center py-12 bg-[var(--bg-container)] rounded-xl border border-[var(--border)]">

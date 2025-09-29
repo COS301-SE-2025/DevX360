@@ -1,23 +1,55 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 function Sidebar() {
   const [isMinimized, setIsMinimized] = useState(false);
   const { logout, currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isAdmin = currentUser?.role === 'admin';
 
- 
-const handleLogout = async () => {
-  await logout();
-  // Force navigation to login and reload
-  window.location.href = '/login';
-};
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/login';
+  };
 
   const toggleSidebar = () => {
     setIsMinimized(!isMinimized);
+  };
+
+  // Function to handle navigation with reload
+  const handleNavigation = (path) => {
+    if (location.pathname === path) {
+      // If we're already on the page, reload it
+      window.location.reload();
+    } else {
+      // Otherwise, navigate normally
+      navigate(path);
+    }
+  };
+
+  // Custom NavLink component that handles reload
+  const ReloadNavLink = ({ to, title, children }) => {
+    const isActive = location.pathname === to;
+    
+    return (
+      <button
+        onClick={() => handleNavigation(to)}
+        className={`nav-item ${isActive ? 'active' : ''}`}
+        title={isMinimized ? title : ''}
+        style={{
+          background: 'none',
+          border: 'none',
+          width: '100%',
+          textAlign: 'left',
+          cursor: 'pointer'
+        }}
+      >
+        {children}
+      </button>
+    );
   };
 
   return (
@@ -47,35 +79,23 @@ const handleLogout = async () => {
 
       {/* Navigation */}
       <nav className="main-nav">
-        <NavLink 
-          to="/dashboard/overview" 
-          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          title={isMinimized ? 'Overview' : ''}
-        >
+        <ReloadNavLink to="/dashboard/overview" title="Overview">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           {!isMinimized && <span>Overview</span>}
-        </NavLink>
+        </ReloadNavLink>
 
-        <NavLink 
-          to="/dashboard/profile" 
-          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          title={isMinimized ? 'Profile' : ''}
-        >
+        <ReloadNavLink to="/dashboard/profile" title="Profile">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
           {!isMinimized && <span>Profile</span>}
-        </NavLink>
+        </ReloadNavLink>
 
-        <NavLink
-          to="/dashboard/team"
-          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          title={isMinimized ? 'Team' : ''}
-        >
+        <ReloadNavLink to="/dashboard/team" title="Team">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
@@ -83,14 +103,10 @@ const handleLogout = async () => {
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
           {!isMinimized && <span>Team</span>}
-        </NavLink>
+        </ReloadNavLink>
 
         {isAdmin && (
-          <NavLink
-              to="/dashboard/admin"
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              title={isMinimized ? 'Admin' : ''}
-          >
+          <ReloadNavLink to="/dashboard/admin" title="Admin">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                  className="lucide lucide-building2-icon lucide-building-2">
@@ -103,14 +119,10 @@ const handleLogout = async () => {
               <path d="M10 18h4"/>
             </svg>
             {!isMinimized && <span>Admin</span>}
-          </NavLink>
+          </ReloadNavLink>
         )}
 
-        <NavLink
-            to="/dashboard/metrics"
-            className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}
-            title={isMinimized ? 'Dashboard' : ''}
-        >
+        <ReloadNavLink to="/dashboard/metrics" title="Dashboard">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -118,8 +130,9 @@ const handleLogout = async () => {
             <line x1="6" y1="20" x2="6" y2="14"></line>
           </svg>
           {!isMinimized && <span>Dashboard</span>}
-        </NavLink>
+        </ReloadNavLink>
       </nav>
+
 
       {/* Floating Help Button - positioned outside sidebar */}
       <button 
