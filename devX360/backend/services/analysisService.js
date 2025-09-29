@@ -1,6 +1,6 @@
 import { performDORAAnalysis } from "./codeInterpretor.js";
 import RepoMetrics from "../api/models/RepoMetrics.js";
-import { parseGitHubUrl } from "../Data Collection/repository-info-service.js";
+import { parseGitHubUrl } from "../Data-Collection/repository-info-service.js";
 
 export async function runAIAnalysis(teamId) {
     let metricsEntry;
@@ -18,9 +18,7 @@ export async function runAIAnalysis(teamId) {
     const repoUrl = metricsEntry.repositoryInfo.url;
     const { owner, repo } = parseGitHubUrl(repoUrl);
     
-    console.log(`Starting AI analysis for ${owner}/${repo}...`);
-    const { insights, repositoryAnalysis, performance } = 
-      await performDORAAnalysis(owner, repo, metrics);
+    const { insights, repositoryAnalysis, performance } = await performDORAAnalysis(owner, repo, metrics);
 
     metricsEntry.aiAnalysis = {
       insights,
@@ -43,7 +41,18 @@ export async function runAIAnalysis(teamId) {
     console.log(`AI analysis completed for ${owner}/${repo}`);
   } catch (error) {
     console.error(`Analysis failed for team ${teamId}:`, error);
-    metricsEntry.analysisStatus = 'failed';
-    await metricsEntry.save();
+    if (metricsEntry) {
+      metricsEntry.analysisStatus = 'failed';
+      metricsEntry.aiAnalysis = metricsEntry.aiAnalysis || {};
+
+      metricsEntry.aiAnalysis.error = {
+        message: error.message || "Unknown error",
+        stack: error.stack || null,
+        name: error.name || "Error"
+      };
+      metricsEntry.aiAnalysis.lastFailed = new Date();
+
+      await metricsEntry.save();
+    }
   }
 }

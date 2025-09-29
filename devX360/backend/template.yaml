@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: DevX360 API (serverless, free-tier conscious)
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 512
+    Tracing: Active
+
+Resources:
+  ApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref StageName
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.handler
+      CodeUri: .
+      Events:
+        RootPath:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          # Database
+          DB_URL: "{{resolve:ssm:/devx360/api/DB_URL}}"
+          MONGODB_URI: "{{resolve:ssm:/devx360/api/MONGODB_URI}}"
+
+          # Authentication & tokens (plain SSM parameters)
+          JWT_SECRET: "{{resolve:ssm:/devx360/api/JWT_SECRET}}"
+          MCP_API_TOKEN: "{{resolve:ssm:/devx360/api/MCP_API_TOKEN}}"
+          GITHUB_CLIENT_ID: "{{resolve:ssm:/devx360/api/GITHUB_CLIENT_ID}}"
+          GITHUB_CLIENT_SECRET: "{{resolve:ssm:/devx360/api/GITHUB_CLIENT_SECRET}}"
+          GITHUB_TOKEN_1: "{{resolve:ssm:/devx360/api/GITHUB_TOKEN_1}}"
+          GITHUB_TOKEN_2: "{{resolve:ssm:/devx360/api/GITHUB_TOKEN_2}}"
+          OPENAI_API_KEY: "{{resolve:ssm:/devx360/api/OPENAI_API_KEY}}"
+
+          # App
+          NODE_ENV: "production"
+          FRONTEND_URL: "{{resolve:ssm:/devx360/api/FRONTEND_URL}}"
+          MOCK_MODE: "{{resolve:ssm:/devx360/api/MOCK_MODE}}"
+          
+          # Point to analysis Lambda
+          ANALYSIS_LAMBDA: !Ref AnalysisFunction
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AnalysisFunction
+
+  AnalysisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: analysisRunner.handler   # <-- new worker file
+      CodeUri: .
+      MemorySize: 2048                  # more memory for heavy AI analysis
+      Timeout: 900                      # max 15 minutes
+      Environment:
+        Variables:
+          MONGODB_URI: "{{resolve:ssm:/devx360/api/MONGODB_URI}}"
+          OPENAI_API_KEY: "{{resolve:ssm:/devx360/api/OPENAI_API_KEY}}"
+          MOCK_MODE: "{{resolve:ssm:/devx360/api/MOCK_MODE}}"
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"

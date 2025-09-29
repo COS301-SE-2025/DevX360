@@ -2,7 +2,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
 //===========================================================updates your profile pic Function======================================
 //Sends a POST request to the api to change your profile photo
-export async function updateAvatar(file, currentUser) {
+export async function updateAvatar(file) {
   try {
     // Create FormData to send the file
     const formData = new FormData();
@@ -21,7 +21,6 @@ export async function updateAvatar(file, currentUser) {
 
     return await response.json(); 
   } catch (error) {
-    console.error('Avatar upload error:', error);
     throw error;
   }
 }
@@ -39,14 +38,32 @@ export async function updateProfile(profileData) {
       body: JSON.stringify(profileData),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to update profile');
+    if (response.status === 204) {
+      return { message: "Profile updated successfully" };
     }
 
-    return await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data;
+
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // Normalize text responses to objects
+      const textData = await response.text();
+      data = { message: textData };
+    }
+
+    if (!response.ok) {
+      const message = data?.message || data?.error || 'Failed to update profile';
+      const err = new Error(message);
+      err.status = response.status;
+      err.details = data;
+      throw err;
+    }
+
+    return typeof data === 'object' ? data : { message: data };
+
   } catch (error) {
-    console.error('Profile update error:', error);
     throw error;
   }
 }
@@ -73,7 +90,6 @@ export async function getMyTeams() {
 
     return data.user.teams;
   } catch (error) {
-    console.error('Error fetching teams:', error);
-    return [];
+    throw error;
   }
 }

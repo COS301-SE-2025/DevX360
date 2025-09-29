@@ -34,4 +34,4 @@ If Copilot doesn't respond with DevX360 data:
 1. Check that the MCP server is running
 2. Verify VS Code settings are correct
 3. Restart VS Code
-4. Check the VS Code output panel for MCP errors 
+4. Check the VS Code output panel for MCP errors

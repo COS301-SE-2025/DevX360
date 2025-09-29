@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "routeKey": "GET /api/health",
+  "rawPath": "/api/health",
+  "rawQueryString": "",
+  "headers": {},
+  "requestContext": {
+    "http": {
+      "method": "GET",
+      "path": "/api/health"
+    }
+  },
+  "body": null
+}

@@ -1,0 +1,12 @@
+{
+	"scale": 0,
+	"locale": "en-US",
+	"userThemeMode": "system",
+	"mcpServers": {
+		"test-server": {
+			"command": "/opt/homebrew/bin/node",
+			"args": ["/Users/sbudx/Documents/GitHub/DevX360/ultra-simple-mcp.js"],
+			"env": {}
+		}
+	}
+}

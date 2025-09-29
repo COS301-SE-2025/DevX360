@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
+    index: true,
     lowercase: true,
     match: [
       /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
@@ -28,8 +29,19 @@ const userSchema = new mongoose.Schema({
   inviteCode: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   lastLogin: { type: Date, default: null },
-  avatar: { type: String, default: null },
+  avatar: {
+    data: Buffer,
+    contentType: String,
+    updatedAt: Date,
+  },
 });
+
+userSchema.index({ email: 1 }, { unique: true });
+// userSchema.index({ email: 1, password: 1 }); // For login queries
+userSchema.index({ lastLogin: -1 }); // For sorting
+userSchema.index({ githubId: 1 });
+userSchema.index({ githubUsername: 1 });
+userSchema.index({ inviteCode: 1 });
 
 // tested
 userSchema.methods.comparePassword = async function (candidatePassword) {

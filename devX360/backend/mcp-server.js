@@ -1,12 +1,51 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-// Import existing services (NO CHANGES NEEDED)
-import { getDORAMetrics } from './Data Collection/universal-dora-service.js';
-import { getRepositoryInfo } from './Data Collection/repository-info-service.js';
-import { analyzeRepository } from './services/metricsService.js';
-import { runAIAnalysis } from './services/analysisService.js';
+// NOTE: Per mentor guidance, avoid calling backend modules directly from MCP.
+// Prefer calling the deployed API via API_BASE_URL. Fallbacks remain only for
+// local development if the API endpoints are not yet available.
+
+// Hardcoded values for demo - Claude Desktop environment variables not working
+const API_BASE_URL = 'https://qii20qjkfi.execute-api.us-east-1.amazonaws.com/dev';
+const MCP_API_TOKEN = '9bfed4676972d92a486f5a71f2c7dcfc1cae556dea29df18ff324b4b7ac1704e';
+
+// Debug logging
+console.error('MCP Server starting...');
+console.error('API_BASE_URL:', API_BASE_URL);
+console.error('MCP_API_TOKEN:', MCP_API_TOKEN ? 'SET' : 'NOT SET');
+
+function buildApiUrl(path, params = {}) {
+  if (!API_BASE_URL) return '';
+  // Ensure the path starts with /dev for API Gateway stage
+  const fullPath = path.startsWith('/dev') ? path : `/dev${path}`;
+  const url = new URL(fullPath, API_BASE_URL);
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+  }
+  return url.toString();
+}
+
+async function getJson(path, params) {
+  const url = buildApiUrl(path, params);
+  console.error('Making API call to:', url);
+  if (!url) throw new Error('API_BASE_URL is not set for MCP server');
+  const res = await fetch(url, {
+    credentials: 'omit',
+    headers: {
+      'x-mcp-token': MCP_API_TOKEN,
+    }
+  });
+  console.error('API response status:', res.status, res.statusText);
+  if (!res.ok) {
+    let body;
+    try { body = await res.json(); } catch {}
+    const msg = body?.message ? `: ${body.message}` : '';
+    throw new Error(`API ${res.status} ${res.statusText}${msg}`);
+  }
+  return res.json();
+}
+
 
 class DevX360MCPServer {
   constructor() {
@@ -26,6 +65,70 @@ class DevX360MCPServer {
   }
 
   setupToolHandlers() {
+    // Handle tools/list request
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: "analyze_dora_metrics",
+            description: "Get comprehensive DORA metrics (Deployment Frequency, Lead Time, MTTR, Change Failure Rate) for any GitHub repository with trend analysis and insights",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL (e.g., https://github.com/owner/repo)"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "get_repository_insights",
+            description: "Get comprehensive repository information including contributors, languages, statistics, and activity metrics",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "analyze_repository",
+            description: "Perform deep analysis of a repository including code structure, DORA indicators, and development patterns",
+            inputSchema: {
+              type: "object",
+              properties: {
+                repositoryUrl: {
+                  type: "string",
+                  description: "GitHub repository URL"
+                }
+              },
+              required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "get_ai_analysis",
+            description: "Get AI-generated analysis and insights for a team's repository with recommendations",
+            inputSchema: {
+              type: "object",
+              properties: {
+                teamId: {
+                  type: "string",
+                  description: "Team ID for analysis"
+                }
+              },
+              required: ["teamId"]
+            }
+          }
+        ]
+      };
+    });
+
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -56,59 +159,17 @@ class DevX360MCPServer {
         throw new Error('repositoryUrl is required');
       }
 
-      console.log(`🔍 Analyzing DORA metrics for: ${repositoryUrl}`);
       
-      const metrics = await getDORAMetrics(repositoryUrl);
-      const repoInfo = await getRepositoryInfo(repositoryUrl);
-      
-      // Calculate trends
-      const deploymentTrend = this.calculateTrend(metrics.deployment_frequency.perWeek);
-      const leadTimeTrend = this.calculateTrend([metrics.lead_time.average_days]);
-      const mttrTrend = this.calculateTrend([metrics.mttr.average_days]);
-      
-      // Scalar deployment frequencies (prefer Data Collection fields; fallback to computed)
-      const df = metrics.deployment_frequency || {};
-      const avgPerDay = df.frequency_per_day ?? (
-        (df.total_deployments / (df.analysis_period_days || (df.perDay?.length || 1))).toFixed(2)
-      );
-      const avgPerWeek = df.frequency_per_week ?? (
-        df.perWeek?.length ? (df.total_deployments / df.perWeek.length).toFixed(2) : '0.00'
-      );
-      const avgPerMonth = df.frequency_per_month ?? (
-        df.perMonth?.length ? (df.total_deployments / df.perMonth.length).toFixed(2) : '0.00'
-      );
+      // Call API (no local computation)
+      const metrics = await getJson('/api/mcp/metrics', { repositoryUrl });
+      const repoInfo = await getJson('/api/mcp/repo', { url: repositoryUrl });
 
-      // Generate insights
-      const insights = this.generateInsights(metrics, repoInfo);
-      
       return {
         content: [
           {
             type: 'text',
-            text: `📊 **DORA Analysis for ${repoInfo.name}**\n\n` +
-                  `🚀 **Deployment Frequency:**\n` +
-                  `   • Total: ${df.total_deployments} deployments\n` +
-                  `   • Weekly Trend: ${deploymentTrend}\n` +
-                  `   • Freq: ${avgPerDay}/day | ${avgPerWeek}/week | ${avgPerMonth}/month\n` +
-                  `   • Per Week: [${(df.perWeek || []).join(', ')}]\n\n` +
-                  `⏱️ **Lead Time for Changes:**\n` +
-                  `   • Average: ${metrics.lead_time.average_days} days\n` +
-                  `   • Trend: ${leadTimeTrend}\n` +
-                  `   • PRs Analyzed: ${metrics.lead_time.total_prs_analyzed}\n\n` +
-                  `🔄 **Mean Time to Recovery (MTTR):**\n` +
-                  `   • Average: ${metrics.mttr.average_days} days\n` +
-                  `   • Trend: ${mttrTrend}\n` +
-                  `   • Incidents: ${metrics.mttr.total_incidents_analyzed}\n\n` +
-                  `❌ **Change Failure Rate:**\n` +
-                  `   • Rate: ${metrics.change_failure_rate.failure_rate}\n` +
-                  `   • Confidence: ${metrics.change_failure_rate.confidence}\n` +
-                  `   • Failures: ${metrics.change_failure_rate.deployment_failures}/${metrics.change_failure_rate.total_deployments}\n\n` +
-                  `💡 **AI Insights:**\n${insights}\n\n` +
-                  `📈 **Repository Stats:**\n` +
-                  `   • Language: ${repoInfo.primary_language}\n` +
-                  `   • Stars: ${repoInfo.stars}\n` +
-                  `   • Contributors: ${repoInfo.total_contributors}\n` +
-                  `   • Analysis Period: ${metrics.analysis_period.days_back} days`
+            text: `DORA metrics (raw API data) for ${repoInfo?.name || repositoryUrl}:\n\n` +
+                  JSON.stringify({ repo: repoInfo, metrics }, null, 2)
           }
         ],
         isError: false
@@ -118,7 +179,7 @@ class DevX360MCPServer {
         content: [
           {
             type: 'text',
-            text: `❌ Error analyzing DORA metrics: ${error.message}`
+            text: `Error analyzing DORA metrics: ${error.message}`
           }
         ],
         isError: true
@@ -134,31 +195,13 @@ class DevX360MCPServer {
         throw new Error('repositoryUrl is required');
       }
 
-      const repoInfo = await getRepositoryInfo(repositoryUrl);
+      const repoInfo = await getJson('/api/mcp/repo', { url: repositoryUrl });
       
       return {
         content: [
           {
             type: 'text',
-            text: `🔍 **Repository Insights for ${repoInfo.name}**\n\n` +
-                  `📁 **Overview:**\n` +
-                  `   • Full Name: ${repoInfo.full_name}\n` +
-                  `   • Description: ${repoInfo.description || 'No description'}\n` +
-                  `   • Primary Language: ${repoInfo.primary_language}\n` +
-                  `   • Stars: ${repoInfo.stars} | Forks: ${repoInfo.forks}\n\n` +
-                  `👥 **Top Contributors:**\n` +
-                  repoInfo.contributors.slice(0, 5).map((contributor, index) => 
-                    `   ${index + 1}. ${contributor.username} (${contributor.contributions} contributions)`
-                  ).join('\n') + `\n\n` +
-                  `💻 **Languages:**\n` +
-                  Object.entries(repoInfo.languages)
-                    .slice(0, 5)
-                    .map(([lang, bytes]) => `   • ${lang}: ${bytes} bytes`)
-                    .join('\n') + `\n\n` +
-                  `📅 **Activity:**\n` +
-                  `   • Created: ${new Date(repoInfo.created_at).toLocaleDateString()}\n` +
-                  `   • Last Updated: ${new Date(repoInfo.updated_at).toLocaleDateString()}\n` +
-                  `   • Open Issues: ${repoInfo.open_issues}`
+            text: `Repository insights (raw API data):\n\n` + JSON.stringify(repoInfo, null, 2)
           }
         ],
         isError: false
@@ -168,7 +211,7 @@ class DevX360MCPServer {
         content: [
           {
             type: 'text',
-            text: `❌ Error getting repository insights: ${error.message}`
+            text: `Error getting repository insights: ${error.message}`
           }
         ],
         isError: true
@@ -184,30 +227,70 @@ class DevX360MCPServer {
         throw new Error('repositoryUrl is required');
       }
 
-      const analysis = await analyzeRepository(repositoryUrl);
+      const analysis = await getJson('/api/mcp/analyze', { url: repositoryUrl });
       
       return {
         content: [
           {
             type: 'text',
-            text: `🔍 **Repository Analysis for ${repositoryUrl}**\n\n` +
-                  `📊 **Analysis Results:**\n` +
-                  `   • Status: ${analysis.status}\n` +
-                  `   • Processing Time: ${analysis.processingTime}ms\n` +
-                  `   • Files Analyzed: ${analysis.filesAnalyzed}\n` +
-                  `   • DORA Indicators Found: ${analysis.doraIndicatorsFound}\n\n` +
-                  `💡 **Insights:**\n` +
-                  (analysis.insights ? analysis.insights : 'No insights available')
+            text: `Repository analysis (raw API data):\n\n` + JSON.stringify(analysis, null, 2)
           }
         ],
         isError: false
       };
-    } catch (error) {
+      } catch (error) {
+        // If API returns 500 error, provide fallback analysis
+        if (error.message.includes('500 Internal Server Error')) {
+        console.error('API returned 500, providing fallback analysis for:', args.repositoryUrl);
+        
+        const fallbackAnalysis = {
+          metadata: {
+            url: args.repositoryUrl,
+            name: "demo-repo",
+            owner: "demo-owner",
+            description: "Demo repository analysis (API temporarily unavailable)",
+            stars: 0,
+            forks: 0,
+            language: "Unknown",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          metrics: {
+            deploymentFrequency: "daily",
+            leadTimeForChanges: "2h",
+            changeFailureRate: "5%",
+            timeToRestoreService: "1h"
+          },
+          analysis: {
+            health_score: 85,
+            recommendations: [
+              "API temporarily unavailable - using demo data",
+              "Consider implementing CI/CD pipeline",
+              "Monitor deployment frequency",
+              "Track lead time for changes"
+            ],
+            status: "demo_mode"
+          },
+          error: "API temporarily unavailable - showing demo analysis",
+          mock: true
+        };
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Repository analysis (demo data - API temporarily unavailable):\n\n` + JSON.stringify(fallbackAnalysis, null, 2)
+            }
+          ],
+          isError: false
+        };
+      }
+      
       return {
         content: [
           {
             type: 'text',
-            text: `❌ Error analyzing repository: ${error.message}`
+            text: `Error analyzing repository: ${error.message}`
           }
         ],
         isError: true
@@ -222,22 +305,14 @@ class DevX360MCPServer {
       if (!teamId) {
         throw new Error('teamId is required');
       }
-
-      const aiAnalysis = await runAIAnalysis(teamId);
       
+      // Route through API for team-based analysis bundle (no local computation)
+      const teamBundle = await getJson(`/api/mcp/team/${encodeURIComponent(teamId)}`);
       return {
         content: [
           {
             type: 'text',
-            text: `🤖 **AI Analysis for Team ${teamId}**\n\n` +
-                  `💡 **AI Insights:**\n` +
-                  (aiAnalysis.insights || 'No AI insights available') + `\n\n` +
-                  `📈 **Analysis Metadata:**\n` +
-                  `   • Repository: ${aiAnalysis.metadata?.repo || 'Unknown'}\n` +
-                  `   • Primary Language: ${aiAnalysis.metadata?.primaryLanguage || 'Unknown'}\n` +
-                  `   • DORA Indicators: ${aiAnalysis.metadata?.doraIndicatorsFound || 0}\n` +
-                  `   • Files Analyzed: ${aiAnalysis.metadata?.filesAnalyzed || 0}\n` +
-                  `   • Processing Time: ${aiAnalysis.metadata?.processingTimeMs || 0}ms`
+            text: `Team analysis (raw API data):\n\n` + JSON.stringify(teamBundle, null, 2)
           }
         ],
         isError: false
@@ -247,7 +322,7 @@ class DevX360MCPServer {
         content: [
           {
             type: 'text',
-            text: `❌ Error getting AI analysis: ${error.message}`
+            text: `Error getting AI analysis: ${error.message}`
           }
         ],
         isError: true
@@ -255,54 +330,12 @@ class DevX360MCPServer {
     }
   }
 
-  calculateTrend(data) {
-    if (data.length < 2) return 'Insufficient data';
-    
-    const recent = data.slice(-3).reduce((a, b) => a + b, 0);
-    const previous = data.slice(-6, -3).reduce((a, b) => a + b, 0);
-    
-    if (recent > previous * 1.2) return '📈 Increasing';
-    if (recent < previous * 0.8) return '📉 Decreasing';
-    return '➡️ Stable';
-  }
-
-  generateInsights(metrics, repoInfo) {
-    const insights = [];
-    
-    if (metrics.deployment_frequency.total_deployments === 0) {
-      insights.push('⚠️ No deployments found - consider setting up CI/CD pipeline');
-    } else if (metrics.deployment_frequency.total_deployments < 5) {
-      insights.push('💡 Low deployment frequency - consider more frequent releases');
-    } else {
-      insights.push('✅ Good deployment frequency - maintaining regular releases');
-    }
-    
-    if (metrics.lead_time.average_days > 7) {
-      insights.push('⚠️ High lead time - consider automating more processes');
-    } else if (metrics.lead_time.average_days < 2) {
-      insights.push('🚀 Excellent lead time - efficient development process');
-    }
-    
-    if (metrics.mttr.average_days > 4) {
-      insights.push('⚠️ Slow recovery time - improve monitoring and alerting');
-    } else {
-      insights.push('✅ Good recovery time - effective incident response');
-    }
-    
-    const failureRate = parseFloat(metrics.change_failure_rate.failure_rate);
-    if (failureRate > 0.15) {
-      insights.push('🚨 High failure rate - review testing and deployment processes');
-    } else if (failureRate < 0.05) {
-      insights.push('🎉 Excellent reliability - maintain current practices');
-    }
-    
-    return insights.map(insight => `   ${insight}`).join('\n');
-  }
+  // No local analytics helpers; MCP stays as a thin API client
 
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('🚀 DevX360 MCP Server running on stdio');
+    console.error('DevX360 MCP Server running on stdio');
   }
 }
 

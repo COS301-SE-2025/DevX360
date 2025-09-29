@@ -17,6 +17,8 @@ class MCPAgentDemo {
     this.mcpProcess = null;
     this.requestId = 1;
     this.analysisResults = {};
+    // Target repository for the demo (Supabase JS)
+    this.repoUrl = 'https://github.com/supabase/supabase-js';
   }
 
   async startMCPServer() {
@@ -156,7 +158,7 @@ class MCPAgentDemo {
   async analyzeDORAMetrics() {
     console.log('📊 **Step 1: DORA Metrics Analysis**\n');
     
-    const repoUrl = 'https://github.com/facebook/react';
+    const repoUrl = this.repoUrl;
     console.log(`🤖 Agent: Analyzing DORA metrics for ${repoUrl}...`);
     
     try {
@@ -168,26 +170,61 @@ class MCPAgentDemo {
       if (response.result) {
         console.log('✅ DORA metrics analysis completed successfully');
         this.analysisResults.doraMetrics = response.result.content[0]?.text || '';
-        
-        // Extract key metrics for decision making
+
+        // Extract actual values from the response text
         const content = this.analysisResults.doraMetrics;
-        console.log('\n📈 **Key Metrics Extracted:**');
-        
-        if (content.includes('Total: 3 deployments')) {
-          console.log('   • Deployment Frequency: Low (3 deployments)');
-          console.log('   • Recommendation: Increase deployment frequency');
+        console.log('\n📈 **Key Metrics Extracted (from live data):**');
+
+        const totalDeployMatch = content.match(/Total:\s+(\d+)\s+deployments/);
+        if (totalDeployMatch) {
+          const deployments = Number(totalDeployMatch[1]);
+          console.log(`   • Deployments (period): ${deployments}`);
+          this.analysisResults.metrics = {
+            ...(this.analysisResults.metrics || {}),
+            deployments
+          };
         }
-        
-        if (content.includes('1.92 days')) {
-          console.log('   • Lead Time: Good (1.92 days)');
-          console.log('   • Status: Within acceptable range');
+
+        const freqMatch = content.match(/Freq:\s+([0-9.]+)\/day \| ([0-9.]+)\/week \| ([0-9.]+)\/month/);
+        if (freqMatch) {
+          const freqDay = Number(freqMatch[1]);
+          const freqWeek = Number(freqMatch[2]);
+          const freqMonth = Number(freqMatch[3]);
+          console.log(`   • Frequency: ${freqDay}/day | ${freqWeek}/week | ${freqMonth}/month`);
+          this.analysisResults.metrics = {
+            ...(this.analysisResults.metrics || {}),
+            freqDay, freqWeek, freqMonth
+          };
         }
-        
-        if (content.includes('MTTR')) {
-          console.log('   • MTTR: Available for analysis');
-          console.log('   • Focus: Incident response optimization');
+
+        const avgMatches = [...content.matchAll(/Average:\s+([0-9.]+)\s+days/g)].map(m => m[1]);
+        if (avgMatches.length > 0) {
+          const leadTimeDays = Number(avgMatches[0]);
+          console.log(`   • Lead Time (avg days): ${leadTimeDays}`);
+          this.analysisResults.metrics = {
+            ...(this.analysisResults.metrics || {}),
+            leadTimeDays
+          };
         }
-        
+        if (avgMatches.length > 1) {
+          const mttrDays = Number(avgMatches[1]);
+          console.log(`   • MTTR (avg days): ${mttrDays}`);
+          this.analysisResults.metrics = {
+            ...(this.analysisResults.metrics || {}),
+            mttrDays
+          };
+        }
+
+        const cfrMatch = content.match(/Change Failure Rate:[\s\S]*?Rate:\s*([0-9.]+)/);
+        if (cfrMatch) {
+          const cfr = Number(cfrMatch[1]);
+          console.log(`   • Change Failure Rate: ${cfr}`);
+          this.analysisResults.metrics = {
+            ...(this.analysisResults.metrics || {}),
+            cfr
+          };
+        }
+
         console.log('\n🤖 Agent: "DORA metrics provide baseline for improvement planning."');
       } else {
         console.log('❌ DORA metrics analysis failed');
@@ -206,7 +243,7 @@ class MCPAgentDemo {
       const response = await this.sendRequest('tools/call', {
         name: 'get_repository_insights',
         arguments: { 
-          repositoryUrl: 'https://github.com/facebook/react' 
+          repositoryUrl: this.repoUrl 
         }
       });
       
@@ -216,20 +253,19 @@ class MCPAgentDemo {
         
         const content = this.analysisResults.teamInsights;
         console.log('\n🔍 **Team Analysis Results:**');
-        
-        if (content.includes('contributors')) {
-          console.log('   • Team Size: Multiple contributors identified');
-          console.log('   • Collaboration: Distributed development model');
+        // Primary language
+        const langMatch = content.match(/Primary Language:\s*([^\n]+)/);
+        if (langMatch) {
+          console.log(`   • Primary Language: ${langMatch[1].trim()}`);
         }
-        
-        if (content.includes('JavaScript')) {
-          console.log('   • Primary Language: JavaScript');
-          console.log('   • Tech Stack: Modern web development');
+        // Stars and forks
+        const starsForksMatch = content.match(/Stars:\s*(\d+) \| Forks:\s*(\d+)/);
+        if (starsForksMatch) {
+          console.log(`   • Stars: ${starsForksMatch[1]} | Forks: ${starsForksMatch[2]}`);
         }
-        
-        if (content.includes('Stars: 238175')) {
-          console.log('   • Project Popularity: Very high');
-          console.log('   • Community Engagement: Excellent');
+        // Top contributors presence
+        if (/Top Contributors:\n\s*1\./.test(content)) {
+          console.log('   • Contributors: Top contributors listed');
         }
         
         console.log('\n🤖 Agent: "Team structure analysis helps tailor recommendations."');
@@ -250,7 +286,7 @@ class MCPAgentDemo {
       const response = await this.sendRequest('tools/call', {
         name: 'analyze_repository',
         arguments: { 
-          repositoryUrl: 'https://github.com/facebook/react' 
+          repositoryUrl: this.repoUrl 
         }
       });
       
@@ -281,7 +317,7 @@ class MCPAgentDemo {
       const response = await this.sendRequest('tools/call', {
         name: 'get_ai_analysis',
         arguments: { 
-          teamId: 'react-team-2024' 
+          teamId: 'supabase-js-team' 
         }
       });
       
@@ -346,29 +382,91 @@ class MCPAgentDemo {
     console.log('🤖 Agent: Creating comprehensive improvement roadmap...');
     
     // Synthesize all analysis results
+    const m = this.analysisResults.metrics || {};
+    const insights = [];
+
     console.log('📊 **Synthesizing Analysis Results:**');
-    console.log('   • DORA Metrics: ✅ Analyzed');
-    console.log('   • Team Insights: ✅ Gathered');
-    console.log('   • Deep Analysis: ✅ Completed');
-    console.log('   • AI Recommendations: ✅ Generated');
-    
-    console.log('\n🎯 **Improvement Roadmap Created:**');
+    console.log(`   • DORA Metrics: ${this.analysisResults.doraMetrics ? '✅ Analyzed' : '⚠️ Missing'}`);
+    console.log(`   • Team Insights: ${this.analysisResults.teamInsights ? '✅ Gathered' : '⚠️ Missing'}`);
+    console.log(`   • Deep Analysis: ${this.analysisResults.deepAnalysis ? '✅ Completed' : '⚠️ Missing'}`);
+    console.log(`   • AI Recommendations: ${this.analysisResults.aiRecommendations ? '✅ Generated' : '⚠️ Missing'}`);
+
+    // Data-driven recommendations based on thresholds (with explicit values)
+    // Deployment Frequency
+    if (typeof m.freqWeek === 'number') {
+      if (m.freqWeek < 1) {
+        insights.push(`Deployment frequency: ${m.freqWeek}/week → Increase frequency: aim for ≥ 1 deploy/week by adding CI gating and smaller batch sizes.`);
+      } else if (m.freqWeek < 3) {
+        insights.push(`Deployment frequency: ${m.freqWeek}/week → Moderate cadence: use trunk-based development and incremental releases to reach ≥ 3/week.`);
+      } else {
+        insights.push(`Deployment frequency: ${m.freqWeek}/week → Healthy cadence: maintain CI reliability and invest in progressive delivery.`);
+      }
+    }
+
+    // Lead Time
+    if (typeof m.leadTimeDays === 'number') {
+      if (m.leadTimeDays > 7) {
+        insights.push(`Lead time: ${m.leadTimeDays} days → High: automate tests, parallelize CI, and reduce PR wait times with auto-merge policies.`);
+      } else if (m.leadTimeDays > 2) {
+        insights.push(`Lead time: ${m.leadTimeDays} days → Good: review flaky tests and manual gates to approach < 2 days.`);
+      } else {
+        insights.push(`Lead time: ${m.leadTimeDays} days → Excellent: keep investing in developer experience and fast review cycles.`);
+      }
+    }
+
+    // MTTR
+    if (typeof m.mttrDays === 'number') {
+      if (m.mttrDays > 4) {
+        insights.push(`MTTR: ${m.mttrDays} days → Slow recovery: add runbooks, auto-rollbacks, on-call drills; improve observability and SLOs.`);
+      } else if (m.mttrDays > 1) {
+        insights.push(`MTTR: ${m.mttrDays} days → Decent: add error budgets and refine alerting to reduce time-to-detect.`);
+      } else {
+        insights.push(`MTTR: ${m.mttrDays} days → Great: formalize incident response and blameless postmortems.`);
+      }
+    }
+
+    // Change Failure Rate
+    if (typeof m.cfr === 'number') {
+      if (m.cfr > 0.2) {
+        insights.push(`Change failure rate: ${m.cfr} → High: strengthen pre-deploy checks, canary releases, and rollback automation.`);
+      } else if (m.cfr > 0.1) {
+        insights.push(`Change failure rate: ${m.cfr} → Moderate: expand test coverage and add contract tests across services.`);
+      } else {
+        insights.push(`Change failure rate: ${m.cfr} → Low: continue investing in automated quality gates.`);
+      }
+    }
+
+    console.log('\n🎯 **Improvement Roadmap Created (data-driven):**');
     console.log('\n📅 **Phase 1: Foundation (Weeks 1-4)**');
-    console.log('   • Set up automated testing pipeline');
-    console.log('   • Implement basic monitoring and alerting');
-    console.log('   • Establish deployment automation');
-    
+    console.log('   • Establish CI/CD baselines (lint, unit/integration), add trunk-based workflows');
+    console.log('   • Implement observability starter pack (logs, metrics, tracing) and on-call rotation');
+    console.log('   • Introduce progressive delivery (feature flags, staged rollouts)');
+
     console.log('\n📅 **Phase 2: Optimization (Weeks 5-8)**');
-    console.log('   • Implement feature flags');
-    console.log('   • Add advanced monitoring');
-    console.log('   • Optimize CI/CD workflows');
-    
+    if (m.freqWeek !== undefined && m.freqWeek < 3) {
+      console.log(`   • Deployment frequency (${m.freqWeek}/week): split large changes into smaller batches to raise weekly deploys`);
+    }
+    if (m.leadTimeDays !== undefined && m.leadTimeDays > 2) {
+      console.log(`   • Lead time (${m.leadTimeDays} days): parallelize CI and enforce small PRs to reduce lead time`);
+    }
+    if (m.cfr !== undefined && m.cfr > 0.1) {
+      console.log(`   • Change failure rate (${m.cfr}): add canary + rollback automation to reduce failures`);
+    }
+    if (m.mttrDays !== undefined && m.mttrDays > 1) {
+      console.log(`   • MTTR (${m.mttrDays} days): add runbooks and improve alert routing to reduce MTTR`);
+    }
+
     console.log('\n📅 **Phase 3: Advanced (Weeks 9-12)**');
-    console.log('   • Implement blue-green deployments');
-    console.log('   • Add chaos engineering practices');
-    console.log('   • Establish SRE practices');
-    
-    console.log('\n🤖 Agent: "Roadmap created based on comprehensive analysis of your DevOps practices."');
+    console.log('   • Blue/green or canary-by-default, SLOs with error budgets, chaos experiments');
+    console.log('   • Platform engineering: golden paths, templates, and paved roads for services');
+
+    // Print tailored insights
+    if (insights.length) {
+      console.log('\n🔧 **Tailored Recommendations Based on Metrics:**');
+      insights.forEach((line) => console.log(`   • ${line}`));
+    }
+
+    console.log('\n🤖 Agent: "Roadmap created from actual metrics; priorities reflect current performance."');
   }
 
   async runDemo() {
@@ -381,7 +479,7 @@ class MCPAgentDemo {
       await this.runRealWorldScenario();
       
       console.log('\n🎉 **Demo Complete!**\n');
-      console.log('Your MCP tools successfully enabled an AI agent to:');
+      console.log('Our MCP tools successfully enabled an AI agent to:');
       console.log('✅ Automatically analyze DORA metrics');
       console.log('✅ Assess team structure and activity');
       console.log('✅ Generate data-driven recommendations');

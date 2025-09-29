@@ -15,7 +15,12 @@ const RepoMetricsSchema = new mongoose.Schema({
       filesAnalyzed: Number,
       doraMetricsCovered: [String],
       processingTimeMs: Number
-    }
+    },
+    error: {
+      message: String,
+      stack: String,
+      name: String
+    },
   },
   memberStats: {
     type: Map,
@@ -48,5 +53,7 @@ const RepoMetricsSchema = new mongoose.Schema({
     default: 'pending'
   }
 });
+
+RepoMetricsSchema.index({ teamId: 1 }, { unique: true });
 
 export default mongoose.model("RepoMetrics", RepoMetricsSchema);

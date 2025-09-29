@@ -1,5 +1,4 @@
-//This is where all the routing happens
-//We use BrowserRouter for the client-side routing
+// App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './components/Auth/Login';
@@ -10,16 +9,15 @@ import Overview from './components/Dashboard/Overview';
 import Team from './components/Dashboard/Team';
 import Metrics from './components/Dashboard/Metrics';
 import HelpMenu from './components/Dashboard/HelpMenu';
-import { AuthProvider, useAuth } from './context/AuthContext'; // Added useAuth import
-import { ThemeProvider } from './context/ThemeContext';
+import { useAuth } from './context/AuthContext';
 import LandingPage from './components/LandingPage';
 import FAQPage from './components/Dashboard/FAQPage';
 import { Toaster } from 'react-hot-toast';
 import Admin from "./components/Dashboard/Admin";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import AdminRoute from "./utils/AdminRoute";
 
-
-
-//ProtectedRoute, this protects all the authenticated routes
+// ProtectedRoute: protects authenticated routes
 const ProtectedRoute = ({ children }) => {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
@@ -29,64 +27,88 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!currentUser) {
-    return <Navigate to="/landingpage" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;
 };
 
-//This is where the all the aplication routes are 
-//For example: /login and /register for authentication and then /dashboard with nested routes for Overview, Metrics, Team, and Profile
-function App() {
+// PublicRoute: redirects authenticated users away from auth pages
+const PublicRoute = ({ children }) => {
   const { currentUser, loading } = useAuth();
-  const isAdmin = currentUser?.role === 'admin';
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (currentUser) {
+    return <Navigate to="/dashboard/overview" replace />;
+  }
+
+  return children;
+};
+
+// App component with routing
+function App() {
   return (
-    <Router>
-      <ThemeProvider>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
-            <Route path="/landingpage" element={<LandingPage />} /> 
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
+    <ErrorBoundary onRetry={() => window.location.reload()}>
+      <Router>
+        <Routes>
+          {/* Root path goes to landing page */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Public routes that redirect if already authenticated */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
+
+          {/* Protected routes */}
+          <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
                   <DashboardLayout />
                 </ProtectedRoute>
               }
-            >
-              <Route index element={<Navigate to="overview" replace />} />
-              <Route path="overview" element={<Overview />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="team" element={<Team />} />
-              {isAdmin && ( <Route path="admin" element={<Admin />} />)}
-              <Route path="metrics" element={<Metrics />} />
-              <Route path="help" element={<HelpMenu />} />
-                <Route path="faqpage" element={<FAQPage />} /> 
-            </Route>
-          </Routes>
-          <Toaster position="top-center"
-             toastOptions={{
-               style: {
-                 background: 'var(--bg-container)',
-                 color: 'var(--text)',
-                 border: '1px solid var(--border)',
-                 boxShadow: 'var(--shadow)',
-                 zIndex: 10002,
-               },
-               custom: {
-                 duration: 6000,
-               }
-             }}
-             containerStyle={{
-               zIndex: 10002
-             }}
-          />
-        </AuthProvider>
-      </ThemeProvider>
-    </Router>
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<Overview />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="team" element={<Team />} />
+            <Route path="admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="metrics" element={<Metrics />} />
+            <Route path="help" element={<HelpMenu />} />
+            <Route path="faqpage" element={<FAQPage />} />
+          </Route>
+
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        {/* Toast notifications */}
+        <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: 'var(--bg-container)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow)',
+                zIndex: 10002,
+              },
+              custom: { duration: 6000 }
+            }}
+            containerStyle={{ zIndex: 10002 }}
+        />
+      </Router>
+    </ErrorBoundary>
   );
 }
 

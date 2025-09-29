@@ -3,11 +3,11 @@ import { jest, describe, beforeEach, afterEach, test, expect } from '@jest/globa
 const mockGetDORAMetrics = jest.fn();
 const mockGetRepositoryInfo = jest.fn();
 
-jest.unstable_mockModule('../../Data Collection/universal-dora-service.js', () => ({
+jest.unstable_mockModule('../../Data-Collection/universal-dora-service.js', () => ({
   getDORAMetrics: mockGetDORAMetrics,
 }));
 
-jest.unstable_mockModule('../../Data Collection/repository-info-service.js', () => ({
+jest.unstable_mockModule('../../Data-Collection/repository-info-service.js', () => ({
   getRepositoryInfo: mockGetRepositoryInfo,
 }));
 
