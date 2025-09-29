@@ -34,8 +34,8 @@ jobs:
         working-directory: ./devx360-react
         env:
           CI: true
-        # --coverage produces coverage reports; --watchAll=false ensures CI-friendly run
-        run: npm test -- --coverage --watchAll=false --runInBand --testPathPattern=src/tests2 || true
+        run: npm test -- --coverage --watchAll=false --ci --runInBand --testPathPattern=src/tests2
+
 
       - name: Print coverage summary (total lines %)
         working-directory: ./devx360-react
