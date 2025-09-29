@@ -1,17 +1,14 @@
 {
-  "name": "devx360api",
+  "name": "devx360-api",
   "version": "1.0.0",
-  "main": "lambda.js",
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.896.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@octokit/core": "^7.0.2",
     "@octokit/plugin-paginate-rest": "^13.1.0",
     "@octokit/plugin-rest-endpoint-methods": "^16.0.0",
-    "@vendia/serverless-express": "^4.12.6",
+    "@vendia/serverless-express": "^4.12.0",
     "async": "^3.2.6",
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -20,15 +17,13 @@
     "express-rate-limit": "^5.5.1",
     "git": "^0.1.5",
     "jsonwebtoken": "^8.5.1",
-    "k6": "^0.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^6.13.8",
     "multer": "^2.0.1",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "octokit": "^5.0.3",
-    "openai": "^5.12.2",
-    "sharp": "^0.34.4"
+    "openai": "^5.12.2"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.27.2",
@@ -41,14 +36,18 @@
   "scripts": {
     "start": "node api/server.js",
     "dev": "nodemon api/server.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.mjs",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.mjs --coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js mcp/__tests__/mcp-server.e2e.test.js --runInBand --testTimeout=30000",
     "reset": "rm -rf node_modules package-lock.json && npm install",
     "mcp": "node mcp-server.js",
     "demo": "node demo-scenarios.js",
     "test:mcp": "node test-mcp-agent.js",
     "test:mcp:interactive": "node test-mcp-interactive-fixed.js",
-    "demo:mcp": "node mcp-agent-demo.js"
+    "demo:mcp": "node mcp-agent-demo.js",
+    "build": "sam build",
+    "deploy": "sam deploy",
+    "deploy:guided": "sam deploy --guided",
+    "local": "sam local start-api",
+    "logs": "sam logs -n ApiFunction --stack-name devx360-api --tail"
   }
 }

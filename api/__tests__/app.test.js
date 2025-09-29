@@ -66,7 +66,7 @@ jest.unstable_mockModule('express-rate-limit', () => ({
 jest.unstable_mockModule('dotenv/config', () => ({}));
 
 // Mock repository and services
-jest.unstable_mockModule('../../Data Collection/repository-info-service.js', () => ({
+jest.unstable_mockModule('../../Data-Collection/repository-info-service.js', () => ({
   getRepositoryInfo: jest.fn()
 }));
 
@@ -138,7 +138,7 @@ const { default: bcrypt } = await import('bcryptjs');
 const { default: fs } = await import('fs');
 
 // Import services and models
-const { getRepositoryInfo } = await import('../../Data Collection/repository-info-service.js');
+const { getRepositoryInfo } = await import('../../Data-Collection/repository-info-service.js');
 const { analyzeRepository } = await import('../../services/metricsService.js');
 const { runAIAnalysis } = await import('../../services/analysisService.js');
 const { default: RepoMetrics } = await import('../models/RepoMetrics.js');
