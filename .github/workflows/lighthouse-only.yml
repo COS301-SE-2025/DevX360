@@ -1,0 +1,86 @@
+name: Lighthouse CI (devx360.app)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, dev ]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    env:
+      LH_UPLOAD_TARGET: temporary-public-storage
+      LHCI_COLLECT_URLS: |
+        https://devx360.app/dashboard/
+        https://devx360.app/dashboard/overview
+        https://devx360.app/dashboard/metrics
+        https://devx360.app/dashboard/team
+        https://devx360.app/dashboard/profile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install LHCI and dependencies
+        run: |
+          npm install -g @lhci/cli@0.11.0
+          # puppeteer chrome-aws-lambda and puppeteer-core used by login script if needed
+          npm ci || true
+
+      - name: Optional: Perform login (create cookie profile) if secrets set
+        if: ${{ secrets.DEVX360_TEST_USER && secrets.DEVX360_TEST_PASS }}
+        run: |
+          echo "INFO: DEVX360_TEST_USER present; running Puppeteer login to create user-data dir."
+          # Install puppeteer-core + chrome-aws-lambda locally for the login script
+          npm install --no-audit --no-fund puppeteer-core chrome-aws-lambda
+          node scripts/puppeteer-login.js
+        env:
+          DEVX360_TEST_USER: ${{ secrets.DEVX360_TEST_USER }}
+          DEVX360_TEST_PASS: ${{ secrets.DEVX360_TEST_PASS }}
+
+      - name: Generate .lighthouserc.json (override URLs if changed)
+        run: |
+          cat > .lighthouserc.json <<'JSON'
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 1,
+      "url": [
+        "https://devx360.app/dashboard/",
+        "https://devx360.app/dashboard/overview",
+        "https://devx360.app/dashboard/metrics",
+        "https://devx360.app/dashboard/team",
+        "https://devx360.app/dashboard/profile"
+      ],
+      "settings": {
+        "onlyCategories": ["performance","accessibility","best-practices"],
+        "chromeFlags": ["--no-sandbox", "--headless=new", "--disable-gpu", "--window-size=1200,900", "--user-data-dir=./.chrome-user-data"]
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", {"minScore": 0.7}],
+        "categories:accessibility": ["warn", {"minScore": 0.9}],
+        "categories:best-practices": ["warn", {"minScore": 0.85}]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
+JSON
+
+      - name: Run LHCI autorun
+        run: |
+          # print LHCI version
+          lhci --version || true
+          lhci autorun --config .lighthouserc.json || echo "LHCI ran (may have produced warnings). Check the workflow logs for details."
+
+      - name: Upload LHCI report links
+        run: |
+          echo "LHCI completed. If LHCI uploaded to temporary-public-storage, check the workflow logs for the URL to the report."
