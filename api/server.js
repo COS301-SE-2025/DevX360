@@ -35,7 +35,6 @@ class Server {
         serverSelectionTimeoutMS: 15000, // 15 seconds
         socketTimeoutMS: 20000, // 20 seconds
         connectTimeoutMS: 15000, // 15 seconds
-        bufferMaxEntries: 0, // Disable mongoose buffering
         bufferCommands: false, // Disable mongoose buffering
       };
 
