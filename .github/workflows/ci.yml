@@ -30,4 +30,4 @@ jobs:
          
           npm test api/__tests__
           npm test mcp/__tests__
-          npm test mcp/services/__tests__
+          npm test services/__tests__
