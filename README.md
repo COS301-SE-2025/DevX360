@@ -55,12 +55,12 @@
 We use a collaborative workflow to manage progress and documentation.
 
 ## 📄 Latest Docs
-- [Project Planning and Role Allocation](github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.3.3.pdf)  
+- [Project Planning and Role Allocation]()
+- [System Requirements Specification (SRS)]()  
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://drive.google.com/file/d/1HFu2nL1RNM4gdQKMISERxzf0vIcKkw2T/view?usp=drive_link)  
-- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.2.pdf)  
-- [Technical Installation Manual](https://drive.google.com/file/d/1k0LP3zXWtmYtJVPiYDly8qd9Y1siI4XG/view?usp=drive_link)
+- [Architectural Requirements]()  
+- [Technical Installation Manual]()
 - [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
 
 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
