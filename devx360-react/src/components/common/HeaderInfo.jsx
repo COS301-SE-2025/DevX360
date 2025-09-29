@@ -1,14 +1,14 @@
 import ThemeToggle from "./ThemeToggle";
-import ProfileIcon from "./ProfileIcon";
 import React from "react";
+import ProfileIcon from "./ProfileIcon";
 
-function HeaderInfo({ currentUser, avatar }) {
-    return (
-        <div className={"header-info"} >
-            <ThemeToggle />
-            <ProfileIcon currentUser={currentUser} avatar={avatar} />
-        </div>
-    )
+function HeaderInfo() {
+  return (
+      <div className={"header-info"} >
+        <ThemeToggle />
+        <ProfileIcon />
+      </div>
+  )
 }
 
 export default HeaderInfo;

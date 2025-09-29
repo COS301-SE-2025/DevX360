@@ -19,7 +19,7 @@ import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import toast from "react-hot-toast";
 import TeamInfo from './Team/TeamInfo';
 import ErrorBoundary from '../common/ErrorBoundary';
-import {useAvatar} from "../../hooks/useAvatar";
+// import {useAvatar} from "../../hooks/useAvatar";
 
 // Pagination config
 const TEAMS_PER_PAGE = 6;
@@ -166,7 +166,7 @@ function useDebounce(value, delay) {
 //=============================================================Team Component======================================
 function Team() {
   const { currentUser } = useAuth();
-  const avatarUrl = useAvatar();
+  // const avatarUrl = useAvatar();
   const [rawTeamsData, setRawTeamsData] = useState([]);
   const [error, setError] = useState(null);
 
@@ -450,7 +450,7 @@ function Team() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-base text-[var(--text-light)]">Manage and monitor your development teams</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl}  />
+              <HeaderInfo  />
             </div>
           </div>
         </header>

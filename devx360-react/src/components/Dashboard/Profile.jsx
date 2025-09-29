@@ -1,6 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
-import {useAvatar} from '../../hooks/useAvatar';
 import {updateAvatar, updateProfile} from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
 import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from 'lucide-react';
@@ -9,8 +8,7 @@ import toast from "react-hot-toast";
 function Profile() {
  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
-  const { currentUser, setCurrentUser } = useAuth();
-  const avatarUrl = useAvatar();
+  const { currentUser, setCurrentUser, avatarUrl } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -32,16 +30,6 @@ function Profile() {
   const fileInputRef = useRef(null);
   const fileReaderRef = useRef(null);
 
- /* // Memoize avatar URL calculation
-  const avatarUrl = useMemo(() => {
-    if (previewAvatar) return previewAvatar;
-    if (currentUser?.avatarUrl) {
-      const fullUrl = getFullAvatarUrl(currentUser.avatarUrl);
-      // Add timestamp to force refresh after uploads
-      return `${fullUrl}?t=${Date.now()}`;
-    }
-    return defaultAvatar;
-  }, [previewAvatar, currentUser?.avatarUrl]);*/
 
   useEffect(() => {
 
@@ -442,7 +430,7 @@ function Profile() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-lg font-medium text-[var(--text-light)]">Manage your profile</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
+              <HeaderInfo />
             </div>
           </div>
         </header>

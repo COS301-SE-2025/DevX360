@@ -28,7 +28,7 @@ import toast from "react-hot-toast";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
 import ModalPortal from "./modal/ModalPortal";
 import {useNavigate} from "react-router-dom";
-import {useAvatar} from "../../hooks/useAvatar";
+// import {useAvatar} from "../../hooks/useAvatar";
 import AdminPagination from "./Admin/Pagination";
 import UserAvatar from "./Admin/Avatar";
 import CustomDropdown from "./Admin/Dropdown";
@@ -89,7 +89,7 @@ const RoleEditor = ({ user, onSave, onCancel, isLoading }) => {
 };
 function Admin() {
   const { currentUser } = useAuth();
-  const avatarUrl = useAvatar();
+  // const avatarUrl = useAvatar();
   const mountedRef = useRef(true);
 
   const [users, setUsers] = useState([]);
@@ -687,7 +687,7 @@ function Admin() {
                 <div className="h-6 w-px bg-[var(--border)]"></div>
                 <p className="text-[var(--text-light)]">Manage users, teams, and monitor security events</p>
               </div>
-              <HeaderInfo currentUser={currentUser} avatar={avatarUrl}  />
+              <HeaderInfo />
             </div>
           </div>
         </header>

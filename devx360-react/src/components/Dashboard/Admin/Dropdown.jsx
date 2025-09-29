@@ -1,4 +1,4 @@
-import {useAvatar} from "../../../hooks/useAvatar";
+// import {useAvatar} from "../../../hooks/useAvatar";
 import {useRef, useState, useEffect} from "react";
 
 const CustomDropdown = ({ value, onChange, options }) => {

@@ -1,13 +1,8 @@
 import React from 'react';
 import StatCard from '../common/StatCard';
-import { useAuth } from '../../context/AuthContext';
 import HeaderInfo from "../common/HeaderInfo";
-import {useAvatar} from "../../hooks/useAvatar";
 
 function Overview() {
-  const { currentUser } = useAuth();
-  const defaultAvatar = '/default-avatar.png';
-  const avatarUrl = useAvatar();
 
   return (
     <div
@@ -39,7 +34,7 @@ function Overview() {
                 Overview
               </p>
             </div>
-            <HeaderInfo currentUser={currentUser} avatar={avatarUrl} />
+            <HeaderInfo />
           </div>
         </div>
       </header>
