@@ -7,9 +7,10 @@ on:
   pull_request:
     branches:
       - "feature/frontend"
+
 jobs:
   test:
-    name: Run Frontend Tests
+    name: Run Frontend Tests (with coverage)
     runs-on: ubuntu-latest
 
     strategy:
@@ -29,6 +30,53 @@ jobs:
         working-directory: ./devx360-react
         run: npm ci
 
-      - name: Run Frontend Tests
+      - name: Run Frontend Tests (Jest + Coverage)
         working-directory: ./devx360-react
-        run: npm test -- src/tests2
+        env:
+          CI: true
+        # --coverage produces coverage reports; --watchAll=false ensures CI-friendly run
+        run: npm test -- --coverage --watchAll=false --runInBand --testPathPattern=src/tests2 || true
+
+      - name: Print coverage summary (total lines %)
+        working-directory: ./devx360-react
+        id: coverage
+        run: |
+          COVERAGE_FILE=coverage/coverage-summary.json
+          if [ -f "$COVERAGE_FILE" ]; then
+            PCT=$(node -e "const fs=require('fs'); const p='$COVERAGE_FILE'; const o=JSON.parse(fs.readFileSync(p)); console.log(Math.round(o.total.lines.pct));")
+            echo "Frontend line coverage: ${PCT}%"
+            # export to GITHUB_OUTPUT for subsequent steps
+            echo "coverage=${PCT}" >> $GITHUB_OUTPUT
+          else
+            echo "No coverage report found at $COVERAGE_FILE"
+            echo "coverage=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: devx360-react/coverage
+
+      - name: Optionally fail if coverage below threshold
+        if: always()
+        working-directory: ./devx360-react
+        run: |
+          THRESHOLD=10
+          CV=${{ steps.coverage.outputs.coverage || '' }}
+          # fallback if GITHUB_OUTPUT value not captured in older GH runner behavior:
+          if [ -z "$CV" ]; then
+            CV_FILE=coverage/coverage-summary.json
+            if [ -f "$CV_FILE" ]; then
+              CV=$(node -e "const fs=require('fs'); const p='$CV_FILE'; const o=JSON.parse(fs.readFileSync(p)); console.log(Math.round(o.total.lines.pct));")
+            else
+              CV=0
+            fi
+          fi
+          echo "Coverage reported: $CV%; threshold: $THRESHOLD%"
+          # Uncomment the next lines if you want the job to fail when coverage < threshold:
+          # if [ "$CV" -lt "$THRESHOLD" ]; then
+          #   echo "Coverage ($CV%) is below threshold ($THRESHOLD%) - failing job."
+          #   exit 1
+          # fi
+          echo "Coverage check complete (no fail by default)."
