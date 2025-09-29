@@ -96,7 +96,7 @@ We use a collaborative workflow to manage progress and documentation.
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/DevX360%20Coding%20Standards%20V3.pdf)  
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
 - [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/Architectural%20Requirements%20V4.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/feature/ai-analysis/README.md)  
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md)  
 
 </details>
 
