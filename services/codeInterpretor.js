@@ -465,7 +465,25 @@ export async function performDORAAnalysis(owner, repo, metrics, userId = null) {
 
     // Generate DORA insights
     console.log('Step 2: Generating DORA insights');
-    const insights = await generateDORAInsights(repositoryAnalysis, metrics);
+    console.log('Metrics provided:', metrics);
+    const selectedMetrics =
+      metrics?.["30d"] ||
+      metrics?.["7d"] ||
+      metrics?.["90d"] ||
+      metrics;
+
+    console.log(
+      "Selected DORA metrics time window:",
+      metrics?.["30d"]
+        ? "30d"
+        : metrics?.["7d"]
+        ? "7d"
+        : metrics?.["90d"]
+        ? "90d"
+        : "none"
+    );
+
+    const insights = await generateDORAInsights(repositoryAnalysis, selectedMetrics);
     console.log(`DORA insights generated in ${Date.now() - startTime}ms`);
 
     return {
