@@ -38,7 +38,7 @@ function GitHubConnectionStatus({ currentUser, onConnect, isConnecting, refreshT
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.githubUsername, API_BASE_URL]);
+  }, [currentUser.githubUsername]);
 
   useEffect(() => {
     checkStatus();

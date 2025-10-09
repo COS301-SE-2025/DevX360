@@ -5,6 +5,7 @@ import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Users, ExternalL
 import ReactMarkdown from 'react-markdown';
 import HeaderInfo from "../common/HeaderInfo";
 import { useAvatar } from "../../hooks/useAvatar";
+import toast from "react-hot-toast";
 
 function Metrics() {
   const { currentUser } = useAuth();
@@ -15,6 +16,7 @@ function Metrics() {
   const [teamData, setTeamData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // AI feedback states
   const [aiFeedback, setAiFeedback] = useState(null);
@@ -204,12 +206,43 @@ function Metrics() {
     const canViewStats = isTeamCreator() || memberIdStr === currentUserIdStr;
     
     if (!canViewStats) {
-      alert('Access Restricted: You can only view your own stats. Team creators have access to all member stats.');
-      return;
+      toast.error('Access Restricted: You can only view your own stats. Team creators have access to all member stats.');return;
     }
 
     setSelectedMember(member);
     setShowMemberStatsModal(true);
+  };
+
+  const handleRefreshStats = async () => {
+    if (!selectedTeamId) return;
+
+    try {
+      setIsRefreshing(true);
+      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}/refresh-stats`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh stats');
+      }
+
+      const data = await response.json();
+
+      // Show success toast
+      toast.success('Stats refresh started! This may take a few moments.');
+
+      // Optionally reload the data after a delay
+      setTimeout(() => {
+        fetchTeamMetrics();
+      }, 5000);
+
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh stats. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const closeMemberStatsModal = () => {
@@ -1219,11 +1252,28 @@ function Metrics() {
               <div className="flex items-center space-x-3">
                 <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
                 {isTeamCreator() && (
-                  <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Creator Access
-                  </span>
+                    <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+        Creator Access
+      </span>
                 )}
               </div>
+              <button
+                  onClick={handleRefreshStats}
+                  disabled={isRefreshing}
+                  className="flex items-center space-x-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRefreshing ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Refreshing...</span>
+                    </>
+                ) : (
+                    <>
+                      <Activity className="w-4 h-4" />
+                      <span className="text-sm">Refresh Stats</span>
+                    </>
+                )}
+              </button>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
