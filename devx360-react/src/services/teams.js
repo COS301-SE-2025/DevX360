@@ -19,7 +19,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 //This function searches for teams by a search term, it sends a GET request to the API
 //It returns an array of teams that match the search term
 export async function searchTeams(searchTerm) {
-  const url = new URL(`${API_BASE_URL}/api/teams/search`);
+  const url = new URL(`${API_BASE_URL}/teams/search`);
   url.searchParams.append("q", searchTerm);
 
   const response = await fetch(url, {
@@ -47,7 +47,11 @@ export async function createTeam(name, password, repoUrl) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create team');
+    const error = new Error(data.message || 'Failed to create team');
+    error.needsGitHubAuth = data.needsGitHubAuth || false;
+    error.githubAuthUrl = data.githubAuthUrl;
+    error.suggestion = data.suggestion;
+    throw error;
   }
   return data;
 }
@@ -56,7 +60,7 @@ export async function createTeam(name, password, repoUrl) {
 //============================================================join a new team Function======================================
 //Does the same thing as search team but it sends a POST request with the name and password to join a team
 export async function joinTeam(name, password) {
-  const response = await fetch(`${API_BASE_URL}/api/teams/join`, {
+  const response = await fetch(`${API_BASE_URL}/teams/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, password }),
@@ -75,7 +79,7 @@ export async function checkMembership(teamId) {
     throw new Error('Team ID is required');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/membership`, {
+  const response = await fetch(`${API_BASE_URL}/teams/${teamId}/membership`, {
     method: 'GET',
     credentials: 'include',
   });
@@ -90,7 +94,7 @@ export async function checkMembership(teamId) {
 //============================================================delete a team Function======================================
 //Sends a DELETE request to the API to delete a team by its name
 export const deleteTeam = async (teamName, teamId) => {
-  const response = await fetch(`${API_BASE_URL}/api/teams/${encodeURIComponent(teamName)}?teamId=${teamId}`, {
+  const response = await fetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamName)}?teamId=${teamId}`, {
     method: 'DELETE',
     credentials: 'include',
   });

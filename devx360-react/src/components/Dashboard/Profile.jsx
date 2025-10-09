@@ -5,6 +5,125 @@ import HeaderInfo from "../common/HeaderInfo";
 import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from 'lucide-react';
 import toast from "react-hot-toast";
 
+function GitHubConnectionStatus({ currentUser, onConnect, isConnecting, refreshTrigger }) {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
+  const checkStatus = useCallback(async () => {
+    if (!currentUser?.githubUsername) {
+      setStatus(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profile/github-status`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('github status:', data);
+        setStatus(data);
+      } else {
+        setStatus({ needsReauth: true });
+      }
+    } catch (error) {
+      console.error('Failed to check GitHub status:', error);
+      setStatus({ needsReauth: true });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.githubUsername, API_BASE_URL]);
+
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus, refreshTrigger]);
+
+  if (loading) {
+    return (
+        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-[var(--text-light)]">
+            <div className="w-4 h-4 border-2 border-[var(--text-light)] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm">Checking GitHub status...</span>
+          </div>
+        </div>
+    );
+  }
+
+  if (!currentUser?.githubUsername) {
+    return (
+        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle size={20} className="text-[var(--text-light)] flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-[var(--text)] mb-1">
+              GitHub Not Connected
+            </h4>
+            <p className="text-sm text-[var(--text-light)] mb-3">
+              Connect your GitHub account to access private repositories and enable advanced features.
+            </p>
+            <button
+                onClick={onConnect}
+                disabled={isConnecting}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
+            >
+              <Github size={16} />
+              {isConnecting ? 'Connecting...' : 'Connect GitHub'}
+            </button>
+          </div>
+        </div>
+    );
+  }
+
+  if (status?.needsReauth) {
+    return (
+        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle size={20} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-[var(--text)] mb-1">
+              GitHub Connection Expired
+            </h4>
+            <p className="text-sm text-[var(--text-light)] mb-3">
+              Your GitHub connection has expired. Reconnect to continue accessing private repositories.
+            </p>
+            <button
+                onClick={onConnect}
+                disabled={isConnecting}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-[var(--secondary)] text-white hover:opacity-90 transition-colors disabled:opacity-50"
+            >
+              <Github size={16} />
+              {isConnecting ? 'Reconnecting...' : 'Reconnect GitHub'}
+            </button>
+          </div>
+        </div>
+    );
+  }
+
+  return (
+      <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 flex items-start gap-3">
+        <div className="w-5 h-5 rounded-full bg-[var(--primary)] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <div className="flex-1">
+          <h4 className="text-sm font-medium text-[var(--text)] mb-1">
+            GitHub Connected
+          </h4>
+          <p className="text-sm text-[var(--text-light)]">
+            Connected as <span className="font-medium text-[var(--text)]">{currentUser.githubUsername}</span>
+            {status?.hasPrivateAccess && ' • Private repository access enabled'}
+          </p>
+        </div>
+      </div>
+  );
+}
+
+
 function Profile() {
  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
@@ -14,6 +133,7 @@ function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [isConnectingGitHub, setIsConnectingGitHub] = useState(false);
+  const [githubStatusKey, setGithubStatusKey] = useState(0);
   const [formState, setFormState] = useState({
     data: {
       name: '',
@@ -42,6 +162,7 @@ function Profile() {
       // Handle success message
       if (connected === 'true') {
         toast.success('GitHub account connected successfully!');
+        setGithubStatusKey(prev => prev + 1);
         // Clean up URL
         window.history.replaceState({}, document.title, '/dashboard/profile');
         return;
@@ -77,12 +198,16 @@ function Profile() {
             setCurrentUser(prevUser => ({
               ...prevUser,
               githubUsername: data.user.githubUsername,
-              githubId: data.user.githubId
+              githubId: data.user.githubId,
+              githubScopes: data.user.githubScopes,
+              githubTokenValid: true
             }));
-            console.log('updated user', currentUser);
+            // console.log('updated user', currentUser);
 
             toast.success('GitHub account connected successfully!');
             window.history.replaceState({}, document.title, '/dashboard/profile');
+
+            setGithubStatusKey(prev => prev + 1);
           } else {
             const errorData = await response.json();
             toast.error(errorData.message || 'Failed to connect GitHub account');
@@ -320,7 +445,7 @@ function Profile() {
 
     setIsConnectingGitHub(true);
     setTimeout(() => {
-      window.location.href = `${API_BASE_URL}/auth/github?flow=connect&returnTo=/dashboard/profile`;
+      window.location.href = `${API_BASE_URL}/api/auth/github?flow=connect&returnTo=/dashboard/profile`;
     }, 100);
   };
 
@@ -689,7 +814,7 @@ function Profile() {
                   </div>
 
                   {/* Security & Additional Information Section */}
-                  <div className="mt-8">
+                  {/*<div className="mt-8">
                     <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Security & Preferences</h3>
 
                     <div className="bg-[var(--bg)] p-4 rounded-lg border border-[var(--border)]">
@@ -716,10 +841,21 @@ function Profile() {
                             </button>
                         )}
 
-                        {/*</button>*/}
+                        </button>
                       </div>
                     </div>
 
+                  </div>*/}
+
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Security & Preferences</h3>
+
+                    <GitHubConnectionStatus
+                        currentUser={currentUser}
+                        onConnect={handleConnectGitHub}
+                        isConnecting={isConnectingGitHub}
+                        refreshTrigger={githubStatusKey}
+                    />
                   </div>
 
                 </div>

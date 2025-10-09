@@ -46,6 +46,8 @@ function CreateTeamModal({onCloseCreate, onTeamCreated, setIsCreatingTeam}) {
   }
 
   const handleCreateTeam = async () => {
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
+
     // Validate GitHub URL format
     if (!repoUrl.startsWith('https://github.com/')) {
       setUrlError('Please enter a valid GitHub repository URL');
@@ -76,7 +78,21 @@ function CreateTeamModal({onCloseCreate, onTeamCreated, setIsCreatingTeam}) {
       onTeamCreated();
 
     } catch (error) {
-      console.log(error);
+      console.error('Error creating team:', error);
+
+      if (error.needsGitHubAuth) {
+        toast.error(error.message, { id: loadingToast });
+
+        // Show a confirmation dialog
+        const shouldConnect = window.confirm(
+            `${error.message}\n\n${error.hasSuggestions}\n\nWould you like to connect your GitHub account now?`
+        );
+
+        if (shouldConnect && error.githubAuthUrl) {
+          window.location.href = `${API_BASE_URL}${error.githubAuthUrl}`;
+        }
+        return;
+      }
 
       if (error.message.includes('exists')) {
         setNameError(error.message || 'Failed to create team');
@@ -84,6 +100,8 @@ function CreateTeamModal({onCloseCreate, onTeamCreated, setIsCreatingTeam}) {
       } else if (error.message.includes('Repository')) {
         toast.dismiss(loadingToast);
         setUrlError(error.message || 'Failed to create team');
+      } else {
+        toast.error(error.message || 'Failed to create team', { id: loadingToast });
       }
     }
     finally {
