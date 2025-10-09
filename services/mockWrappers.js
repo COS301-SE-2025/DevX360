@@ -8,7 +8,7 @@ const MOCK_MODE = process.env.MOCK_MODE === "true";
 /**
  * Safe wrapper for analyzeRepository
  */
-export async function safeAnalyzeRepository(url) {
+export async function safeAnalyzeRepository(url, userId = null) {
   if (MOCK_MODE) {
     console.log("MOCK: analyzeRepository called for", url);
     return {
@@ -28,7 +28,7 @@ export async function safeAnalyzeRepository(url) {
   }
   
   try {
-    return await analyzeRepository(url);
+    return await analyzeRepository(url, userId);
   } catch (error) {
     console.error("analyzeRepository failed, returning mock data:", error.message);
     // Return mock data when GitHub tokens are not available
@@ -71,7 +71,7 @@ export async function safeRunAIAnalysis(teamId) {
 /**
  * Safe wrapper for collectMemberActivity
  */
-export async function safeCollectMemberActivity(owner, repo, username) {
+export async function safeCollectMemberActivity(owner, repo, username, userId = null) {
   if (MOCK_MODE) {
     console.log(`MOCK: collectMemberActivity(${owner}/${repo}, ${username})`);
     return {
@@ -80,5 +80,5 @@ export async function safeCollectMemberActivity(owner, repo, username) {
       issues: 1,
     };
   }
-  return collectMemberActivity(owner, repo, username);
+  return collectMemberActivity(owner, repo, username, userId);
 }

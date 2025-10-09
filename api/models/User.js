@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
   role: { type: String, required: true, default: "user" },
   githubId: { type: String, unique: true, sparse: true, default: undefined },
   githubUsername: {type: String, default: null},
+  githubAccessToken: {type: String, default: null},
+  githubScopes: { type: [String], default: [] },
+  githubTokenValid: { type: Boolean, default: true },
+  githubTokenExpiresAt: Date, //gitHub tokens don't typically expire, but track for OAuth refresh tokens
+  githubTokenLastValidated: Date,
   isEmailVerified: { type: Boolean, default: false },
   inviteCode: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },

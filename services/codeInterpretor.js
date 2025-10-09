@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import 'dotenv/config';
 import { getNextOctokit } from './tokenManager.js';
+import { getOctokit } from './tokenManager.js';
 import { concurrentMap } from '../api/utils/concurrentMap.js';
 
 const openai = new OpenAI({
@@ -68,8 +69,8 @@ const DORA_ANALYSIS_PATTERNS = {
 };
 
 // Repository structure analysis - much faster than file-by-file analysis
-async function analyzeRepositoryStructure(owner, repo) {
-  const octokit = getNextOctokit();
+async function analyzeRepositoryStructure(owner, repo, userId = null) {
+  // const octokit = getNextOctokit();
   const analysis = {
     structure: {},
     doraIndicators: {
@@ -85,6 +86,11 @@ async function analyzeRepositoryStructure(owner, repo) {
   };
 
   try {
+
+    const { octokit, tokenType } = userId
+        ? await getOctokit(userId)
+        : { octokit: getNextOctokit() };
+
     // Get repository info and recent activity
     const [repoInfo, commits, pullRequests, releases] = await Promise.all([
       octokit.rest.repos.get({ owner, repo }),
@@ -446,14 +452,15 @@ Structure your response like this:
 }
 
 // Updated main analysis function
-export async function performDORAAnalysis(owner, repo, metrics) {
+export async function performDORAAnalysis(owner, repo, metrics, userId = null) {
   console.log(`Starting DORA analysis for ${owner}/${repo}...`);
   const startTime = Date.now();
 
   try {
     // Analyze repository structure (much faster than file content analysis)
     console.log('Step 1: Analyzing repository structure');
-    const repositoryAnalysis = await analyzeRepositoryStructure(owner, repo);
+    console.log('Analyzing repo with:', { owner, repo });
+    const repositoryAnalysis = await analyzeRepositoryStructure(owner, repo, userId);
     console.log(`Repository structure analyzed in ${Date.now() - startTime}ms`);
 
     // Generate DORA insights

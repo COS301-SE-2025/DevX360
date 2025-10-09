@@ -1,10 +1,10 @@
 import { getDORAMetrics } from "../Data-Collection/universal-dora-service.js";
 import { getRepositoryInfo } from "../Data-Collection/repository-info-service.js";
 
-async function analyzeRepository(url) {
+async function analyzeRepository(url, userId = null) {
   try {
-    const metadata = await getRepositoryInfo(url);
-    const metrics = await getDORAMetrics(url);
+    const metadata = await getRepositoryInfo(url, userId);
+    const metrics = await getDORAMetrics(url, userId);
     
     return { 
       metadata,

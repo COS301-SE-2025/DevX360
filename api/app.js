@@ -20,12 +20,13 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import cron from "node-cron";
 import { refreshGithubUsernames } from "../services/githubUpdater.js";
-import { updateAllTeams } from "../services/teamUpdater.js";
+import {updateAllTeams, collectAndSaveMemberStats, refreshAllMemberStats} from "../services/teamUpdater.js";
 import mongoose from "mongoose";
 import { getRepositoryInfo, extractOwnerAndRepo } from "../Data-Collection/repository-info-service.js";
 import { getDORAMetrics } from "../Data-Collection/universal-dora-service.js";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 const lambda = new LambdaClient();
+import { userNeedsReauth } from '../services/tokenManager.js';
 //import { analyzeRepository } from "../services/metricsService.js";
 //import { runAIAnalysis } from "../services/analysisService.js";
 import {
@@ -326,7 +327,10 @@ app.get("/api/auth/github", (req, res) => {
   const { flow = 'signup', returnTo = '/dashboard/overview' } = req.query;
   const clientId = process.env.GITHUB_CLIENT_ID;
   const state = Buffer.from(JSON.stringify({ flow, returnTo })).toString('base64');
-  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user&state=${state}`;
+
+  const scopes = flow === 'connect' ? 'user,repo' : 'user';
+
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=${scopes}&state=${state}`;
   res.redirect(redirectUrl);
 });
 
@@ -359,6 +363,7 @@ app.get("/api/auth/github/callback", async (req, res) => {
 
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
+    const scopes = tokenData.scope ? tokenData.scope.split(',') : [];
 
     if (!accessToken) {
       throw new Error("Failed to get access token from GitHub");
@@ -396,7 +401,9 @@ app.get("/api/auth/github/callback", async (req, res) => {
           login: githubUser.login,
           name: githubUser.name,
           email: githubUser.email,
-          avatar_url: githubUser.avatar_url
+          avatar_url: githubUser.avatar_url,
+          accessToken: accessToken,
+          scopes: scopes,
         }
       }, process.env.JWT_SECRET, { expiresIn: '10m' });
 
@@ -432,6 +439,8 @@ app.get("/api/auth/github/callback", async (req, res) => {
         email: githubUser.email || `${githubUser.login}@users.noreply.github.com`,
         githubId: githubUser.id,
         githubUsername: githubUser.login,
+        githubAccessToken: accessToken,
+        githubScopes: scopes,
         isEmailVerified: true,
         password: await hashPassword(crypto.randomUUID()), // random unusable password
       });
@@ -449,6 +458,8 @@ app.get("/api/auth/github/callback", async (req, res) => {
         needsUpdate = true;
       }
 
+      user.githubAccessToken = accessToken;
+      user.githubScopes = scopes;
       user.lastLogin = new Date();
       needsUpdate = true;
 
@@ -539,6 +550,8 @@ app.post("/api/profile/connect-github", authenticateToken, async (req, res) => {
     const updates = {
       githubId: githubData.id,
       githubUsername: githubData.login,
+      githubAccessToken: githubData.accessToken,
+      githubScopes: githubData.scopes,
     };
 
     // Optionally update name if not set
@@ -568,6 +581,32 @@ app.post("/api/profile/connect-github", authenticateToken, async (req, res) => {
       message: "Failed to complete GitHub connection",
       error: error.message 
     });
+  }
+});
+
+
+/**
+ * Check GitHub connection status
+ * @route GET /api/profile/github-status
+ * @middleware authenticateToken
+ */
+app.get("/api/profile/github-status", authenticateToken, async (req, res) => {
+  try {
+    const needsReauth = await userNeedsReauth(req.user.userId);
+    const user = await User.findById(req.user.userId)
+        .select('githubUsername githubId githubTokenValid githubScopes');
+
+    res.json({
+      connected: !!user?.githubId,
+      valid: !needsReauth,
+      needsReauth,
+      username: user?.githubUsername,
+      scopes: user?.githubScopes || [],
+      hasPrivateAccess: user?.githubScopes?.includes('repo')
+    });
+  } catch (error) {
+    console.error('GitHub status check error:', error);
+    res.status(500).json({ message: 'Failed to check GitHub status' });
   }
 });
 
@@ -1145,9 +1184,31 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       bcrypt.hash(password, 10),
       (async () => {
         try {
-          return await safeAnalyzeRepository(repoUrl);
+          return await safeAnalyzeRepository(repoUrl, req.user.userId);
         } catch (analysisError) {
           console.error("Repository analysis failed:", analysisError);
+
+          if (analysisError.message?.includes('404') || analysisError.status === 404) {
+            // Check if user needs to connect/reconnect GitHub
+            const needsReauth = await userNeedsReauth(req.user.userId);
+
+            if (needsReauth) {
+              throw {
+                message: "Cannot access repository",
+                error: "Repository not found or private",
+                suggestion: "Please connect your GitHub account to access private repositories",
+                needsGitHubAuth: true, // ← Frontend can detect this
+                githubAuthUrl: "/api/auth/github?flow=connect&returnTo=/dashboard/teams"
+              };
+            }
+
+            // User has valid token but still can't access - truly doesn't exist or no permission
+            throw {
+              message: "Repository not found or you don't have access",
+              error: analysisError.message,
+              suggestion: "Check the repository URL and ensure you have access to it"
+            };
+          }
           throw {
             message: "Repository analysis failed",
             error: analysisError.message,
@@ -1180,6 +1241,8 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
       lastUpdated: new Date(),
       analysisStatus: "pending",
     });
+
+    await collectAndSaveMemberStats(team._id, req.user.userId, analysis.metadata.url);
 
     if (process.env.AWS_EXECUTION_ENV) {
       // Fire-and-forget Lambda trigger in production
@@ -1214,6 +1277,17 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Team creation error:", error);
 
+    // Handle GitHub auth requirement
+    if (error.needsGitHubAuth) {
+      return res.status(403).json({
+        message: error.message,
+        error: error.error,
+        suggestion: error.suggestion,
+        needsGitHubAuth: true,
+        githubAuthUrl: error.githubAuthUrl
+      });
+    }
+
     // Handle specific error types
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -1231,7 +1305,7 @@ app.post("/api/teams", authenticateToken, async (req, res) => {
     }
 
     // Handle repository analysis errors
-    if (error.message === "Repository analysis failed") {
+    if (error.message === "Repository analysis failed" || error.message?.includes("Cannot access repository")) {
       return res.status(500).json({
         message: error.message,
         error: error.error,
@@ -1281,7 +1355,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.userId);
     console.log("Join team for user:", user._id, "githubUsername:", user.githubUsername);
 
-    if (user.githubUsername) {
+    /*if (user.githubUsername) {
       const repoData = await RepoMetrics.findOne({ teamId: team._id });
       if (!repoData) {
         console.warn("No repoData found for team", team._id);
@@ -1293,7 +1367,7 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
         console.log("Extracted owner/repo:", owner, repo);
         if (owner && repo) {
           try{
-            const stats = await safeCollectMemberActivity(owner, repo, user.githubUsername);
+            const stats = await safeCollectMemberActivity(owner, repo, user.githubUsername, req.user.userId);
             repoData.memberStats.set(req.user.userId.toString(), {
               githubUsername: user.githubUsername,
               ...stats,
@@ -1305,6 +1379,11 @@ app.post("/api/teams/join", authenticateToken, async (req, res) => {
           }
         }
       }
+    }*/
+
+    const repoData = await RepoMetrics.findOne({ teamId: team._id });
+    if (repoData?.repositoryInfo?.url) {
+      await collectAndSaveMemberStats(team._id, req.user.userId, repoData.repositoryInfo.url);
     }
 
     res.json({ message: "Joined team", teamId: team._id });
@@ -1446,6 +1525,21 @@ app.get("/api/teams", authenticateToken, async (req, res) => {
     console.error("Fetch teams error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+});
+
+
+app.post("/api/teams/:teamId/refresh-stats", authenticateToken, authorizeTeamAccess, async (req, res) => {
+  const repoData = await RepoMetrics.findOne({ teamId: req.team._id });
+
+  if (!repoData?.repositoryInfo?.url) {
+    return res.status(400).json({ message: "No repository data found" });
+  }
+
+  // Start refresh in background
+  refreshAllMemberStats(req.team._id, req.team.members, repoData.repositoryInfo.url)
+      .catch(err => console.error("Refresh failed:", err));
+
+  res.json({ message: "Stats refresh started" });
 });
 
 // --------------------------------------------------------------------------

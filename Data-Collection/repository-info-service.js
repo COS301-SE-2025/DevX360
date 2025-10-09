@@ -1,5 +1,6 @@
 import { Octokit } from 'octokit';
 import { parseGitHubUrl } from './github-utils.js';
+import { getOctokit } from '../services/tokenManager.js'
 
 /**
  * Enhanced Repository Information Service with Maximum Accuracy
@@ -12,6 +13,7 @@ import { parseGitHubUrl } from './github-utils.js';
  * @version 2.0.0
  */
 
+/*
 // Initialize Octokit with proper rate limit handling
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN_1,
@@ -26,6 +28,7 @@ const octokit = new Octokit({
     }
   }
 });
+*/
 
 // Helper function to add delay between requests (kept for compatibility; avoid fixed sleeps where possible)
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -41,13 +44,14 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Enhanced contributor fetching with accuracy indicators
- * 
+ *
+ * @param {Object} octokit - Octokit instance
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
  * @param {number} limit - Maximum number of contributors to fetch (default: 10)
  * @returns {Promise<Object>} Object containing contributors and accuracy metrics
  */
-async function fetchTopContributors(owner, repo, limit = 10) {
+async function fetchTopContributors(octokit, owner, repo, limit = 10) {
   try {
     const { data: contributors } = await octokit.rest.repos.listContributors({
       owner,
@@ -185,10 +189,15 @@ function analyzeRepositoryStats(repository) {
  * console.log(repoInfo.name); // 'Hello-World'
  * console.log(repoInfo.accuracy_indicators.overall_confidence); // 95
  */
-async function getRepositoryInfo(repositoryUrl) {
+async function getRepositoryInfo(repositoryUrl, userId = null) {
   try {
     // Validate and parse the GitHub URL with enhanced validation
     const { owner, repo, validation } = parseGitHubUrl(repositoryUrl);
+
+    // Get appropriate octokit instance
+    const { octokit } = userId
+        ? await getOctokit(userId)
+        : await getOctokit(); // Will use system token
     
     console.error(`Fetching enhanced repository information for ${owner}/${repo}...`);
     
@@ -240,7 +249,7 @@ async function getRepositoryInfo(repositoryUrl) {
     // Removed fixed delay
     
     // Fetch top contributors with accuracy metrics
-    const contributorData = await fetchTopContributors(owner, repo, 30, 10);
+    const contributorData = await fetchTopContributors(octokit, owner, repo, 10);
     
     // Enhanced language analysis
     const languageAnalysis = analyzeLanguages(languages);
@@ -455,11 +464,16 @@ export function extractOwnerAndRepo(url) {
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name  
  * @param {string} githubUsername - GitHub username to analyze
+ * @param {null} userId - Optional user ID for authentication
  * @returns {Promise<Object>} Activity statistics
  */
-export async function collectMemberActivity(owner, repo, githubUsername) {
+export async function collectMemberActivity(owner, repo, githubUsername, userId = null){
   try {
     console.error(`Collecting activity for ${githubUsername} in ${owner}/${repo}`);
+
+    const { octokit } = userId
+        ? await getOctokit(userId)
+        : await getOctokit();
     
     // Fetch user's commits
     const { data: commits } = await octokit.rest.repos.listCommits({
@@ -519,6 +533,8 @@ export async function collectMemberActivity(owner, repo, githubUsername) {
       lastActivity: commits.length > 0 ? commits[0].commit.author.date : null,
       collectedAt: new Date().toISOString()
     };
+
+    console.log(`Activity statistics for ${githubUsername}:`, stats);
     
     return stats;
   } catch (error) {

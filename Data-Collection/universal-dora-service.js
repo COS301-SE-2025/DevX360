@@ -1,4 +1,4 @@
-import { getNextOctokit } from '../services/tokenManager.js';
+import { getNextOctokit, getOctokit } from '../services/tokenManager.js';
 import { parseGitHubUrl } from './github-utils.js';
 
 /**
@@ -462,8 +462,10 @@ function calculateConfidenceScore(validationResults) {
  * @param {number} daysBack - Number of days to look back (e.g. 7, 30, 90)
  * @returns {Promise<Object>} DORA metrics object for the selected period
  */
-async function fetchRepositoryMetrics(owner, repo, daysBack = 30) {
-  const octokit = getNextOctokit();
+async function fetchRepositoryMetrics(owner, repo, daysBack = 30, userId = null) {
+  const { octokit } = userId
+      ? await getOctokit(userId)
+      : { octokit: getNextOctokit() };
 
   try {
     console.error(`Fetching DORA metrics for ${owner}/${repo} (${daysBack}-day analysis)...`);
@@ -578,13 +580,13 @@ async function fetchRepositoryMetrics(owner, repo, daysBack = 30) {
  *   "90d": {...}
  * }
  */
-async function getDORAMetrics(repositoryUrl) {
+async function getDORAMetrics(repositoryUrl, userId = null) {
   try {
     const { owner, repo } = parseGitHubUrl(repositoryUrl);
     return {
-      "7d": await fetchRepositoryMetrics(owner, repo, 7),
-      "30d": await fetchRepositoryMetrics(owner, repo, 30),
-      "90d": await fetchRepositoryMetrics(owner, repo, 90)
+      "7d": await fetchRepositoryMetrics(owner, repo, 7, userId),
+      "30d": await fetchRepositoryMetrics(owner, repo, 30, userId),
+      "90d": await fetchRepositoryMetrics(owner, repo, 90, userId)
     };
   } catch (error) {
     throw new Error(`Failed to fetch DORA metrics: ${error.message}`);

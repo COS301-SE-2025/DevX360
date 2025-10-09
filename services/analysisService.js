@@ -1,6 +1,7 @@
 import { performDORAAnalysis } from "./codeInterpretor.js";
 import RepoMetrics from "../api/models/RepoMetrics.js";
 import { parseGitHubUrl } from "../Data-Collection/repository-info-service.js";
+import Team from "../api/models/Team.js";
 
 export async function runAIAnalysis(teamId) {
     let metricsEntry;
@@ -10,6 +11,15 @@ export async function runAIAnalysis(teamId) {
       console.error(`Metrics not found for team: ${teamId}`);
       return;
     }
+
+    const team = await Team.findById(teamId).select('creator');
+    if (!team) {
+      console.error(`Team not found: ${teamId}`);
+      return;
+    }
+
+    const creatorUserId = team.creator;
+    console.log(`Using creator's token for AI analysis: ${creatorUserId}`);
     
     metricsEntry.analysisStatus = 'pending';
     await metricsEntry.save();
@@ -18,7 +28,7 @@ export async function runAIAnalysis(teamId) {
     const repoUrl = metricsEntry.repositoryInfo.url;
     const { owner, repo } = parseGitHubUrl(repoUrl);
     
-    const { insights, repositoryAnalysis, performance } = await performDORAAnalysis(owner, repo, metrics);
+    const { insights, repositoryAnalysis, performance } = await performDORAAnalysis(owner, repo, metrics, creatorUserId);
 
     metricsEntry.aiAnalysis = {
       insights,

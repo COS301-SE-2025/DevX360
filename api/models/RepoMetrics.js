@@ -51,7 +51,8 @@ const RepoMetricsSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'completed', 'failed'],
     default: 'pending'
-  }
+  },
+  memberStatsLastUpdated: { type: Date, default: Date.now }
 });
 
 RepoMetricsSchema.index({ teamId: 1 }, { unique: true });
