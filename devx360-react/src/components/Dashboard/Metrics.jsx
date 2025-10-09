@@ -768,7 +768,7 @@ function Metrics() {
   // Get metric statuses
   const deploymentStatus = getDeploymentStatus(parseFloat(deploymentFreq.frequency_per_day) || 0);
   const leadTimeStatus = getLeadTimeStatus(leadTime.average_days || 0);
-  const cfrStatus = getCFRStatus(changeFailureRate.failure_rate || 0);
+  const cfrStatus = getCFRStatus(changeFailureRate.deployment_failure_rate || 0);
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -910,11 +910,11 @@ function Metrics() {
                   </span>
                 </div>
                 <h3 className="text-2xl font-bold text-[var(--text)] mb-1">
-                  {changeFailureRate.failure_rate || '0%'}
+                  {changeFailureRate.deployment_failure_rate || '0%'}
                 </h3>
                 <p className="text-sm font-medium text-[var(--text-light)]">Change Failure Rate</p>
                 <p className="text-xs text-[var(--text-light)] mt-2">
-                  {changeFailureRate.bug_or_incident_fixes || 0} failures in {changeFailureRate.total_deployments || 0} deployments
+                  {changeFailureRate.deployment_failures || 0} failures in {changeFailureRate.total_deployments || 0} deployments
                 </p>
               </div>
             </div>
