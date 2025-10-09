@@ -38,6 +38,73 @@ Your MCP server provides these tools to Claude Desktop:
 - **Input**: `teamId` (Team identifier)
 - **Output**: AI insights, recommendations, improvement suggestions
 
+## 🔐 Private Repository Support - FULLY IMPLEMENTED! ✅
+
+### How It Works Now
+Claude Desktop now supports **multiple ways** to access private repositories:
+
+1. **User-Provided Tokens**: You can provide your own GitHub token
+2. **Stored User Tokens**: Use your connected GitHub account token
+3. **System Tokens**: Fallback to system tokens (GITHUB_TOKEN_1, GITHUB_TOKEN_2)
+
+### 🚀 New MCP Tools for Private Repos
+
+#### `analyze_repository` (Enhanced)
+- **Purpose**: Deep analysis of any repository (public or private)
+- **Input**: 
+  - `repositoryUrl` (required) - GitHub repository URL
+  - `githubToken` (optional) - Your personal GitHub token
+  - `userId` (optional) - Your user ID to use stored token
+- **Output**: Complete analysis with token usage information
+
+#### `check_github_auth` (New)
+- **Purpose**: Check your GitHub authentication status
+- **Input**: `userId` (required) - Your user ID
+- **Output**: Authentication status, token validity, scopes, private access capability
+
+### 🔑 Token Priority System
+```
+Priority 1: User-provided token (githubToken parameter)
+Priority 2: Stored user token (userId parameter) 
+Priority 3: System tokens (fallback)
+```
+
+### 💡 Usage Examples
+
+**Check Your GitHub Authentication:**
+```
+"Check my GitHub authentication status"
+```
+
+**Analyze Private Repository with Stored Token:**
+```
+"Analyze my private repository: https://github.com/myusername/private-repo"
+```
+
+**Analyze Private Repository with Specific Token:**
+```
+"Analyze my private repository: https://github.com/myusername/private-repo with my token: ghp_abc123..."
+```
+
+### 🔧 Setup Requirements
+
+**For Stored Token Access:**
+1. Connect your GitHub account in the web interface
+2. Ensure your token has `repo` scope for private access
+3. Use your `userId` in MCP requests
+
+**For Manual Token Access:**
+1. Generate a GitHub Personal Access Token with `repo` scope
+2. Provide the token directly in MCP requests
+3. Token is used only for that specific request
+
+### ✅ What's Working
+- ✅ Private repository analysis with user tokens
+- ✅ Automatic token validation and error handling
+- ✅ Clear status messages about token usage
+- ✅ Graceful fallbacks when tokens fail
+- ✅ Integration with existing GitHub authentication system
+
 ## 📋 Next Steps
 
 ### 1. Restart Claude Desktop
@@ -60,7 +127,16 @@ Try these example prompts in Claude Desktop:
 "Perform a deep analysis of https://github.com/nodejs/node"
 ```
 
-### 3. Verify MCP Tools Are Available
+### 3. Test Private Repository Access
+Try analyzing a private repository (if system tokens have access):
+
+```
+"Analyze the repository https://github.com/your-org/private-repo"
+```
+
+**Note**: You'll see a warning if the repository is private and may not be accessible.
+
+### 4. Verify MCP Tools Are Available
 - In Claude Desktop, you should see the MCP tools available
 - Look for indicators that the `devx360-dora-analytics` server is connected
 

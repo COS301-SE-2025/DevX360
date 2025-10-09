@@ -52,6 +52,40 @@ export async function safeAnalyzeRepository(url, userId = null) {
 }
 
 /**
+ * Safe wrapper for analyzeRepository with user-provided GitHub token
+ */
+export async function safeAnalyzeRepositoryWithToken(url, githubToken) {
+  if (MOCK_MODE) {
+    console.log("MOCK: analyzeRepositoryWithToken called for", url);
+    return {
+      metrics: {
+        deploymentFrequency: "daily",
+        leadTimeForChanges: "2h",
+        changeFailureRate: "5%",
+        timeToRestoreService: "1h",
+      },
+      metadata: {
+        url,
+        name: "mock-repo",
+        owner: "mock-owner",
+        description: "This is mock repository metadata (user token)",
+      },
+    };
+  }
+  
+  try {
+    // Import the analysis functions
+    const { analyzeRepositoryWithToken } = await import("./metricsService.js");
+    
+    // Use the token-based analysis function
+    return await analyzeRepositoryWithToken(url, githubToken);
+  } catch (error) {
+    console.error("analyzeRepositoryWithToken failed:", error.message);
+    throw error; // Don't return mock data for user tokens - let the caller handle the error
+  }
+}
+
+/**
  * Safe wrapper for runAIAnalysis
  */
 export async function safeRunAIAnalysis(teamId) {

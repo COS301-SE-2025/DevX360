@@ -106,9 +106,31 @@ class DevX360MCPServer {
                 repositoryUrl: {
                   type: "string",
                   description: "GitHub repository URL"
+                },
+                githubToken: {
+                  type: "string",
+                  description: "Optional: Your personal GitHub token for accessing private repositories"
+                },
+                userId: {
+                  type: "string", 
+                  description: "Optional: Your user ID to use your stored GitHub token"
                 }
               },
               required: ["repositoryUrl"]
+            }
+          },
+          {
+            name: "check_github_auth",
+            description: "Check your GitHub authentication status and token validity for private repository access",
+            inputSchema: {
+              type: "object",
+              properties: {
+                userId: {
+                  type: "string",
+                  description: "Your user ID to check GitHub authentication status"
+                }
+              },
+              required: ["userId"]
             }
           },
           {
@@ -141,6 +163,9 @@ class DevX360MCPServer {
         
         case 'analyze_repository':
           return await this.handleAnalyzeRepository(args);
+        
+        case 'check_github_auth':
+          return await this.handleCheckGitHubAuth(args);
         
         case 'get_ai_analysis':
           return await this.handleGetAIAnalysis(args);
@@ -219,28 +244,135 @@ class DevX360MCPServer {
     }
   }
 
-  async handleAnalyzeRepository(args) {
+  async handleCheckGitHubAuth(args) {
     try {
-      const { repositoryUrl } = args;
+      const { userId } = args;
       
-      if (!repositoryUrl) {
-        throw new Error('repositoryUrl is required');
+      if (!userId) {
+        throw new Error('userId is required');
       }
 
-      const analysis = await getJson('/api/mcp/analyze', { url: repositoryUrl });
+      const authStatus = await getJson('/api/mcp/user-token', { userId });
       
       return {
         content: [
           {
             type: 'text',
-            text: `Repository analysis (raw API data):\n\n` + JSON.stringify(analysis, null, 2)
+            text: `GitHub Authentication Status:\n\n` +
+                  `✅ Connected: ${authStatus.hasToken ? 'Yes' : 'No'}\n` +
+                  `👤 Username: ${authStatus.username || 'Not available'}\n` +
+                  `🔑 Token Valid: ${authStatus.tokenValid ? 'Yes' : 'No'}\n` +
+                  `🔒 Private Access: ${authStatus.hasPrivateAccess ? 'Yes' : 'No'}\n` +
+                  `📋 Scopes: ${authStatus.scopes?.join(', ') || 'None'}\n\n` +
+                  (authStatus.hasPrivateAccess 
+                    ? '✅ You can analyze private repositories using your stored GitHub token!'
+                    : '⚠️  You need to connect your GitHub account with "repo" scope to access private repositories.')
           }
         ],
         isError: false
       };
-      } catch (error) {
-        // If API returns 500 error, provide fallback analysis
-        if (error.message.includes('500 Internal Server Error')) {
+    } catch (error) {
+      if (error.message.includes('404')) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ GitHub Authentication Error\n\n` +
+                  `User not found or no GitHub account connected.\n\n` +
+                  `💡 To connect your GitHub account:\n` +
+                  `1. Go to your profile settings\n` +
+                  `2. Click "Connect GitHub"\n` +
+                  `3. Authorize with "repo" scope for private repository access`
+          }],
+          isError: true
+        };
+      }
+      
+      if (error.message.includes('401')) {
+        return {
+          content: [{
+            type: 'text',
+            text: `⚠️  GitHub Token Expired\n\n` +
+                  `Your stored GitHub token has expired or is invalid.\n\n` +
+                  `💡 Please reconnect your GitHub account:\n` +
+                  `1. Go to your profile settings\n` +
+                  `2. Click "Reconnect GitHub"\n` +
+                  `3. Authorize with "repo" scope for private repository access`
+          }],
+          isError: true
+        };
+      }
+      
+      throw error;
+    }
+  }
+
+  async handleAnalyzeRepository(args) {
+    try {
+      const { repositoryUrl, githubToken, userId } = args;
+      
+      if (!repositoryUrl) {
+        throw new Error('repositoryUrl is required');
+      }
+
+      // Build query parameters
+      const queryParams = { url: repositoryUrl };
+      if (githubToken) {
+        queryParams.githubToken = githubToken;
+      }
+      if (userId) {
+        queryParams.userId = userId;
+      }
+
+      const analysis = await getJson('/api/mcp/analyze', queryParams);
+      
+      // Enhanced status messages based on token type
+      let statusMessage = '';
+      switch (analysis._meta?.tokenType) {
+        case 'user_provided':
+          statusMessage = '✅ Using your provided GitHub token. Private repositories should be accessible.';
+          break;
+        case 'user_stored':
+          statusMessage = '✅ Using your stored GitHub token. Private repositories should be accessible.';
+          break;
+        case 'system':
+          statusMessage = '⚠️  Using system tokens. Private repositories may not be accessible unless the system tokens have access.';
+          if (analysis._meta?.warning) {
+            statusMessage += `\n\n⚠️  Warning: ${analysis._meta.warning}`;
+          }
+          break;
+        default:
+          statusMessage = '';
+      }
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Repository Analysis Results:\n\n${JSON.stringify(analysis, null, 2)}\n\n${statusMessage}`
+          }
+        ],
+        isError: false
+      };
+    } catch (error) {
+      // Enhanced error handling for private repos
+      if (error.message.includes('404') || error.message.includes('Not Found')) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ Repository Access Error\n\n` +
+                  `The repository "${args.repositoryUrl}" could not be accessed.\n\n` +
+                  `Possible reasons:\n` +
+                  `1. Repository doesn't exist\n` +
+                  `2. Repository is private and system tokens don't have access\n` +
+                  `3. Repository URL is incorrect\n\n` +
+                  `💡 Tip: For private repositories, ensure the system GitHub tokens have access to the repo.`
+          }],
+          isError: true
+        };
+      }
+      
+      // If API returns 500 error, provide fallback analysis
+      if (error.message.includes('500 Internal Server Error')) {
         console.error('API returned 500, providing fallback analysis for:', args.repositoryUrl);
         
         const fallbackAnalysis = {

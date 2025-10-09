@@ -31,6 +31,7 @@ import { userNeedsReauth } from '../services/tokenManager.js';
 //import { runAIAnalysis } from "../services/analysisService.js";
 import {
   safeAnalyzeRepository,
+  safeAnalyzeRepositoryWithToken,
   safeRunAIAnalysis,
   safeCollectMemberActivity,
 } from "../services/mockWrappers.js";
@@ -1921,19 +1922,149 @@ app.get("/api/mcp/metrics", authenticateMCP, async (req, res) => {
 });
 
 /**
+ * Get user's GitHub token for MCP usage
+ * @route GET /api/mcp/user-token?userId=...
+ * @middleware authenticateMCP
+ */
+app.get("/api/mcp/user-token", authenticateMCP, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+
+    const user = await User.findById(userId).select('githubAccessToken githubScopes githubTokenValid githubUsername');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.githubAccessToken) {
+      return res.status(404).json({ 
+        message: "No GitHub token found",
+        suggestion: "Please connect your GitHub account first",
+        githubAuthUrl: "/api/auth/github?flow=connect&returnTo=/dashboard/overview"
+      });
+    }
+
+    // Check if token needs reauth
+    const needsReauth = await userNeedsReauth(userId);
+    if (needsReauth) {
+      return res.status(401).json({
+        message: "GitHub token expired or invalid",
+        suggestion: "Please reconnect your GitHub account",
+        githubAuthUrl: "/api/auth/github?flow=connect&returnTo=/dashboard/overview"
+      });
+    }
+
+    res.json({
+      hasToken: true,
+      username: user.githubUsername,
+      scopes: user.githubScopes,
+      hasPrivateAccess: user.githubScopes?.includes('repo') || false,
+      tokenValid: user.githubTokenValid
+    });
+  } catch (error) {
+    console.error("MCP user token error:", error);
+    res.status(500).json({ 
+      message: "Failed to get user token",
+      error: error.message
+    });
+  }
+});
+
+/**
  * Performs deep repository analysis
  * @route GET /api/mcp/analyze?url=...
  * @middleware authenticateMCP
  */
 app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
   try {
-    const { url } = req.query;
+    const { url, githubToken, userId } = req.query;
     if (!url) return res.status(400).json({ message: "url is required" });
-    const analysis = await safeAnalyzeRepository(url);
-    res.json(analysis);
+    
+    let analysis;
+    let tokenInfo = {
+      tokenType: 'system',
+      canAccessPrivate: false,
+      message: 'Using system GitHub tokens'
+    };
+
+    // Priority 1: User-provided token (highest priority)
+    if (githubToken) {
+      try {
+        analysis = await safeAnalyzeRepositoryWithToken(url, githubToken);
+        tokenInfo = {
+          tokenType: 'user_provided',
+          canAccessPrivate: true,
+          message: 'Using user-provided GitHub token'
+        };
+      } catch (tokenError) {
+        console.error("User-provided token analysis failed, falling back to stored user token:", tokenError);
+        // Fall back to stored user token if provided
+        if (userId) {
+          try {
+            analysis = await safeAnalyzeRepository(url, userId);
+            tokenInfo = {
+              tokenType: 'user_stored',
+              canAccessPrivate: true,
+              message: 'Using stored user GitHub token'
+            };
+          } catch (storedTokenError) {
+            console.error("Stored user token failed, falling back to system tokens:", storedTokenError);
+            analysis = await safeAnalyzeRepository(url, null);
+            tokenInfo = {
+              tokenType: 'system',
+              canAccessPrivate: false,
+              message: 'User tokens failed, using system tokens',
+              warning: 'User-provided and stored tokens may be invalid or expired'
+            };
+          }
+        } else {
+          analysis = await safeAnalyzeRepository(url, null);
+          tokenInfo = {
+            tokenType: 'system',
+            canAccessPrivate: false,
+            message: 'User token failed, using system tokens',
+            warning: 'User-provided token may be invalid or expired'
+          };
+        }
+      }
+    }
+    // Priority 2: Stored user token (if userId provided)
+    else if (userId) {
+      try {
+        analysis = await safeAnalyzeRepository(url, userId);
+        tokenInfo = {
+          tokenType: 'user_stored',
+          canAccessPrivate: true,
+          message: 'Using stored user GitHub token'
+        };
+      } catch (userTokenError) {
+        console.error("Stored user token analysis failed, falling back to system tokens:", userTokenError);
+        analysis = await safeAnalyzeRepository(url, null);
+        tokenInfo = {
+          tokenType: 'system',
+          canAccessPrivate: false,
+          message: 'Stored user token failed, using system tokens',
+          warning: 'Stored user token may be invalid or expired'
+        };
+      }
+    }
+    // Priority 3: System tokens (fallback)
+    else {
+      analysis = await safeAnalyzeRepository(url, null);
+    }
+    
+    res.json({
+      ...analysis,
+      _meta: tokenInfo
+    });
   } catch (err) {
     console.error("MCP analyze error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ 
+      message: "Analysis failed",
+      error: err.message,
+      suggestion: "Repository may be private or inaccessible. Try providing your GitHub token or connecting your GitHub account."
+    });
   }
 });
 

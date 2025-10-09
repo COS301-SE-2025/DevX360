@@ -1,3 +1,4 @@
+import { Octokit } from 'octokit';
 import { getNextOctokit, getOctokit } from '../services/tokenManager.js';
 import { parseGitHubUrl } from './github-utils.js';
 
@@ -843,8 +844,124 @@ function calculateMTTR(issues) {
   };
 }
 
+/**
+ * Get DORA metrics using a user-provided GitHub token
+ * @param {string} repositoryUrl - GitHub repository URL
+ * @param {string} githubToken - User's GitHub personal access token
+ * @returns {Promise<Object>} DORA metrics
+ */
+async function getDORAMetricsWithToken(repositoryUrl, githubToken) {
+  try {
+    const { owner, repo } = parseGitHubUrl(repositoryUrl);
+    return {
+      "7d": await fetchRepositoryMetricsWithToken(owner, repo, 7, githubToken),
+      "30d": await fetchRepositoryMetricsWithToken(owner, repo, 30, githubToken),
+      "90d": await fetchRepositoryMetricsWithToken(owner, repo, 90, githubToken)
+    };
+  } catch (error) {
+    console.error(`DORA metrics failed for ${repositoryUrl}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch repository metrics using a user-provided GitHub token
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name
+ * @param {number} daysBack - Number of days to analyze
+ * @param {string} githubToken - User's GitHub personal access token
+ * @returns {Promise<Object>} Repository metrics
+ */
+async function fetchRepositoryMetricsWithToken(owner, repo, daysBack = 30, githubToken) {
+  // Create Octokit instance with user's token
+  const octokit = new Octokit({
+    auth: githubToken,
+    throttle: {
+      onRateLimit: (retryAfter, options) => {
+        console.error(`Rate limit hit, waiting ${retryAfter} seconds...`);
+        return true;
+      },
+      onSecondaryRateLimit: (retryAfter, options) => {
+        console.error(`Secondary rate limit hit, waiting ${retryAfter} seconds...`);
+        return true;
+      }
+    }
+  });
+
+  console.error(`Fetching DORA metrics for ${owner}/${repo} (${daysBack}-day analysis) with user token...`);
+  
+  const endDate = new Date();
+  const startDate = new Date(endDate.getTime() - (daysBack * 24 * 60 * 60 * 1000));
+  
+  console.error(`[${owner}/${repo}] Starting parallel API calls...`);
+  
+  // Fetch repo data in parallel with detailed logging
+  const [releasesRes, tagsRes, commitsRes, pullsRes, issuesRes] = await Promise.all([
+    octokit.rest.repos.listReleases({ owner, repo, per_page: 100 }).catch(err => {
+      console.error(`[${owner}/${repo}] RELEASES API FAILED:`, err.message, err.status);
+      throw err;
+    }),
+    octokit.rest.repos.listTags({ owner, repo, per_page: 100 }).catch(err => {
+      console.error(`[${owner}/${repo}] TAGS API FAILED:`, err.message, err.status);
+      throw err;
+    }),
+    octokit.rest.repos.listCommits({ owner, repo, since: startDate.toISOString(), per_page: 100 }).catch(err => {
+      console.error(`[${owner}/${repo}] COMMITS API FAILED:`, err.message, err.status);
+      throw err;
+    }),
+    octokit.rest.pulls.list({ owner, repo, state: 'all', per_page: 100 }).catch(err => {
+      console.error(`[${owner}/${repo}] PULLS API FAILED:`, err.message, err.status);
+      throw err;
+    }),
+    octokit.rest.issues.listForRepo({ owner, repo, state: 'all', per_page: 100 }).catch(err => {
+      console.error(`[${owner}/${repo}] ISSUES API FAILED:`, err.message, err.status);
+      throw err;
+    })
+  ]);
+
+  const releases = releasesRes.data || [];
+  const tags = tagsRes.data || [];
+  const commits = commitsRes.data || [];
+  const pullRequests = pullsRes.data || [];
+  const issues = issuesRes.data || [];
+
+  // Calculate DORA metrics
+  const deploymentFrequency = calculateDeploymentFrequency(releases, tags, daysBack, commits);
+  const leadTime = calculateLeadTime(pullRequests, commits);
+  const mttr = calculateMTTR(issues);
+  const changeFailureRate = calculateUniversalChangeFailureRate(releases, issues, commits);
+
+  return {
+    repository: {
+      name: repo,
+      owner: owner,
+      full_name: `${owner}/${repo}`,
+      url: `https://github.com/${owner}/${repo}`
+    },
+    analysis_period: {
+      days_back: daysBack,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString()
+    },
+    deployment_frequency: deploymentFrequency,
+    lead_time: leadTime,
+    mttr: mttr,
+    change_failure_rate: changeFailureRate,
+    data_summary: {
+      releases_count: releases.length,
+      tags_count: tags.length,
+      commits_count: commits.length,
+      pull_requests_count: pullRequests.length,
+      issues_count: issues.length,
+      analysis_period_days: daysBack,
+      fetched_at: new Date().toISOString()
+    }
+  };
+}
+
 export {
   getDORAMetrics,
+  getDORAMetricsWithToken,
   getDORAMetricsBatch,
   getOrganizationDORAMetrics,
   parseGitHubUrl
