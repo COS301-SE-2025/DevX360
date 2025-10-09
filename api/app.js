@@ -552,6 +552,8 @@ app.post("/api/profile/connect-github", authenticateToken, async (req, res) => {
       githubUsername: githubData.login,
       githubAccessToken: githubData.accessToken,
       githubScopes: githubData.scopes,
+      githubTokenValid: true,
+      githubTokenLastChecked: new Date()
     };
 
     // Optionally update name if not set
