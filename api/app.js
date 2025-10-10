@@ -329,7 +329,7 @@ app.get("/api/auth/github", (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const state = Buffer.from(JSON.stringify({ flow, returnTo })).toString('base64');
 
-  const scopes = flow === 'connect' ? 'user,repo' : 'user';
+  const scopes = 'user,repo';
 
   const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=${scopes}&state=${state}`;
   res.redirect(redirectUrl);
