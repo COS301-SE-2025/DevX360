@@ -4,15 +4,6 @@ export default {
     '**/__tests__/**/*.test.js',
     '**/*.test.js'
   ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/.aws-sam/',
-    '/DevX360/',
-    '/Data Collection/',
-    '/build/',
-    '/dist/',
-    '/frontend/'
-  ],
   collectCoverageFrom: [
     'api/**/*.js',
     'services/**/*.js',
