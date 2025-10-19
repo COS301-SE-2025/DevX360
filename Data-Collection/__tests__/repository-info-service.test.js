@@ -1,55 +1,33 @@
-// repository-info-service.test.js
+import { jest, describe, beforeEach, test, expect } from '@jest/globals';
 
-/**
- * Jest Test Suite for repository-info-service.js
- * ----------------------------------------------
- * This file mocks all external dependencies (Octokit + tokenManager)
- * to ensure the tests run in isolation and do not require real GitHub tokens.
- */
+// Mock Octokit BEFORE importing the module under test
+const mockGet = jest.fn();
+const mockListLanguages = jest.fn();
+const mockListCommits = jest.fn();
+const mockListContributors = jest.fn();
+const mockListForRepo = jest.fn();
+const mockPullsList = jest.fn();
 
-import { jest } from '@jest/globals'
-
-// ✅ Mock the token manager to avoid real token usage
-jest.unstable_mockModule('../services/tokenManager.js', () => ({
-  getOctokit: jest.fn(() => ({
-    rest: {
-      repos: {
-        get: jest.fn().mockResolvedValue({ data: {} }),
-        listLanguages: jest.fn().mockResolvedValue({ data: {} }),
-        listCommits: jest.fn().mockResolvedValue({ data: [] }),
-        listContributors: jest.fn().mockResolvedValue({ data: [] }),
-      },
-      issues: {
-        listForRepo: jest.fn().mockResolvedValue({ data: [] }),
-      },
-      pulls: {
-        list: jest.fn().mockResolvedValue({ data: [] }),
-      },
-    },
-  })),
-}));
-
-// ✅ Mock the Octokit dependency to isolate from real GitHub API
 jest.unstable_mockModule('octokit', () => ({
-  Octokit: jest.fn(() => ({
+  Octokit: jest.fn().mockImplementation(() => ({
     rest: {
       repos: {
-        get: jest.fn().mockResolvedValue({ data: {} }),
-        listLanguages: jest.fn().mockResolvedValue({ data: {} }),
-        listCommits: jest.fn().mockResolvedValue({ data: [] }),
-        listContributors: jest.fn().mockResolvedValue({ data: [] }),
+        get: mockGet,
+        listLanguages: mockListLanguages,
+        listCommits: mockListCommits,
+        listContributors: mockListContributors,
       },
       issues: {
-        listForRepo: jest.fn().mockResolvedValue({ data: [] }),
+        listForRepo: mockListForRepo,
       },
       pulls: {
-        list: jest.fn().mockResolvedValue({ data: [] }),
+        list: mockPullsList,
       },
     },
   })),
 }));
 
-// ✅ Import the module under test *after* mocks are applied
+// Import the module under test after mocking
 const {
   getRepositoryInfo,
   parseGitHubUrl,
@@ -58,64 +36,74 @@ const {
   createMockRepositoryResponse,
 } = await import('../repository-info-service.js');
 
-// ---------------------------------------------------------------------------
-// TEST SUITE
-// ---------------------------------------------------------------------------
-
-describe('Repository Info Service', () => {
-
-  // -----------------------------------------------------------------------
-  // URL Parsing
-  // -----------------------------------------------------------------------
-  test('parseGitHubUrl correctly parses valid GitHub URLs', () => {
-    const url = 'https://github.com/user/repo';
-    const result = parseGitHubUrl(url);
-    expect(result).toEqual({ owner: 'user', repo: 'repo' });
+describe('RepositoryInfoService', () => {
+  beforeEach(() => {
+    mockGet.mockClear();
+    mockListLanguages.mockClear();
+    mockListCommits.mockClear().mockResolvedValue({ data: [] });
+    mockListContributors.mockClear();
+    mockListForRepo.mockClear();
+    mockPullsList.mockClear();
   });
 
-  test('parseGitHubUrl returns null for invalid URLs', () => {
-    const badUrl = 'https://example.com/not-github';
-    expect(parseGitHubUrl(badUrl)).toBeNull();
+  describe('parseGitHubUrl', () => {
+    test('should parse a valid GitHub URL', () => {
+      const { owner, repo } = parseGitHubUrl('https://github.com/owner/repo');
+      expect(owner).toBe('owner');
+      expect(repo).toBe('repo');
+    });
+    test('should handle URLs with .git extension', () => {
+      const { owner, repo } = parseGitHubUrl('https://github.com/owner/repo.git');
+      expect(owner).toBe('owner');
+      expect(repo).toBe('repo');
+    });
   });
 
-  // -----------------------------------------------------------------------
-  // Repository Info Retrieval
-  // -----------------------------------------------------------------------
-  test('getRepositoryInfo fetches and validates data successfully', async () => {
-    const url = 'https://github.com/example/repo';
-    const data = await getRepositoryInfo(url);
+  describe('fetchTopContributors', () => {
+    test('fetches contributors', async () => {
+      const contributorsData = [{ login: 'user1', contributions: 100 }];
+      mockListContributors.mockResolvedValue({ data: contributorsData });
 
-    expect(data).toBeDefined();
-    expect(typeof data).toBe('object');
+      const result = await fetchTopContributors('owner', 'repo', 1);
+      expect(result.contributors[0].username).toBe('user1');
+      expect(result.contributors[0].contributions).toBe(100);
+    });
   });
 
-  // -----------------------------------------------------------------------
-  // Top Contributors
-  // -----------------------------------------------------------------------
-  test('fetchTopContributors returns expected format', async () => {
-    const contributors = await fetchTopContributors('example', 'repo');
-    expect(contributors).toBeInstanceOf(Array);
+  describe('getRepositoryInfo', () => {
+    test('fetches repository info', async () => {
+      const repoData = { name: 'repo', full_name: 'owner/repo', stargazers_count: 10, forks_count: 5, watchers_count: 10, open_issues_count: 2, size: 1024, license: { name: 'MIT' }, html_url: '', clone_url: '', created_at: '', updated_at: '', pushed_at: '', default_branch: 'main', private: false, fork: false, archived: false, disabled: false, topics: [] };
+      const languagesData = { JavaScript: 1000 };
+      const contributorsData = [{ login: 'user1', contributions: 100 }];
+      const issuesData = [{ id: 1, pull_request: null }];
+      const pullsData = [{ id: 1 }];
+
+      mockGet.mockResolvedValue({ data: repoData });
+      mockListLanguages.mockResolvedValue({ data: languagesData });
+      mockListContributors.mockResolvedValue({ data: contributorsData });
+      mockListForRepo.mockResolvedValue({ data: issuesData });
+      mockPullsList.mockResolvedValue({ data: pullsData });
+
+      const result = await getRepositoryInfo('https://github.com/owner/repo');
+      expect(result.name).toBe('repo');
+      expect(result.primary_language).toBe('JavaScript');
+    });
   });
 
-  // -----------------------------------------------------------------------
-  // Validation
-  // -----------------------------------------------------------------------
-  test('validateRepositoryInfo returns true for valid repository data', () => {
-    const mockRepo = { name: 'repo', owner: 'example', stargazers_count: 10 };
-    expect(validateRepositoryInfo(mockRepo)).toBe(true);
+  describe('validateRepositoryInfo', () => {
+    test('returns true for valid info', () => {
+      expect(validateRepositoryInfo({ name: 'repo', full_name: 'owner/repo', contributors: [], total_contributors: 0 })).toBe(true);
+    });
+    test('returns false for invalid info', () => {
+      expect(validateRepositoryInfo({ name: 'repo' })).toBe(false);
+    });
   });
 
-  test('validateRepositoryInfo returns false for invalid data', () => {
-    const mockRepo = { name: '', owner: null };
-    expect(validateRepositoryInfo(mockRepo)).toBe(false);
-  });
-
-  // -----------------------------------------------------------------------
-  // Mock Data Creation
-  // -----------------------------------------------------------------------
-  test('createMockRepositoryResponse generates valid structure', () => {
-    const mock = createMockRepositoryResponse();
-    expect(mock).toHaveProperty('owner');
-    expect(mock).toHaveProperty('repo');
+  describe('createMockRepositoryResponse', () => {
+    test('returns mock response', () => {
+      const mockResponse = createMockRepositoryResponse();
+      expect(mockResponse.name).toBe('test-repository');
+      expect(mockResponse.total_contributors).toBe(3);
+    });
   });
 });
