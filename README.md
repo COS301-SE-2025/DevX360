@@ -141,7 +141,7 @@ Welcome to **Team DOSKS**! We’re final-year Computer Science students at the U
 
 Find me on:
 
-[![LinkedIn – Sipho Sehlapelo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sipho%20Sehlapelo)](https://www.linkedin.com/in/sipho-sehlapelo-769155356)
+[![LinkedIn – Sipho Sehlapelo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sipho%20Sehlapelo)](https://www.linkedin.com/in/sipho-sehlapelo-769155356)[![GitHub - Sipho Sehlapelo](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/Letha456)
 
 </div>
 </details>
@@ -159,7 +159,7 @@ Engineering</summary>
 
 Find me here:
 
-[![LinkedIn – Sibusiso Mngomezulu](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sibusiso%20Mngomezulu)](https://www.linkedin.com/in/sibusiso-mngomezulu-)
+[![LinkedIn – Sibusiso Mngomezulu](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sibusiso%20Mngomezulu)](https://www.linkedin.com/in/sibusiso-mngomezulu-)[![GitHub - Sibusiso Mngomezulu](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/SibusisoMngo)
 
 </div>
 </details>
@@ -178,7 +178,7 @@ Engineer, Testing Engineer, and Architect.
 
 Contact me here:
 
-[![LinkedIn – Kelsey Hamann](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Kelsey%20Hamann)](https://www.linkedin.com/in/kelsey-d-hamann)
+[![LinkedIn – Kelsey Hamann](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Kelsey%20Hamann)](https://www.linkedin.com/in/kelsey-d-hamann)[![GitHub - Kelsey Hamann](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/khamann39)
 
 </div>
 </details>
@@ -196,7 +196,7 @@ Architect and DevOps Engineer.
 
 Contact me here:
 
-[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](https://www.linkedin.com/in/d-m-a-381700356)
+[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](https://www.linkedin.com/in/d-m-a-381700356)[![GitHub - David Musa-Alsien](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/LovelyPandaGuy)
 
 </div>
 </details>
@@ -213,7 +213,7 @@ Contact me here:
 
 Contact me here:
 
-[![LinkedIn – Lwando](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Lwando%20Msindo)](https://www.linkedin.com/in/lwando-msindo-0220722b5/)
+[![LinkedIn – Lwando Msindo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Lwando%20Msindo)](https://www.linkedin.com/in/lwando-msindo-0220722b5/)[![GitHub - Lwando](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/lwando04)
 
 </div>
 </details>
