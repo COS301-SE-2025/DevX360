@@ -26,7 +26,7 @@ async function importModifiedModule(filePath, namesToExport) {
   return import(dataUrl);
 }
 
-const FILE = path.resolve(process.cwd(), 'Data Collection/universal-dora-service.js');
+const FILE = path.resolve(process.cwd(), 'Data-Collection/universal-dora-service.js');
 
 beforeAll(() => {
   jest.useFakeTimers();
