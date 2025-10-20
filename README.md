@@ -60,65 +60,14 @@ We use a collaborative workflow to manage progress and documentation.
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
 - [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.4.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
-- [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)  
+- [DevX360 Testing Policy](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Testing%20Policy%20V2.pdf)
+
+
 
 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
 ---
-
-<details>
-<summary><strong>🚀 Sprint 1 Docs</strong></summary>
-
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS.pdf)  
-
-</details>
-
----
-
-<details>
-<summary><strong>⚡ Sprint 2 Docs</strong></summary>
-
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/SRS%20V2.1.pdf)  
-- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Project%20Planning%20and%20Role%20Allocation%20V3.pdf)  
-- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/DevX360%20Coding%20Standards.pdf)    
-- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/feature/documentation/Documentation/Architectural%20Requirements%20V2.pdf)  
-
-</details>
-
----
-
-<details>
-<summary><strong>🔥 Sprint 3 Docs</strong></summary>
-
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/SRS%20V2.3.2.pdf)  
-- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/Project%20Planning%20and%20Role%20Allocation%20V4.pdf)  
-- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/DevX360%20Coding%20Standards%20V3.pdf)  
-- [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
-- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V3/Architectural%20Requirements%20V4.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)  
-
-</details>
-
----
-
-<details>
-<summary><strong>👨‍🍳 Sprint 4 Docs</strong></summary>
-  
-- [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V5.pdf)
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.5.pdf)  
-- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
-- [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
-- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.4.pdf)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
-- [Burn-Down Chart](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DexX360%20Burn-Down%20Chart.pdf)
-
-</details>
-
----
-
-
-
 
 
 
