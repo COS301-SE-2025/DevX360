@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://devx360.app" target="_blank">🚀 Visit DevX360</a></strong>
+  <strong><a href="https://devx360.app" target="_blank">Visit DevX360</a></strong>
 </p>
 
 # DevX360: AI-Powered DevOps Analytics Platform
