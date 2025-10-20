@@ -76,7 +76,7 @@ We use a collaborative workflow to manage progress and documentation.
 - <strong><a href="https://devx360.app" target="_blank">Visit DevX360</a></strong>
 - [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
 - HOW YOU CAN HELP US
-
+- [View Our Full Updated Documentation](https://github.com/COS301-SE-2025/DevX360/tree/main/Documentation%20V4)
 
 
 
