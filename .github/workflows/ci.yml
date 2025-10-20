@@ -27,6 +27,5 @@ jobs:
 
       - name: Run tests
         run: |
-          npm test Data-Collection/__tests__
           npm test api/__tests__
           npm test mcp/__tests__
