@@ -146,7 +146,9 @@ Architect and DevOps Engineer.
 
 Contact me here:
 
-[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](www.linkedin.com/in/david-musa-aisien-381700356)[![GitHub - David Musa-Alsien](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/LovelyPandaGuy)
+[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](https://www.linkedin.com/in/david-musa-aisien-381700356)
+[![GitHub - David Musa-Alsien](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/LovelyPandaGuy)
+
 
 </div>
 </details>
