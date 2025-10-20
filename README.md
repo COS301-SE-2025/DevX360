@@ -4,9 +4,7 @@
   </a>
 </p>
 
-<p align="center">
-  <strong><a href="https://devx360.app" target="_blank">Visit DevX360</a></strong>
-</p>
+
 
 # DevX360: AI-Powered DevOps Analytics Platform
 
@@ -61,14 +59,26 @@
 We use a collaborative workflow to manage progress and documentation.
 
 ## 📄 View Our Documentation
+- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.5.pdf)
+- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)
+- [DevX360 Testing Policy](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Testing%20Policy%20V2.pdf) 
 - [Project Planning and Role Allocation](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Project%20Planning%20and%20Role%20Allocation%20V5.pdf)
-- [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.5.pdf)  
-- [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
+- 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
-- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)  
-- [DevX360 Testing Policy](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Testing%20Policy%20V2.pdf)
+- Meet the team: [![LinkedIn – Sipho Sehlapelo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sipho%20Sehlapelo)](https://www.linkedin.com/in/sipho-sehlapelo-769155356)[![GitHub - Sipho Sehlapelo](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/Letha456)
+- [![LinkedIn – Sibusiso Mngomezulu](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Sibusiso%20Mngomezulu)](https://www.linkedin.com/in/sibusiso-mngomezulu-)[![GitHub - Sibusiso Mngomezulu](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/SibusisoMngo)
+-[![LinkedIn – Kelsey Hamann](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Kelsey%20Hamann)](https://www.linkedin.com/in/kelsey-d-hamann)[![GitHub - Kelsey Hamann](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/khamann39)
+-[![LinkedIn – David Musa-Alsien](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=David%20Musa-Alsien)](https://www.linkedin.com/in/david-musa-aisien-381700356)
+[![GitHub - David Musa-Alsien](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/LovelyPandaGuy)
+-[![LinkedIn – Lwando Msindo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Lwando%20Msindo)](https://www.linkedin.com/in/lwando-msindo-0220722b5/)[![GitHub - Lwando](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/lwando04)
+- VIDEO
+- RESEARCH
+- <strong><a href="https://devx360.app" target="_blank">Visit DevX360</a></strong>
+- [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
+- HOW YOU CAN HELP US
 
-📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
+
+
 
 ---
 
