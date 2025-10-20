@@ -1,26 +1,19 @@
 // Data-Collection/__tests__/get-dora-metrics.integration.test.js
+import { getDORAMetrics } from '../universal-dora-service.js';
+import { getOctokit } from '../services/tokenManager.js';
+import { Octokit } from 'octokit';
 
-// Mock Octokit
-jest.unstable_mockModule('octokit', () => ({
-  Octokit: class {
-    constructor() {}
-    rest = {
-      repos: {
-        get: jest.fn(async () => ({ data: { name: 'mock-repo', owner: { login: 'mock-owner' } } })),
-        listCommits: jest.fn(async () => ({ data: [] })),
-      },
-      pulls: {
-        list: jest.fn(async () => ({ data: [] })),
-      },
-      users: {
-        getAuthenticated: jest.fn(async () => ({ data: { login: 'mock-user', id: 123 } })),
-      },
-    };
-  },
+jest.mock('octokit', () => ({
+  Octokit: jest.fn().mockImplementation(() => ({
+    rest: {
+      repos: { get: jest.fn(async () => ({ data: { name: 'mock-repo', owner: { login: 'mock-owner' } } })), listCommits: jest.fn(async () => ({ data: [] })) },
+      pulls: { list: jest.fn(async () => ({ data: [] })) },
+      users: { getAuthenticated: jest.fn(async () => ({ data: { login: 'mock-user', id: 123 } })) },
+    },
+  })),
 }));
 
-// Mock getOctokit
-jest.unstable_mockModule('../services/tokenManager.js', () => ({
+jest.mock('../services/tokenManager.js', () => ({
   getOctokit: jest.fn(async () => ({
     octokit: new (await import('octokit')).Octokit(),
     tokenType: 'system',
@@ -28,8 +21,6 @@ jest.unstable_mockModule('../services/tokenManager.js', () => ({
     canAccessPrivate: true,
   })),
 }));
-
-const { getDORAMetrics } = await import('../universal-dora-service.js');
 
 describe('Integration: getDORAMetrics', () => {
   test('returns all DORA metrics', async () => {
