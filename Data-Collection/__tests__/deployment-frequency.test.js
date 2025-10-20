@@ -1,35 +1,31 @@
 // Data-Collection/__tests__/deployment-frequency.test.js
+import { calculateDeploymentFrequency } from '../deployment-frequency.js';
+import { getOctokit } from '../services/tokenManager.js';
+import { Octokit } from 'octokit';
 
-// Mock Octokit
-jest.unstable_mockModule('octokit', () => ({
-  Octokit: class {
-    constructor() {}
-    rest = {
+// Mock Octokit class
+jest.mock('octokit', () => ({
+  Octokit: jest.fn().mockImplementation(() => ({
+    rest: {
       repos: {
         get: jest.fn(async () => ({ data: {} })),
         listCommits: jest.fn(async () => ({ data: [] })),
       },
-      pulls: {
-        list: jest.fn(async () => ({ data: [] })),
-      },
-      users: {
-        getAuthenticated: jest.fn(async () => ({ data: { login: 'mock-user', id: 123 } })),
-      },
-    };
-  },
+      pulls: { list: jest.fn(async () => ({ data: [] })) },
+      users: { getAuthenticated: jest.fn(async () => ({ data: { login: 'mock-user', id: 123 } })) },
+    },
+  })),
 }));
 
-// Mock getOctokit
-jest.unstable_mockModule('../services/tokenManager.js', () => ({
+// Mock getOctokit to always return a mocked Octokit instance
+jest.mock('../services/tokenManager.js', () => ({
   getOctokit: jest.fn(async () => ({
-    octokit: new (await import('octokit')).Octokit(),
+    octokit: new Octokit(),
     tokenType: 'system',
     needsReauth: false,
     canAccessPrivate: true,
   })),
 }));
-
-const { calculateDeploymentFrequency } = await import('../deployment-frequency.js');
 
 describe('calculateDeploymentFrequency()', () => {
   test('a) no deployments → arrays and zero frequencies', () => {
