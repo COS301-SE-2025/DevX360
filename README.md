@@ -72,10 +72,9 @@ We use a collaborative workflow to manage progress and documentation.
 [![GitHub - David Musa-Alsien](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/LovelyPandaGuy)
 [![LinkedIn – Lwando Msindo](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&label=Lwando%20Msindo)](https://www.linkedin.com/in/lwando-msindo-0220722b5/)[![GitHub - Lwando](https://img.shields.io/badge/GitHub-%23121011.svg?logo=github&logoColor=white)](https://github.com/lwando04)
 - [View A Demo Of Our System](https://youtu.be/uH9avGoDJd4)
-- RESEARCH
+- [DevX360 Research Contribution](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Research%20Contribution.pdf)
 - <strong><a href="https://devx360.app" target="_blank">Visit DevX360</a></strong>
 - [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)
-- HOW YOU CAN HELP US
 - [View Our Full Updated Documentation](https://github.com/COS301-SE-2025/DevX360/tree/main/Documentation%20V4)
 
 
