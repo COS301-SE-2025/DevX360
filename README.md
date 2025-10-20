@@ -59,17 +59,12 @@ We use a collaborative workflow to manage progress and documentation.
 - [System Requirements Specification (SRS)](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/SRS%20V2.5.pdf)  
 - [Coding Standards Document](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Coding%20Standards%20V3.1.pdf)  
 - [User Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/frontend/README.md)  
-- [Architectural Requirements](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/Architectural%20Requirements%20V4.4.pdf)  
 - [Technical Installation Manual](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation)  
 - [DevX360 Testing Policy](https://github.com/COS301-SE-2025/DevX360/blob/main/Documentation%20V4/DevX360%20Testing%20Policy%20V2.pdf)
-
-
 
 📋 Track our progress on the [Project Board](https://github.com/COS301-SE-2025/DevX360/projects?query=is%3Aopen)
 
 ---
-
-
 
 ## 👥 Team DOSKS
 
