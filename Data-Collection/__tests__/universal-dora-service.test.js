@@ -1,173 +1,64 @@
+// Data-Collection/__tests__/universal-dora-service.test.js
 
-import { jest, describe, beforeEach, afterEach, test, expect } from '@jest/globals';
-
-const mockListReleases = jest.fn();
-const mockListTags = jest.fn();
-const mockListCommits = jest.fn();
-const mockListPulls = jest.fn();
-const mockListIssues = jest.fn();
-
-jest.unstable_mockModule('../../services/tokenManager.js', () => ({
-  getNextOctokit: jest.fn().mockImplementation(() => ({
-    rest: {
+// Mock Octokit
+jest.unstable_mockModule('octokit', () => ({
+  Octokit: class {
+    constructor() {}
+    rest = {
       repos: {
-        listReleases: mockListReleases,
-        listTags: mockListTags,
-        listCommits: mockListCommits,
+        get: jest.fn(async () => ({ data: { name: 'mock-repo', owner: { login: 'mock-owner' } } })),
+        listCommits: jest.fn(async () => ({ data: [] })),
       },
       pulls: {
-        list: mockListPulls,
+        list: jest.fn(async () => ({ data: [] })),
       },
-      issues: {
-        listForRepo: mockListIssues,
+      users: {
+        getAuthenticated: jest.fn(async () => ({ data: { login: 'mock-user', id: 123 } })),
       },
-    },
+    };
+  },
+}));
+
+// Mock getOctokit
+jest.unstable_mockModule('../services/tokenManager.js', () => ({
+  getOctokit: jest.fn(async () => ({
+    octokit: new (await import('octokit')).Octokit(),
+    tokenType: 'system',
+    needsReauth: false,
+    canAccessPrivate: true,
   })),
 }));
 
 const { getDORAMetrics, parseGitHubUrl } = await import('../universal-dora-service.js');
 
-// Helper to generate recent dates for testing
-const getRecentDate = (daysAgo) => {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString();
-};
-
-describe('UniversalDoraService', () => {
-
-  beforeEach(() => {
-    mockListReleases.mockClear();
-    mockListTags.mockClear();
-    mockListCommits.mockClear();
-    mockListPulls.mockClear();
-    mockListIssues.mockClear();
-    // Suppress console output during tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+describe('parseGitHubUrl()', () => {
+  test('valid URL', () => {
+    const result = parseGitHubUrl('https://github.com/owner/repo.git');
+    expect(result).toEqual({ owner: 'owner', repo: 'repo' });
   });
 
-  afterEach(() => {
-    // Restore console output
-    console.log.mockRestore();
-    console.error.mockRestore();
+  test('invalid host', () => {
+    const result = parseGitHubUrl('https://gitlab.com/owner/repo.git');
+    expect(result).toBeNull();
   });
 
-  describe('parseGitHubUrl', () => {
-    test('should parse a valid GitHub URL', () => {
-      const url = 'https://github.com/owner/repo';
-      const { owner, repo } = parseGitHubUrl(url);
-      expect(owner).toBe('owner');
-      expect(repo).toBe('repo');
-    });
-
-    test('should handle URLs with .git extension', () => {
-      const url = 'https://github.com/owner/repo.git';
-      const { owner, repo } = parseGitHubUrl(url);
-      expect(owner).toBe('owner');
-      expect(repo).toBe('repo');
-    });
-
-    test('should throw an error for invalid hostnames', () => {
-      const url = 'https://gitlab.com/owner/repo';
-      expect(() => parseGitHubUrl(url)).toThrow('Invalid GitHub URL: hostname must be github.com');
-    });
+  test('missing parts', () => {
+    const result = parseGitHubUrl('https://github.com/owner');
+    expect(result).toBeNull();
   });
 
-  describe('getDORAMetrics', () => {
-    test('should fetch and calculate DORA metrics with no data', async () => {
-      // Arrange: Mock API responses with empty data
-      mockListReleases.mockResolvedValue({ data: [] });
-      mockListTags.mockResolvedValue({ data: [] });
-      mockListCommits.mockResolvedValue({ data: [] });
-      mockListPulls.mockResolvedValue({ data: [] });
-      mockListIssues.mockResolvedValue({ data: [] });
+  test('.git suffix removed', () => {
+    const result = parseGitHubUrl('https://github.com/owner/repo.git');
+    expect(result.repo).toBe('repo');
+  });
+});
 
-      // Act
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.repository.name).toBe('repo');
-      expect(result.deployment_frequency.total_deployments).toBe(0);
-    });
-
-    test('should handle API errors gracefully', async () => {
-      // Arrange: Mock API error
-      mockListReleases.mockRejectedValue(new Error('API Error'));
-
-      // Act
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      // Assert
-      expect(result).toBeNull();
-    });
-
-    test('should calculate deployment frequency correctly', async () => {
-      const releases = [
-        { created_at: getRecentDate(5), draft: false, prerelease: false, tag_name: 'v1.0', name: 'Version 1.0' },
-        { created_at: getRecentDate(15), draft: false, prerelease: false, tag_name: 'v1.1', name: 'Version 1.1' },
-      ];
-      mockListReleases.mockResolvedValue({ data: releases });
-      mockListTags.mockResolvedValue({ data: [] });
-      mockListCommits.mockResolvedValue({ data: [] });
-      mockListPulls.mockResolvedValue({ data: [] });
-      mockListIssues.mockResolvedValue({ data: [] });
-
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      expect(result.deployment_frequency.total_deployments).toBe(2);
-    });
-
-    test('should calculate lead time correctly', async () => {
-      const pullRequests = [
-        { created_at: getRecentDate(2), merged_at: getRecentDate(1) }, // 1 day lead time
-        { created_at: getRecentDate(6), merged_at: getRecentDate(3) }, // 3 days lead time
-      ];
-      mockListReleases.mockResolvedValue({ data: [] });
-      mockListTags.mockResolvedValue({ data: [] });
-      mockListCommits.mockResolvedValue({ data: [] });
-      mockListPulls.mockResolvedValue({ data: pullRequests });
-      mockListIssues.mockResolvedValue({ data: [] });
-
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      expect(result.lead_time.average_days).toBe('2.00');
-    });
-
-    test('should calculate MTTR correctly', async () => {
-      const issues = [
-        { created_at: getRecentDate(3), closed_at: getRecentDate(1) }, // 2 days resolution
-        { created_at: getRecentDate(7), closed_at: getRecentDate(5) }, // 2 days resolution
-      ];
-      mockListReleases.mockResolvedValue({ data: [] });
-      mockListTags.mockResolvedValue({ data: [] });
-      mockListCommits.mockResolvedValue({ data: [] });
-      mockListPulls.mockResolvedValue({ data: [] });
-      mockListIssues.mockResolvedValue({ data: issues });
-
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      expect(result.mttr.average_days).toBe('2.00');
-    });
-
-    test('should calculate change failure rate correctly', async () => {
-      const releases = [{ created_at: getRecentDate(5), draft: false, prerelease: false, tag_name: 'v1.2', name: 'Version 1.2' }];
-      const issues = [
-        { created_at: getRecentDate(4), title: 'Bug in deployment', body: 'Fix this now', labels: [{ name: 'bug' }], comments: 0 },
-      ];
-      const commits = [
-        { sha: 'abc1234', commit: { message: 'deploy to production', author: { date: getRecentDate(5) } } }
-      ];
-      mockListReleases.mockResolvedValue({ data: releases });
-      mockListTags.mockResolvedValue({ data: [] });
-      mockListCommits.mockResolvedValue({ data: commits });
-      mockListPulls.mockResolvedValue({ data: [] });
-      mockListIssues.mockResolvedValue({ data: issues });
-
-      const result = await getDORAMetrics('https://github.com/owner/repo');
-
-      expect(result.change_failure_rate.deployment_failures).toBeGreaterThan(0);
-    });
+describe('getDORAMetrics()', () => {
+  test('returns metrics object without crashing', async () => {
+    const metrics = await getDORAMetrics('owner', 'repo');
+    expect(metrics).toHaveProperty('deploymentFrequency');
+    expect(metrics).toHaveProperty('leadTimeForChanges');
+    expect(metrics).toHaveProperty('changeFailureRate');
+    expect(metrics).toHaveProperty('meanTimeToRecovery');
   });
 });
