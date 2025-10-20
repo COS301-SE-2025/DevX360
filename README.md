@@ -2,6 +2,11 @@
   <img src="Assets/DevX360.png" alt="DevX360 Logo" width="200"/>
 </p>
 
+<p align="center">
+  <a href="https://devx360.app" target="_blank">
+    <img src="https://img.shields.io/badge/🚀-Visit%20DevX360-blue?style=for-the-badge&logo=appveyor" alt="Visit DevX360 App"/>
+  </a>
+</p>
 # DevX360: AI-Powered DevOps Analytics Platform
 
 ![Top Language](https://img.shields.io/github/languages/top/COS301-SE-2025/DevX360)
