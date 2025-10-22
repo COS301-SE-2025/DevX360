@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Activity, GitBranch, Clock, AlertTriangle, TrendingUp, Users, ExternalLink, Star, GitFork, Eye, Bug, Zap, GitPullRequest, GitCommit, Loader, CheckCircle, AlertCircle, ChevronDown, X, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import HeaderInfo from "../common/HeaderInfo";
 import { useAvatar } from "../../hooks/useAvatar";
 import toast from "react-hot-toast";
+import ModalPortal from "./modal/ModalPortal";
 
 function Metrics() {
   const { currentUser } = useAuth();
   const avatarUrl = useAvatar();
+  const location = useLocation();
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 
   // Core data states
@@ -34,13 +37,50 @@ function Metrics() {
   const [expandedInsights, setExpandedInsights] = useState({});
   const [selectedMember, setSelectedMember] = useState(null);
   const [showMemberStatsModal, setShowMemberStatsModal] = useState(false);
+  
+  // Dropdown states
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  const [showTimeRangeDropdown, setShowTimeRangeDropdown] = useState(false);
+  const teamDropdownRef = useRef(null);
+  const timeRangeDropdownRef = useRef(null);
 
-  // Initialize selected team from currentUser
+  // Initialize selected team from URL parameter or currentUser
   useEffect(() => {
-    if (currentUser?.teams && currentUser.teams.length > 0 && !selectedTeamId) {
+    if (!currentUser?.teams || currentUser.teams.length === 0) return;
+
+    // Check for teamId in URL parameters
+    const searchParams = new URLSearchParams(location.search);
+    const teamIdFromUrl = searchParams.get('teamId');
+    
+    if (teamIdFromUrl) {
+      // Verify that the team ID from URL is valid for this user
+      const teamExists = currentUser.teams.some(team => team.id === teamIdFromUrl);
+      if (teamExists) {
+        setSelectedTeamId(teamIdFromUrl);
+        return;
+      }
+    }
+    
+    // Default to first team if no valid URL parameter
+    if (!selectedTeamId) {
       setSelectedTeamId(currentUser.teams[0].id);
     }
-  }, [currentUser, selectedTeamId]);
+  }, [currentUser, location.search, selectedTeamId]);
+
+  // Handle clicks outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target)) {
+        setShowTeamDropdown(false);
+      }
+      if (timeRangeDropdownRef.current && !timeRangeDropdownRef.current.contains(event.target)) {
+        setShowTimeRangeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch team metrics
   const fetchTeamMetrics = useCallback(async () => {
@@ -218,7 +258,7 @@ function Metrics() {
 
     try {
       setIsRefreshing(true);
-      const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeamId}/refresh-stats`, {
+      const response = await fetch(`${API_BASE_URL}/teams/${selectedTeamId}/refresh-stats`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -806,7 +846,9 @@ function Metrics() {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Member Stats Modal */}
-      <MemberStatsModal />
+      <ModalPortal isOpen={showMemberStatsModal}>
+        <MemberStatsModal />
+      </ModalPortal>
       
       {/* Header */}
       <header className="bg-[var(--bg-container)] shadow-sm border-b border-[var(--border)] py-4 sticky top-0 z-50">
@@ -821,33 +863,73 @@ function Metrics() {
             {/* Filter Controls */}
             <div className="flex items-center space-x-4">
               {/* Team Selection */}
-              <div className="relative">
-                <select
-                  value={selectedTeamId}
-                  onChange={handleTeamChange}
-                  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
+              <div className="relative" ref={teamDropdownRef}>
+                <button
+                  onClick={() => setShowTeamDropdown(!showTeamDropdown)}
+                  className="flex items-center justify-between bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-2 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] min-w-[180px] transition-colors"
                 >
-                  {currentUser?.teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
+                  <span>{currentUser?.teams.find(t => t.id === selectedTeamId)?.name || 'Select Team'}</span>
+                  <ChevronDown className={`w-4 h-4 ml-2 text-[var(--text-light)] transition-transform ${showTeamDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showTeamDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-full bg-[var(--bg-container)] border border-[var(--border)] rounded-lg shadow-lg z-50 overflow-hidden">
+                    {currentUser?.teams.map((team) => (
+                      <button
+                        key={team.id}
+                        onClick={() => {
+                          handleTeamChange({ target: { value: team.id } });
+                          setShowTeamDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg)] transition-colors ${
+                          selectedTeamId === team.id
+                            ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium'
+                            : 'text-[var(--text)]'
+                        }`}
+                      >
+                        {team.name}
+                        {selectedTeamId === team.id && (
+                          <span className="float-right">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Time Range */}
-              <div className="relative">
-                <select
-                  value={timeRange}
-                  onChange={handleTimeRangeChange}
-                  className="appearance-none bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-8 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
+              <div className="relative" ref={timeRangeDropdownRef}>
+                <button
+                  onClick={() => setShowTimeRangeDropdown(!showTimeRangeDropdown)}
+                  className="flex items-center justify-between bg-[var(--bg-container)] border border-[var(--border)] rounded-lg px-4 py-2 pr-2 text-sm font-medium text-[var(--text)] hover:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] min-w-[140px] transition-colors"
                 >
-                  <option value="7">Last 7 days</option>
-                  <option value="30">Last 30 days</option>
-                  <option value="90">Last 90 days</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-light)] pointer-events-none" />
+                  <span>Last {timeRange} days</span>
+                  <ChevronDown className={`w-4 h-4 ml-2 text-[var(--text-light)] transition-transform ${showTimeRangeDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showTimeRangeDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-full bg-[var(--bg-container)] border border-[var(--border)] rounded-lg shadow-lg z-50 overflow-hidden">
+                    {['7', '30', '90'].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => {
+                          handleTimeRangeChange({ target: { value: days } });
+                          setShowTimeRangeDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg)] transition-colors ${
+                          timeRange === days
+                            ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium'
+                            : 'text-[var(--text)]'
+                        }`}
+                      >
+                        Last {days} days
+                        {timeRange === days && (
+                          <span className="float-right">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             
