@@ -8,8 +8,11 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import Team from "./models/Team.js";
 import User from "./models/User.js";
+import MCPToken from "./models/MCPToken.js";
+import SecurityAlert from "./models/SecurityAlert.js";
 // import sharp from "sharp"; // Optional dependency for image processing
 import dotenv from "dotenv";
 dotenv.config();
@@ -18,6 +21,70 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
+
+// Rate limiter for MCP endpoints
+const mcpRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // 500 requests per 15 minutes per token (~33 req/min)
+  message: {
+    message: 'Too many requests from this MCP token',
+    hint: 'You have exceeded the rate limit. Please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Key by MCP token to limit per token
+  keyGenerator: (req) => {
+    const token = req.header('x-mcp-token') || req.query.mcp_token;
+    return token || req.ip; // Fallback to IP if no token
+  },
+  // Custom handler to log rate limit violations
+  handler: async (req, res) => {
+    const token = req.header('x-mcp-token') || req.query.mcp_token;
+    
+    // Log rate limit violation
+    try {
+      await SecurityAlert.create({
+        type: 'rate_limit_exceeded',
+        severity: 'medium',
+        details: {
+          message: 'MCP token exceeded rate limit',
+          limit: '500 requests per 15 minutes',
+          tokenPreview: token ? token.slice(-8) : 'none'
+        },
+        context: {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          endpoint: req.path,
+          method: req.method
+        }
+      });
+    } catch (error) {
+      console.error('Failed to log rate limit alert:', error);
+    }
+    
+    res.status(429).json({
+      message: 'Too many requests from this MCP token',
+      hint: 'You have exceeded the rate limit. Please try again later.',
+      retryAfter: '15 minutes'
+    });
+  }
+});
+
+// Stricter rate limiter for token creation
+const tokenCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 tokens per hour per user
+  message: {
+    message: 'Too many token creation attempts',
+    hint: 'Maximum 5 tokens can be created per hour',
+    retryAfter: '1 hour'
+  },
+  keyGenerator: (req) => {
+    return req.user?.userId || req.ip;
+  }
+});
+
 import cron from "node-cron";
 import { refreshGithubUsernames } from "../services/githubUpdater.js";
 import {updateAllTeams, collectAndSaveMemberStats, refreshAllMemberStats} from "../services/teamUpdater.js";
@@ -1628,10 +1695,10 @@ app.get("/api/ai-review", authenticateToken, async (req, res) => {
  * @middleware authenticateToken
  * @access Admin
  * @description 
- *   - Returns system anomalies from the last 7 days.
- *   - Anomalies include failed logins, brute-force attempts, rate limit hits, etc.
+ *   - Returns system anomalies and security alerts from the last 7 days.
+ *   - Includes: failed logins, brute-force attempts, rate limit hits, suspicious MCP token usage, etc.
  *   - Sorted by most recent first.
- * @returns {Object[]} anomalies - Array of anomaly events
+ * @returns {Object[]} anomalies - Array of anomaly events and security alerts
  */
 app.get("/api/anomalies", authenticateToken, async (req, res) => {
   if (req.user.role !== "admin") {
@@ -1642,12 +1709,34 @@ app.get("/api/anomalies", authenticateToken, async (req, res) => {
     // Calculate cutoff: last 7 days
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Fetch anomalies from DB
-    const events = await SystemEvent.find({ timestamp: { $gte: cutoff } })
-      .sort({ timestamp: -1 }) // newest first
+    // Fetch system events
+    const systemEvents = await SystemEvent.find({ timestamp: { $gte: cutoff } })
       .lean();
 
-    res.json({ anomalies: events });
+    // Fetch security alerts (MCP token security)
+    const securityAlerts = await SecurityAlert.find({ createdAt: { $gte: cutoff } })
+      .populate('userId', 'name email')
+      .populate('tokenId', 'name tokenPreview')
+      .lean();
+
+    // Combine and normalize timestamps
+    const allEvents = [
+      ...systemEvents.map(e => ({ ...e, timestamp: e.timestamp, source: 'system' })),
+      ...securityAlerts.map(a => ({ ...a, timestamp: a.createdAt, source: 'security' }))
+    ];
+
+    // Sort by timestamp, newest first
+    allEvents.sort((a, b) => b.timestamp - a.timestamp);
+
+    res.json({ 
+      anomalies: allEvents,
+      summary: {
+        total: allEvents.length,
+        systemEvents: systemEvents.length,
+        securityAlerts: securityAlerts.length,
+        highSeverity: securityAlerts.filter(a => a.severity === 'high' || a.severity === 'critical').length
+      }
+    });
   } catch (err) {
     console.error("Error fetching anomalies:", err);
     res.status(500).json({ message: "Failed to fetch anomalies" });
@@ -1858,8 +1947,564 @@ app.get("/api/mcp/team/:teamId", authenticateMCP, async (req, res) => {
 });
 
 // --------------------------------------------------------------------------
-// MCP utility endpoints (read-only)
+// MCP Token Management (User self-service)
+// Apply rate limiting to token creation
 // --------------------------------------------------------------------------
+
+/**
+ * Generate a new MCP token for the authenticated user
+ * @route POST /api/user/mcp-tokens
+ * @access Private (requires authentication)
+ */
+app.post('/api/user/mcp-tokens', authenticateToken, tokenCreationLimiter, async (req, res) => {
+  try {
+    const { name, expiresInDays } = req.body;
+    
+    // Validate token name
+    if (name && (typeof name !== 'string' || name.length > 100)) {
+      return res.status(400).json({ 
+        message: 'Token name must be a string with max 100 characters' 
+      });
+    }
+    
+    // Check existing token count (LIMIT TO 3)
+    const existingCount = await MCPToken.countDocuments({
+      userId: req.user.userId,
+      isActive: true
+    });
+    
+    const MAX_TOKENS = 3;
+    
+    if (existingCount >= MAX_TOKENS) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_TOKENS} active tokens allowed per user`,
+        hint: 'Revoke an existing token before creating a new one',
+        existingTokens: existingCount,
+        manageTokensUrl: '/settings/mcp-tokens'
+      });
+    }
+    
+    // Generate secure random token
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash it for storage
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(plainToken)
+      .digest('hex');
+    
+    // Calculate expiration (DEFAULT 90 DAYS)
+    const DEFAULT_EXPIRY_DAYS = 90;
+    const expiresAt = expiresInDays 
+      ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+      : new Date(Date.now() + DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+    
+    // Validate expiration is in the future
+    if (expiresAt && expiresAt <= new Date()) {
+      return res.status(400).json({ 
+        message: 'Expiration date must be in the future' 
+      });
+    }
+    
+    // Save to database with device tracking
+    const mcpToken = await MCPToken.create({
+      userId: req.user.userId,
+      name: name || `Claude Desktop ${existingCount + 1}`,
+      tokenHash,
+      tokenPreview: plainToken.slice(-8),
+      expiresAt,
+      authorizedDevice: {
+        firstSeenIP: req.ip,
+        lastSeenIP: req.ip,
+        ipAddresses: [{
+          ip: req.ip,
+          firstSeen: new Date(),
+          lastSeen: new Date(),
+          useCount: 0
+        }]
+      }
+    });
+    
+    // Determine config path based on user agent (best guess)
+    const getConfigPath = () => {
+      return {
+        macos: '~/Library/Application Support/Claude/config.json',
+        linux: '~/.config/Claude/config.json',
+        windows: '%APPDATA%\\Claude\\config.json'
+      };
+    };
+    
+    // Calculate expiry info
+    const expiresInDaysCalculated = Math.floor((mcpToken.expiresAt - new Date()) / (24 * 60 * 60 * 1000));
+    
+    // Return plain token ONLY THIS ONCE
+    res.status(201).json({
+      success: true,
+      message: '⚠️ Token created! Save it now - it will only be shown once.',
+      token: plainToken, // ⚠️ Only time we show this!
+      tokenId: mcpToken._id,
+      name: mcpToken.name,
+      tokenPreview: mcpToken.tokenPreview,
+      createdAt: mcpToken.createdAt,
+      expiresAt: mcpToken.expiresAt,
+      expiresInDays: expiresInDaysCalculated,
+      
+      // Security information
+      securityInfo: {
+        activeTokens: existingCount + 1,
+        maxTokens: MAX_TOKENS,
+        remainingSlots: MAX_TOKENS - existingCount - 1
+      },
+      
+      // Security warnings
+      securityWarning: {
+        title: "IMPORTANT: Do Not Share This Token",
+        warnings: [
+          "This token is personal to YOU and linked to YOUR account",
+          "It grants access to YOUR GitHub repositories",
+          "All actions using this token will be attributed to YOUR account",
+          "Sharing this token is like sharing your password - DON'T DO IT",
+          "If you suspect it's compromised, revoke it immediately",
+          "This token will expire in " + expiresInDaysCalculated + " days"
+        ]
+      },
+      
+      setupInstructions: {
+        configPaths: getConfigPath(),
+        configSnippet: {
+          "mcpServers": {
+            "devx360-dora-analytics": {
+              "command": "node",
+              "args": ["/absolute/path/to/DevX360/mcp-server.js"],
+              "env": {
+                "DEVX360_MCP_API_TOKEN": plainToken
+              }
+            }
+          }
+        },
+        note: "The server automatically connects to DevX360. No API URL configuration needed!",
+        advancedConfig: {
+          description: "Only for developers or self-hosted instances",
+          optionalApiUrl: process.env.API_BASE_URL || 'https://qii20qjkfi.execute-api.us-east-1.amazonaws.com/dev',
+          example: {
+            "env": {
+              "DEVX360_MCP_API_TOKEN": "your_token",
+              "DEVX360_API_BASE_URL": "http://localhost:5500"
+            }
+          }
+        },
+        documentationUrl: '/docs/mcp-setup'
+      }
+    });
+  } catch (error) {
+    console.error('Error creating MCP token:', error);
+    res.status(500).json({ 
+      message: 'Failed to create token',
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * List user's MCP tokens (without revealing actual token values)
+ * @route GET /api/user/mcp-tokens
+ * @access Private
+ */
+app.get('/api/user/mcp-tokens', authenticateToken, async (req, res) => {
+  try {
+    const tokens = await MCPToken.find({ 
+      userId: req.user.userId,
+      isActive: true 
+    }).select('-tokenHash') // Never return the hash
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: tokens.length,
+      tokens: tokens.map(token => ({
+        id: token._id,
+        name: token.name,
+        tokenPreview: `...${token.tokenPreview}`,
+        createdAt: token.createdAt,
+        lastUsedAt: token.lastUsedAt,
+        expiresAt: token.expiresAt,
+        usageCount: token.usageCount || 0,
+        isActive: token.isActive
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching MCP tokens:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch tokens',
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * Revoke (deactivate) an MCP token
+ * @route DELETE /api/user/mcp-tokens/:tokenId
+ * @access Private
+ */
+app.delete('/api/user/mcp-tokens/:tokenId', authenticateToken, async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+    
+    // Validate tokenId format
+    if (!mongoose.Types.ObjectId.isValid(tokenId)) {
+      return res.status(400).json({ message: 'Invalid token ID format' });
+    }
+    
+    const result = await MCPToken.findOneAndUpdate(
+      { 
+        _id: tokenId, 
+        userId: req.user.userId // Ensure user owns this token
+      },
+      { isActive: false },
+      { new: true }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ 
+        message: 'Token not found or you do not have permission to revoke it' 
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Token revoked successfully. It can no longer be used for authentication.',
+      tokenId: result._id,
+      name: result.name
+    });
+  } catch (error) {
+    console.error('Error revoking MCP token:', error);
+    res.status(500).json({ 
+      message: 'Failed to revoke token',
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * Update MCP token details (name only)
+ * @route PATCH /api/user/mcp-tokens/:tokenId
+ * @access Private
+ */
+app.patch('/api/user/mcp-tokens/:tokenId', authenticateToken, async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+    const { name } = req.body;
+    
+    // Validate tokenId format
+    if (!mongoose.Types.ObjectId.isValid(tokenId)) {
+      return res.status(400).json({ message: 'Invalid token ID format' });
+    }
+    
+    // Validate name
+    if (!name || typeof name !== 'string' || name.length > 100) {
+      return res.status(400).json({ 
+        message: 'Token name is required and must be a string with max 100 characters' 
+      });
+    }
+    
+    const result = await MCPToken.findOneAndUpdate(
+      { 
+        _id: tokenId, 
+        userId: req.user.userId,
+        isActive: true
+      },
+      { name },
+      { new: true }
+    ).select('-tokenHash');
+    
+    if (!result) {
+      return res.status(404).json({ 
+        message: 'Token not found or you do not have permission to update it' 
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Token updated successfully',
+      token: {
+        id: result._id,
+        name: result.name,
+        tokenPreview: `...${result.tokenPreview}`,
+        createdAt: result.createdAt,
+        lastUsedAt: result.lastUsedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating MCP token:', error);
+    res.status(500).json({ 
+      message: 'Failed to update token',
+      error: error.message 
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// Admin MCP Token Management (Security Operations)
+// --------------------------------------------------------------------------
+
+/**
+ * Admin: Revoke any user's MCP token (for security incidents)
+ * @route DELETE /api/admin/mcp-tokens/:tokenId
+ * @access Admin only
+ */
+app.delete('/api/admin/mcp-tokens/:tokenId', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const { tokenId } = req.params;
+    const { reason } = req.body; // Optional reason for revocation
+
+    const token = await MCPToken.findById(tokenId).populate('userId', 'name email');
+
+    if (!token) {
+      return res.status(404).json({ message: 'Token not found' });
+    }
+
+    // Revoke the token
+    token.isActive = false;
+    await token.save();
+
+    // Log the admin action
+    await SecurityAlert.create({
+      type: 'admin_token_revocation',
+      severity: 'high',
+      userId: token.userId._id,
+      tokenId: token._id,
+      details: {
+        message: 'Admin revoked token due to security concerns',
+        reason: reason || 'No reason provided',
+        revokedBy: req.user.userId,
+        tokenName: token.name,
+        userEmail: token.userId.email
+      },
+      context: {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        endpoint: req.path,
+        method: req.method
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Token revoked successfully',
+      token: {
+        id: token._id,
+        name: token.name,
+        user: token.userId.email,
+        revokedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error revoking token:', error);
+    res.status(500).json({ message: 'Failed to revoke token' });
+  }
+});
+
+/**
+ * Admin: Revoke all tokens for a specific user
+ * @route POST /api/admin/users/:userId/revoke-tokens
+ * @access Admin only
+ */
+app.post('/api/admin/users/:userId/revoke-tokens', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find all active tokens for this user
+    const tokens = await MCPToken.find({ userId, isActive: true });
+
+    if (tokens.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No active tokens to revoke',
+        revokedCount: 0
+      });
+    }
+
+    // Revoke all tokens
+    await MCPToken.updateMany(
+      { userId, isActive: true },
+      { $set: { isActive: false } }
+    );
+
+    // Log the admin action
+    await SecurityAlert.create({
+      type: 'admin_bulk_revocation',
+      severity: 'critical',
+      userId: userId,
+      details: {
+        message: 'Admin revoked all user tokens due to security concerns',
+        reason: reason || 'No reason provided',
+        revokedBy: req.user.userId,
+        revokedCount: tokens.length,
+        userEmail: user.email
+      },
+      context: {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        endpoint: req.path,
+        method: req.method
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Revoked ${tokens.length} token(s) for user ${user.email}`,
+      revokedCount: tokens.length,
+      tokens: tokens.map(t => ({
+        id: t._id,
+        name: t.name,
+        tokenPreview: t.tokenPreview
+      }))
+    });
+  } catch (error) {
+    console.error('Error revoking user tokens:', error);
+    res.status(500).json({ message: 'Failed to revoke tokens' });
+  }
+});
+
+/**
+ * Admin: Update security alert status
+ * @route PATCH /api/admin/security-alerts/:alertId
+ * @access Admin only
+ */
+app.patch('/api/admin/security-alerts/:alertId', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const { alertId } = req.params;
+    const { status, notes } = req.body;
+
+    const validStatuses = ['new', 'investigating', 'resolved', 'false_positive'];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'Invalid status',
+        validStatuses
+      });
+    }
+
+    const alert = await SecurityAlert.findById(alertId)
+      .populate('userId', 'name email')
+      .populate('tokenId', 'name tokenPreview');
+
+    if (!alert) {
+      return res.status(404).json({ message: 'Security alert not found' });
+    }
+
+    // Update alert
+    if (status) {
+      alert.status = status;
+    }
+    if (status === 'resolved' || status === 'false_positive') {
+      alert.resolvedAt = new Date();
+      alert.resolvedBy = req.user.userId;
+    }
+    if (notes) {
+      alert.details.adminNotes = notes;
+    }
+
+    await alert.save();
+
+    res.json({
+      success: true,
+      message: 'Security alert updated',
+      alert: {
+        id: alert._id,
+        type: alert.type,
+        status: alert.status,
+        severity: alert.severity,
+        resolvedAt: alert.resolvedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating security alert:', error);
+    res.status(500).json({ message: 'Failed to update security alert' });
+  }
+});
+
+/**
+ * Admin: Get tokens with suspicious activity
+ * @route GET /api/admin/suspicious-tokens
+ * @access Admin only
+ */
+app.get('/api/admin/suspicious-tokens', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    // Find tokens flagged as suspicious
+    const suspiciousTokens = await MCPToken.find({
+      'authorizedDevice.suspiciousActivityDetected': true,
+      isActive: true
+    })
+      .populate('userId', 'name email')
+      .sort({ 'authorizedDevice.lastSeenIP': -1 });
+
+    // Get related security alerts
+    const tokenIds = suspiciousTokens.map(t => t._id);
+    const alerts = await SecurityAlert.find({
+      tokenId: { $in: tokenIds },
+      status: 'new'
+    }).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: suspiciousTokens.length,
+      tokens: suspiciousTokens.map(token => ({
+        id: token._id,
+        name: token.name,
+        tokenPreview: token.tokenPreview,
+        user: {
+          id: token.userId._id,
+          name: token.userId.name,
+          email: token.userId.email
+        },
+        usageCount: token.usageCount,
+        uniqueIPs: token.authorizedDevice.ipAddresses.length,
+        lastUsed: token.lastUsedAt,
+        createdAt: token.createdAt,
+        alerts: alerts.filter(a => a.tokenId.toString() === token._id.toString()).map(a => ({
+          id: a._id,
+          type: a.type,
+          severity: a.severity,
+          createdAt: a.createdAt
+        }))
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching suspicious tokens:', error);
+    res.status(500).json({ message: 'Failed to fetch suspicious tokens' });
+  }
+});
+
+// --------------------------------------------------------------------------
+// MCP utility endpoints (read-only)
+// Apply rate limiting to all MCP endpoints
+// --------------------------------------------------------------------------
+
+// Apply rate limiting to all MCP routes
+app.use('/api/mcp/*', mcpRateLimiter);
 
 /**
  * Returns repository info for a GitHub URL
@@ -1870,23 +2515,36 @@ app.get("/api/mcp/repo", authenticateMCP, async (req, res) => {
   try {
     const { url } = req.query;
     if (!url) return res.status(400).json({ message: "url is required" });
-    if (!process.env.GITHUB_TOKEN_1 && !process.env.GITHUB_TOKEN_2) {
-      return res.status(401).json({
-        message: "GitHub authentication not configured",
-        suggestion: "Set GITHUB_TOKEN_1 (and optionally GITHUB_TOKEN_2) in the API environment",
-      });
-    }
-    const info = await getRepositoryInfo(url);
+    
+    // Auto-detect userId from authenticated MCP token
+    const effectiveUserId = req.mcpUser ? (req.mcpUser._id || req.mcpUser) : null;
+    
+    // getRepositoryInfo handles the token priority internally:
+    // 1. User's GitHub token (if effectiveUserId provided and user has token)
+    // 2. System tokens (GITHUB_TOKEN_1/2) as fallback
+    // It will throw an error if neither is available
+    
+    const info = await getRepositoryInfo(url, effectiveUserId);
     res.json(info);
   } catch (err) {
     console.error("MCP repo fetch error:", err);
     const msg = String(err?.message || "");
-    if (msg.toLowerCase().includes("authentication failed")) {
-      return res.status(401).json({
-        message: "GitHub authentication failed",
-        suggestion: "Verify GitHub token validity and scopes, then retry",
+    
+    // Handle authentication/authorization errors
+    if (msg.toLowerCase().includes("authentication failed") || msg.toLowerCase().includes("not found")) {
+      return res.status(404).json({
+        message: "Repository not found or access denied",
+        hint: "If this is a private repository, connect your GitHub account in settings or ensure system tokens have access"
       });
     }
+    
+    if (msg.toLowerCase().includes("no github token")) {
+      return res.status(401).json({
+        message: "GitHub authentication not available",
+        hint: "Connect your GitHub account to access private repositories, or ensure system GitHub tokens are configured"
+      });
+    }
+    
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -1900,23 +2558,36 @@ app.get("/api/mcp/metrics", authenticateMCP, async (req, res) => {
   try {
     const { repositoryUrl } = req.query;
     if (!repositoryUrl) return res.status(400).json({ message: "repositoryUrl is required" });
-    if (!process.env.GITHUB_TOKEN_1 && !process.env.GITHUB_TOKEN_2) {
-      return res.status(401).json({
-        message: "GitHub authentication not configured",
-        suggestion: "Set GITHUB_TOKEN_1 (and optionally GITHUB_TOKEN_2) in the API environment",
-      });
-    }
-    const metrics = await getDORAMetrics(repositoryUrl);
+    
+    // Auto-detect userId from authenticated MCP token
+    const effectiveUserId = req.mcpUser ? (req.mcpUser._id || req.mcpUser) : null;
+    
+    // getDORAMetrics handles the token priority internally:
+    // 1. User's GitHub token (if effectiveUserId provided and user has token)
+    // 2. System tokens (GITHUB_TOKEN_1/2) as fallback
+    // It will throw an error if neither is available
+    
+    const metrics = await getDORAMetrics(repositoryUrl, effectiveUserId);
     res.json(metrics);
   } catch (err) {
     console.error("MCP metrics error:", err);
     const msg = String(err?.message || "");
-    if (msg.toLowerCase().includes("authentication failed")) {
-      return res.status(401).json({
-        message: "GitHub authentication failed",
-        suggestion: "Verify GitHub token validity and scopes, then retry",
+    
+    // Handle authentication/authorization errors
+    if (msg.toLowerCase().includes("authentication failed") || msg.toLowerCase().includes("not found")) {
+      return res.status(404).json({
+        message: "Repository not found or access denied",
+        hint: "If this is a private repository, connect your GitHub account in settings or ensure system tokens have access"
       });
     }
+    
+    if (msg.toLowerCase().includes("no github token")) {
+      return res.status(401).json({
+        message: "GitHub authentication not available",
+        hint: "Connect your GitHub account to access private repositories, or ensure system GitHub tokens are configured"
+      });
+    }
+    
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -1929,9 +2600,18 @@ app.get("/api/mcp/metrics", authenticateMCP, async (req, res) => {
 app.get("/api/mcp/user-token", authenticateMCP, async (req, res) => {
   try {
     const { userId } = req.query;
-    if (!userId) return res.status(400).json({ message: "userId is required" });
+    
+    // Auto-detect userId from authenticated MCP token if not explicitly provided
+    const effectiveUserId = userId || (req.mcpUser ? (req.mcpUser._id || req.mcpUser) : null);
+    
+    if (!effectiveUserId) {
+      return res.status(400).json({ 
+        message: "userId is required or must be authenticated with a personal MCP token",
+        hint: "Use a personal MCP token for automatic user detection"
+      });
+    }
 
-    const user = await User.findById(userId).select('githubAccessToken githubScopes githubTokenValid githubUsername');
+    const user = await User.findById(effectiveUserId).select('githubAccessToken githubScopes githubTokenValid githubUsername');
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -1946,7 +2626,7 @@ app.get("/api/mcp/user-token", authenticateMCP, async (req, res) => {
     }
 
     // Check if token needs reauth
-    const needsReauth = await userNeedsReauth(userId);
+    const needsReauth = await userNeedsReauth(effectiveUserId);
     if (needsReauth) {
       return res.status(401).json({
         message: "GitHub token expired or invalid",
@@ -1960,7 +2640,8 @@ app.get("/api/mcp/user-token", authenticateMCP, async (req, res) => {
       username: user.githubUsername,
       scopes: user.githubScopes,
       hasPrivateAccess: user.githubScopes?.includes('repo') || false,
-      tokenValid: user.githubTokenValid
+      tokenValid: user.githubTokenValid,
+      autoDetected: !userId && req.mcpUser ? true : false  // Indicate if auto-detected
     });
   } catch (error) {
     console.error("MCP user token error:", error);
@@ -1981,6 +2662,9 @@ app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
     const { url, githubToken, userId } = req.query;
     if (!url) return res.status(400).json({ message: "url is required" });
     
+    // Auto-detect userId from authenticated MCP token if not explicitly provided
+    const effectiveUserId = userId || (req.mcpUser ? req.mcpUser._id || req.mcpUser : null);
+    
     let analysis;
     let tokenInfo = {
       tokenType: 'system',
@@ -1999,10 +2683,10 @@ app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
         };
       } catch (tokenError) {
         console.error("User-provided token analysis failed, falling back to stored user token:", tokenError);
-        // Fall back to stored user token if provided
-        if (userId) {
+        // Fall back to stored user token if provided or if authenticated via MCP token
+        if (effectiveUserId) {
           try {
-            analysis = await safeAnalyzeRepository(url, userId);
+            analysis = await safeAnalyzeRepository(url, effectiveUserId);
             tokenInfo = {
               tokenType: 'user_stored',
               canAccessPrivate: true,
@@ -2029,14 +2713,14 @@ app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
         }
       }
     }
-    // Priority 2: Stored user token (if userId provided)
-    else if (userId) {
+    // Priority 2: Stored user token (if userId provided OR authenticated via MCP token)
+    else if (effectiveUserId) {
       try {
-        analysis = await safeAnalyzeRepository(url, userId);
+        analysis = await safeAnalyzeRepository(url, effectiveUserId);
         tokenInfo = {
           tokenType: 'user_stored',
           canAccessPrivate: true,
-          message: 'Using stored user GitHub token'
+          message: req.mcpUser ? 'Using your stored GitHub token (auto-detected from MCP token)' : 'Using stored user GitHub token'
         };
       } catch (userTokenError) {
         console.error("Stored user token analysis failed, falling back to system tokens:", userTokenError);
@@ -2045,7 +2729,7 @@ app.get("/api/mcp/analyze", authenticateMCP, async (req, res) => {
           tokenType: 'system',
           canAccessPrivate: false,
           message: 'Stored user token failed, using system tokens',
-          warning: 'Stored user token may be invalid or expired'
+          warning: 'Stored user token may be invalid or expired. Please reconnect your GitHub account.'
         };
       }
     }

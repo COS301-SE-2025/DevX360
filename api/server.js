@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import mongoose from "mongoose";
 import app from "./app.js";
+import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 
 mongoose.set('strictQuery', false);
 
@@ -78,9 +80,18 @@ class Server {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check if this file is being run directly
+// Normalize paths for comparison to handle different path formats
+const __filename = fileURLToPath(import.meta.url);
+const mainModule = process.argv[1] ? resolve(process.argv[1]) : null;
+const thisFile = resolve(__filename);
+
+if (mainModule === thisFile) {
   const server = new Server();
-  server.start();
+  server.start().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
 
   process.on('SIGINT', async () => {
     await server.stop();
