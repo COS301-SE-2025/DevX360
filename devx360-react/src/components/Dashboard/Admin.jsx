@@ -18,11 +18,13 @@ import {
   Monitor,
   EyeOff,
   Check,
-  X
+  X,
+  Key
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import {getUsers, deleteUser, getTeams, getAnomalies, updateUserRole} from "../../services/admin";
+import {getUsers, deleteUser, getTeams, getAnomalies, updateUserRole, revokeTokenAdmin, revokeAllUserTokens, updateSecurityAlertStatus, getSuspiciousTokens} from "../../services/admin";
 import {deleteTeam} from "../../services/teams";
+import {getMCPTokens} from "../../services/mcp";
 import HeaderInfo from "../common/HeaderInfo";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "./modal/DeleteConfirmation";
@@ -33,6 +35,8 @@ import AdminPagination from "./Admin/Pagination";
 import UserAvatar from "./Admin/Avatar";
 import CustomDropdown from "./Admin/Dropdown";
 import RoleDropdown from "./Admin/RoleDropdown";
+import RevokeTokenModal from "./Admin/RevokeTokenModal";
+import UpdateAlertModal from "./Admin/UpdateAlertModal";
 
 
 const RoleEditor = ({ user, onSave, onCancel, isLoading }) => {
@@ -133,12 +137,24 @@ function Admin() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [anomalies, setAnomalies] = useState([]);
+  const [anomalySummary, setAnomalySummary] = useState(null);
   const [anomaliesPage, setAnomaliesPage] = useState(1);
   const [anomalySortField, setAnomalySortField] = useState('timestamp');
   const [anomalySortDirection, setAnomalySortDirection] = useState('desc');
   const [anomalyFilterType, setAnomalyFilterType] = useState('all');
   const [showFullIPs, setShowFullIPs] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
+
+  // MCP Token Management State
+  const [userTokens, setUserTokens] = useState({});
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState(null);
+  const [isUpdatingAlert, setIsUpdatingAlert] = useState(false);
+  const [suspiciousTokens, setSuspiciousTokens] = useState([]);
+  const [showSuspiciousTokens, setShowSuspiciousTokens] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -153,7 +169,8 @@ function Admin() {
 
       setUsers(usersData);
       setTeams(teamsData);
-      setAnomalies(anomaliesData);
+      setAnomalies(anomaliesData?.anomalies || anomaliesData || []);
+      setAnomalySummary(anomaliesData?.summary || null);
 
       setUsersTotal(usersData?.length ?? 0);
       setTeamsTotal(teamsData?.length ?? 0);
@@ -525,7 +542,11 @@ function Admin() {
     { value: 'all', label: 'All Types' },
     { value: 'login_failure', label: 'Login Failures' },
     { value: 'brute_force', label: 'Brute Force' },
-    { value: 'rate_limit', label: 'Rate Limits' }
+    { value: 'rate_limit', label: 'Rate Limits' },
+    { value: 'rate_limit_exceeded', label: 'MCP Rate Limits' },
+    { value: 'suspicious_token_usage', label: 'Suspicious Tokens' },
+    { value: 'multiple_ips', label: 'Multiple IPs' },
+    { value: 'token_sharing_suspected', label: 'Token Sharing' }
   ], []);
 
   const handleAnomaliesPageChange = useCallback((newPage) => {
@@ -548,7 +569,15 @@ function Admin() {
       case 'brute_force':
         return <Shield className="w-5 h-5 text-red-600" />;
       case 'rate_limit':
+      case 'rate_limit_exceeded':
         return <Monitor className="w-5 h-5 text-orange-500" />;
+      case 'suspicious_token_usage':
+      case 'multiple_ips':
+      case 'token_sharing_suspected':
+        return <Key className="w-5 h-5 text-yellow-600" />;
+      case 'expired_token_attempt':
+      case 'invalid_token_attempt':
+        return <Ban className="w-5 h-5 text-red-500" />;
       default:
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
     }
@@ -561,9 +590,18 @@ function Admin() {
       case 'brute_force':
         return 'bg-red-100 text-red-800 border-red-300';
       case 'rate_limit':
+      case 'rate_limit_exceeded':
         return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'suspicious_token_usage':
+      case 'token_sharing_suspected':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'multiple_ips':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'expired_token_attempt':
+      case 'invalid_token_attempt':
+        return 'bg-red-100 text-red-700 border-red-200';
       default:
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   }, []);
 
@@ -575,8 +613,20 @@ function Admin() {
         return `${anomaly.details?.attempts || 'Multiple'} failed attempts in ${anomaly.details?.timeframe || '15m'}`;
       case 'rate_limit':
         return `Rate limit exceeded on ${anomaly.details?.endpoint || 'endpoint'}`;
+      case 'rate_limit_exceeded':
+        return anomaly.details?.message || 'MCP token rate limit exceeded';
+      case 'suspicious_token_usage':
+        return anomaly.details?.message || 'Suspicious MCP token activity detected';
+      case 'multiple_ips':
+        return `Token used from ${anomaly.details?.ipCount || 'multiple'} different IPs`;
+      case 'token_sharing_suspected':
+        return anomaly.details?.message || 'Possible token sharing detected';
+      case 'expired_token_attempt':
+        return 'Attempt to use expired MCP token';
+      case 'invalid_token_attempt':
+        return 'Invalid MCP token authentication attempt';
       default:
-        return 'Security event detected';
+        return anomaly.details?.message || 'Security event detected';
     }
   }, []);
 
@@ -588,6 +638,13 @@ function Admin() {
         return `Attempts: ${anomaly.details?.attempts || 'Unknown'}\nTimeframe: ${anomaly.details?.timeframe || 'Unknown'}`;
       case 'rate_limit':
         return `Endpoint: ${anomaly.details?.endpoint || 'Unknown'}`;
+      case 'rate_limit_exceeded':
+        return `Message: ${anomaly.details?.message || 'N/A'}\nLimit: ${anomaly.details?.limit || 'N/A'}\nToken Preview: ${anomaly.details?.tokenPreview || 'N/A'}`;
+      case 'suspicious_token_usage':
+      case 'multiple_ips':
+      case 'token_sharing_suspected':
+        const tokenInfo = `Token ID: ${anomaly.tokenId?._id || 'N/A'}\nToken Name: ${anomaly.tokenId?.name || 'N/A'}\nUser: ${anomaly.userId?.name || 'N/A'} (${anomaly.userId?.email || 'N/A'})`;
+        return `${tokenInfo}\n\nDetails:\n${JSON.stringify(anomaly.details, null, 2)}`;
       default:
         return anomaly.details ? JSON.stringify(anomaly.details, null, 2) : 'No additional details';
     }
@@ -600,6 +657,78 @@ function Admin() {
     }
     return ip?.split('.').slice(0, 2).join('.') + '.***.***.';
   }, [showFullIPs]);
+
+  // MCP Token Management Handlers
+  const handleRevokeToken = useCallback((token, user) => {
+    setRevokeTarget({ token, user, type: 'single' });
+    setShowRevokeModal(true);
+  }, []);
+
+  const handleRevokeAllTokens = useCallback((user) => {
+    setRevokeTarget({ user, type: 'all' });
+    setShowRevokeModal(true);
+  }, []);
+
+  const confirmRevokeToken = async (reason) => {
+    if (!revokeTarget) return;
+
+    setIsRevoking(true);
+    try {
+      if (revokeTarget.type === 'all') {
+        await revokeAllUserTokens(revokeTarget.user._id, reason);
+        toast.success(`All tokens revoked for ${revokeTarget.user.email}`);
+      } else {
+        await revokeTokenAdmin(revokeTarget.token._id, reason);
+        toast.success(`Token "${revokeTarget.token.name}" revoked successfully`);
+      }
+
+      // Refresh data
+      await fetchData();
+      setShowRevokeModal(false);
+      setRevokeTarget(null);
+    } catch (error) {
+      console.error('Error revoking token:', error);
+      toast.error(error.message || 'Failed to revoke token');
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const handleUpdateAlert = useCallback((alert) => {
+    setSelectedAlert(alert);
+    setShowAlertModal(true);
+  }, []);
+
+  const confirmUpdateAlert = async (status, notes) => {
+    if (!selectedAlert) return;
+
+    setIsUpdatingAlert(true);
+    try {
+      await updateSecurityAlertStatus(selectedAlert._id, status, notes);
+      toast.success('Security alert updated successfully');
+
+      // Refresh anomalies
+      await fetchData();
+      setShowAlertModal(false);
+      setSelectedAlert(null);
+    } catch (error) {
+      console.error('Error updating alert:', error);
+      toast.error(error.message || 'Failed to update alert');
+    } finally {
+      setIsUpdatingAlert(false);
+    }
+  };
+
+  const loadSuspiciousTokens = async () => {
+    try {
+      const data = await getSuspiciousTokens();
+      setSuspiciousTokens(data.tokens || []);
+      setShowSuspiciousTokens(true);
+    } catch (error) {
+      console.error('Error loading suspicious tokens:', error);
+      toast.error(error.message || 'Failed to load suspicious tokens');
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -1089,22 +1218,85 @@ function Admin() {
 
           {activeTab === 'security' && (
               <>
+                {/* Security Summary Cards */}
+                {anomalySummary && (
+                  <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold text-[var(--text)]">{anomalySummary.total}</p>
+                          <p className="text-xs text-[var(--text-light)]">Total Events</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                          <Monitor className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold text-[var(--text)]">{anomalySummary.systemEvents || 0}</p>
+                          <p className="text-xs text-[var(--text-light)]">System Events</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+                          <Key className="w-5 h-5 text-yellow-600" />
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold text-[var(--text)]">{anomalySummary.securityAlerts || 0}</p>
+                          <p className="text-xs text-[var(--text-light)]">MCP Alerts</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold text-[var(--text)]">{anomalySummary.highSeverity || 0}</p>
+                          <p className="text-xs text-[var(--text-light)]">High/Critical</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Filter Controls for Security */}
                 <div className="mb-6">
-                  <div className="flex items-center space-x-4">
-                    <CustomDropdown
-                        value={anomalyFilterType}
-                        onChange={(value) => setAnomalyFilterType(value)}
-                        options={options}
-                    />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <CustomDropdown
+                          value={anomalyFilterType}
+                          onChange={(value) => setAnomalyFilterType(value)}
+                          options={options}
+                      />
+
+                      <button
+                          onClick={() => setShowFullIPs(!showFullIPs)}
+                          className="flex items-center space-x-2 px-3 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--bg)] text-[var(--text)]"
+                          title={showFullIPs ? "Hide full IPs" : "Show full IPs"}
+                      >
+                        {showFullIPs ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        <span className="text-sm">IPs</span>
+                      </button>
+                    </div>
 
                     <button
-                        onClick={() => setShowFullIPs(!showFullIPs)}
-                        className="flex items-center space-x-2 px-3 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--bg)] text-[var(--text)]"
-                        title={showFullIPs ? "Hide full IPs" : "Show full IPs"}
+                        onClick={loadSuspiciousTokens}
+                        className="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium"
                     >
-                      {showFullIPs ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      <span className="text-sm">IPs</span>
+                      <Key className="w-4 h-4" />
+                      <span>View Suspicious Tokens</span>
                     </button>
                   </div>
                 </div>
@@ -1187,17 +1379,28 @@ function Admin() {
                                   </td>
 
                                   <td className="px-6 py-4">
-                                    <button
-                                        onClick={() => toggleRowExpansion(anomaly._id)}
-                                        className="flex items-center space-x-1 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm"
-                                    >
-                                      {expandedRows.has(anomaly._id) ? (
-                                          <ChevronUp className="w-4 h-4" />
-                                      ) : (
-                                          <ChevronDown className="w-4 h-4" />
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                          onClick={() => toggleRowExpansion(anomaly._id)}
+                                          className="flex items-center space-x-1 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm"
+                                      >
+                                        {expandedRows.has(anomaly._id) ? (
+                                            <ChevronUp className="w-4 h-4" />
+                                        ) : (
+                                            <ChevronDown className="w-4 h-4" />
+                                        )}
+                                        <span>Details</span>
+                                      </button>
+                                      {anomaly.source === 'security' && anomaly.status !== 'resolved' && (
+                                        <button
+                                            onClick={() => handleUpdateAlert(anomaly)}
+                                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-blue-200 hover:bg-blue-100 text-blue-600 transition-all duration-200"
+                                            title="Update alert status"
+                                        >
+                                          <Shield className="w-4 h-4" />
+                                        </button>
                                       )}
-                                      <span>Details</span>
-                                    </button>
+                                    </div>
                                   </td>
                                 </tr>
 
@@ -1325,6 +1528,128 @@ function Admin() {
                   isDeleting={isDeleting}
               />
           )}
+        </ModalPortal>
+
+        {/* MCP Token Revocation Modal */}
+        <ModalPortal isOpen={showRevokeModal && !!revokeTarget}>
+          <RevokeTokenModal
+            token={revokeTarget?.token}
+            user={revokeTarget?.user}
+            type={revokeTarget?.type}
+            onRevoke={confirmRevokeToken}
+            onClose={() => {
+              setShowRevokeModal(false);
+              setRevokeTarget(null);
+            }}
+            isRevoking={isRevoking}
+          />
+        </ModalPortal>
+
+        {/* Alert Status Update Modal */}
+        <ModalPortal isOpen={showAlertModal && !!selectedAlert}>
+          <UpdateAlertModal
+            alert={selectedAlert}
+            onUpdate={confirmUpdateAlert}
+            onClose={() => {
+              setShowAlertModal(false);
+              setSelectedAlert(null);
+            }}
+            isUpdating={isUpdatingAlert}
+          />
+        </ModalPortal>
+
+        {/* Suspicious Tokens Modal */}
+        <ModalPortal isOpen={showSuspiciousTokens}>
+          <div 
+            onClick={() => setShowSuspiciousTokens(false)}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[var(--bg-container)] rounded-2xl shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Key className="w-6 h-6 text-yellow-600" />
+                  Suspicious MCP Tokens
+                </h3>
+                <button
+                  onClick={() => setShowSuspiciousTokens(false)}
+                  className="text-[var(--text-light)] hover:text-[var(--text)] transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {suspiciousTokens.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Shield className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <p className="text-[var(--text)] font-medium">No suspicious tokens found</p>
+                  <p className="text-[var(--text-light)] text-sm mt-2">All tokens appear to be operating normally</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {suspiciousTokens.map((tokenData) => (
+                    <div key={tokenData.id} className="bg-[var(--bg)] border border-yellow-300 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium text-[var(--text)]">{tokenData.name}</h4>
+                          <p className="text-sm text-[var(--text-light)]">
+                            User: {tokenData.user.email}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRevokeToken({ _id: tokenData.id, name: tokenData.name }, tokenData.user)}
+                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                        >
+                          Revoke Token
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="text-[var(--text-light)]">Preview:</span>
+                          <p className="font-mono text-[var(--text)]">...{tokenData.tokenPreview}</p>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-light)]">Usage:</span>
+                          <p className="text-[var(--text)]">{tokenData.usageCount} requests</p>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-light)]">Unique IPs:</span>
+                          <p className="text-[var(--text)]">{tokenData.uniqueIPs} addresses</p>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-light)]">Last Used:</span>
+                          <p className="text-[var(--text)]">{formatDate(tokenData.lastUsed)}</p>
+                        </div>
+                      </div>
+
+                      {tokenData.alerts && tokenData.alerts.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                          <p className="text-xs font-medium text-[var(--text)] mb-2">Related Alerts:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {tokenData.alerts.map((alert) => (
+                              <span
+                                key={alert.id}
+                                className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                                  alert.severity === 'high' || alert.severity === 'critical'
+                                    ? 'bg-red-100 text-red-700 border-red-200'
+                                    : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                }`}
+                              >
+                                {alert.type.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </ModalPortal>
       </div>
   );

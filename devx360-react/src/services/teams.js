@@ -19,7 +19,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5500';
 //This function searches for teams by a search term, it sends a GET request to the API
 //It returns an array of teams that match the search term
 export async function searchTeams(searchTerm) {
-  const url = new URL(`${API_BASE_URL}/teams/search`);
+  const url = new URL(`${API_BASE_URL}/api/teams/search`); //without api in prod
   url.searchParams.append("q", searchTerm);
 
   const response = await fetch(url, {
@@ -60,7 +60,7 @@ export async function createTeam(name, password, repoUrl) {
 //============================================================join a new team Function======================================
 //Does the same thing as search team but it sends a POST request with the name and password to join a team
 export async function joinTeam(name, password) {
-  const response = await fetch(`${API_BASE_URL}/teams/join`, {
+  const response = await fetch(`${API_BASE_URL}/api/teams/join`, { //found with out /api
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, password }),
@@ -79,7 +79,7 @@ export async function checkMembership(teamId) {
     throw new Error('Team ID is required');
   }
 
-  const response = await fetch(`${API_BASE_URL}/teams/${teamId}/membership`, {
+  const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/membership`, { //found without api
     method: 'GET',
     credentials: 'include',
   });
@@ -94,7 +94,7 @@ export async function checkMembership(teamId) {
 //============================================================delete a team Function======================================
 //Sends a DELETE request to the API to delete a team by its name
 export const deleteTeam = async (teamName, teamId) => {
-  const response = await fetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamName)}?teamId=${teamId}`, {
+  const response = await fetch(`${API_BASE_URL}/api/teams/${encodeURIComponent(teamName)}?teamId=${teamId}`, { //found without api
     method: 'DELETE',
     credentials: 'include',
   });

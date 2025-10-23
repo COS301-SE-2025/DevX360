@@ -2,8 +2,9 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {updateAvatar, updateProfile} from '../../services/profile';
 import HeaderInfo from "../common/HeaderInfo";
-import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog} from 'lucide-react';
+import {AlertCircle, Calendar, Edit3, Github, LogIn, Mail, User, UserCog, Key} from 'lucide-react';
 import toast from "react-hot-toast";
+import MCPTokenManagement from './MCPTokenManagement';
 
 function GitHubConnectionStatus({ currentUser, onConnect, isConnecting, refreshTrigger }) {
   const [status, setStatus] = useState(null);
@@ -134,6 +135,7 @@ function Profile() {
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [isConnectingGitHub, setIsConnectingGitHub] = useState(false);
   const [githubStatusKey, setGithubStatusKey] = useState(0);
+  const [activeTab, setActiveTab] = useState('profile');
   const [formState, setFormState] = useState({
     data: {
       name: '',
@@ -181,7 +183,7 @@ function Profile() {
       if (tempToken) {
         try {
           setIsConnectingGitHub(true);
-          const response = await fetch(`${API_BASE_URL}/profile/connect-github`, {
+          const response = await fetch(`${API_BASE_URL}/api/profile/connect-github`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -562,6 +564,38 @@ function Profile() {
 
         <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-6xl mx-auto">
+            {/* Tab Navigation */}
+            <div className="mb-6">
+              <div className="bg-[var(--bg-container)] rounded-xl shadow-sm border border-[var(--border)] p-1">
+                <div className="flex">
+                  <button
+                      className={`flex-1 flex items-center justify-center space-x-2 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
+                          activeTab === 'profile'
+                              ? 'bg-[var(--primary)] text-white shadow-lg'
+                              : 'text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)]'
+                      }`}
+                      onClick={() => setActiveTab('profile')}
+                  >
+                    <UserCog className="w-5 h-5"/>
+                    <span>Profile</span>
+                  </button>
+                  <button
+                      className={`flex-1 flex items-center justify-center space-x-2 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
+                          activeTab === 'tokens'
+                              ? 'bg-[var(--primary)] text-white shadow-lg'
+                              : 'text-[var(--text-light)] hover:text-[var(--text)] hover:bg-[var(--bg)]'
+                      }`}
+                      onClick={() => setActiveTab('tokens')}
+                  >
+                    <Key className="w-5 h-5"/>
+                    <span>API Tokens</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
             <div className="bg-[var(--bg-container)] rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden">
               {/* Card Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-[var(--border)] gap-4">
@@ -861,6 +895,28 @@ function Profile() {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* API Tokens Tab */}
+            {activeTab === 'tokens' && (
+              <div className="bg-[var(--bg-container)] rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden">
+                <div className="p-6 border-b border-[var(--border)]">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
+                      <Key className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-[var(--text)]">MCP Token Management</h2>
+                      <p className="text-sm text-[var(--text-light)]">Model Context Protocol tokens for Claude Desktop integration</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <MCPTokenManagement />
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

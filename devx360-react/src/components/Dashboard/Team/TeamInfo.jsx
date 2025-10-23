@@ -11,7 +11,8 @@ import {
   Github,
   ExternalLink,
   Crown,
-  Loader
+  Loader,
+  Info
 } from "lucide-react";
 import {Link} from "react-router-dom";
 import {formatDate} from '../../../utils/dateUtils';
@@ -131,6 +132,52 @@ const getMetricValue = (team, metricPath, fallback = 'N/A') => {
     return value !== null && value !== undefined ? value : fallback;
   } catch (error) {
     return fallback;
+  }
+};
+
+const getDataQualityInfo = (team, metricType) => {
+  switch (metricType) {
+    case 'cfr':
+      const confidence = getMetricValue(team, 'doraMetrics.change_failure_rate.confidence_score', null);
+      const dataQuality = getMetricValue(team, 'doraMetrics.change_failure_rate.accuracy_indicators.dataQuality', null);
+      const sampleSize = getMetricValue(team, 'doraMetrics.change_failure_rate.accuracy_indicators.sampleSize', null);
+      
+      if (confidence !== null && confidence !== 'N/A') {
+        return {
+          hasInfo: true,
+          confidence: confidence,
+          quality: dataQuality,
+          sample: sampleSize,
+          label: `${confidence}% confidence`,
+          description: dataQuality && sampleSize ? `Data quality: ${dataQuality}, Sample size: ${sampleSize}` : null
+        };
+      }
+      return { hasInfo: false };
+    
+    case 'leadtime':
+      const prCount = getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', 0);
+      if (prCount > 0) {
+        return {
+          hasInfo: true,
+          label: `${prCount} PR${prCount !== 1 ? 's' : ''}`,
+          description: `Analyzed from ${prCount} pull request${prCount !== 1 ? 's' : ''}`
+        };
+      }
+      return { hasInfo: false };
+    
+    case 'mttr':
+      const incidentCount = getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', 0);
+      if (incidentCount > 0) {
+        return {
+          hasInfo: true,
+          label: `${incidentCount} incident${incidentCount !== 1 ? 's' : ''}`,
+          description: `Based on ${incidentCount} incident${incidentCount !== 1 ? 's' : ''}`
+        };
+      }
+      return { hasInfo: false };
+    
+    default:
+      return { hasInfo: false };
   }
 };
 
@@ -343,7 +390,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                     {/* Deployment Frequency */}
-                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200 group/metric">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                           <GitBranch className="w-4 h-4 text-blue-600"/>
@@ -368,7 +415,7 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                     </div>
 
                     {/* Lead Time */}
-                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200 group/metric">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                           <Clock className="w-4 h-4 text-green-600"/>
@@ -383,17 +430,23 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
                         {getMetricValue(team, 'doraMetrics.lead_time.average_days', '0.00')} days
                       </p>
-                      <p className="text-xs text-[var(--text-light)]">
+                      <p className="text-xs text-[var(--text-light)] mb-2">
                         {getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', '0') > 0 ? (
-                            `From ${getMetricValue(team, 'doraMetrics.lead_time.total_prs_analyzed', '0')} pull requests (${getMetricValue(team, 'doraMetrics.lead_time.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.lead_time.max_days', '0.00')} days)`
+                            `Range: ${getMetricValue(team, 'doraMetrics.lead_time.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.lead_time.max_days', '0.00')} days`
                         ) : (
                             getMetricValue(team, 'doraMetrics.lead_time.status', 'No pull requests analyzed')
                         )}
                       </p>
+                      {getDataQualityInfo(team, 'leadtime').hasInfo && (
+                        <div className="flex items-center gap-1 text-xs text-[var(--text-light)] pt-2 border-t border-[var(--border)]">
+                          <Info className="w-3 h-3" />
+                          <span>{getDataQualityInfo(team, 'leadtime').label}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Change Failure Rate */}
-                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200 group/metric">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-orange-600"/>
@@ -412,17 +465,26 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                             'N/A'
                         )}
                       </p>
-                      <p className="text-xs text-[var(--text-light)]">
+                      <p className="text-xs text-[var(--text-light)] mb-2">
                         {getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0') > 0 ? (
-                            `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failed deployments out of ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')}`
+                            `${getMetricValue(team, 'doraMetrics.change_failure_rate.deployment_failures', '0')} failures in ${getMetricValue(team, 'doraMetrics.change_failure_rate.total_deployments', '0')} deployments`
                         ) : (
                             `Cannot calculate - no deployments found`
                         )}
                       </p>
+                      {getDataQualityInfo(team, 'cfr').hasInfo && (
+                        <div className="flex items-center gap-1 text-xs pt-2 border-t border-[var(--border)]">
+                          <Info className="w-3 h-3 text-[var(--text-light)]" />
+                          <span className="text-[var(--text-light)]">{getDataQualityInfo(team, 'cfr').label}</span>
+                          {getDataQualityInfo(team, 'cfr').quality && (
+                            <span className="text-[var(--text-light)] ml-1">• {getDataQualityInfo(team, 'cfr').quality} quality</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* MTTR */}
-                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200">
+                    <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:shadow-md transition-all duration-200 group/metric">
                       <div className="flex items-center justify-between mb-3">
                         <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                           <Zap className="w-4 h-4 text-purple-600"/>
@@ -437,13 +499,19 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                       <p className="text-lg font-bold text-[var(--text)] mb-1">
                         {getMetricValue(team, 'doraMetrics.mttr.average_days', '0.00')} days
                       </p>
-                      <p className="text-xs text-[var(--text-light)]">
+                      <p className="text-xs text-[var(--text-light)] mb-2">
                         {getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0') > 0 ? (
-                            `Average recovery time from ${getMetricValue(team, 'doraMetrics.mttr.total_incidents_analyzed', '0')} incidents (range: ${getMetricValue(team, 'doraMetrics.mttr.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.mttr.max_days', '0.00')} days)`
+                            `Range: ${getMetricValue(team, 'doraMetrics.mttr.min_days', '0.00')} - ${getMetricValue(team, 'doraMetrics.mttr.max_days', '0.00')} days`
                         ) : (
                             getMetricValue(team, 'doraMetrics.mttr.status', 'No incidents analyzed')
                         )}
                       </p>
+                      {getDataQualityInfo(team, 'mttr').hasInfo && (
+                        <div className="flex items-center gap-1 text-xs text-[var(--text-light)] pt-2 border-t border-[var(--border)]">
+                          <Info className="w-3 h-3" />
+                          <span>{getDataQualityInfo(team, 'mttr').label}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -527,13 +595,15 @@ function TeamInfo({ teams, currentUser, onDeleteTeam, deletingTeamIds, teamPerio
                           </div>
                       )}
 
-                      <Link to={`/dashboard/metrics`}
-                            className="text-xs font-medium text-[var(--text)] hover:text-[var(--primary-dark)] transition-colors">
-                        <div className="w-4 h-4 bg-[var(--primary)] rounded-full flex items-center justify-center">
-                          <TrendingUp className="w-2.5 h-2.5 text-white"/>
+                      <Link 
+                        to={`/dashboard/metrics?teamId=${team.id}`}
+                        className="flex items-center space-x-2 hover:bg-[var(--bg-container)] rounded-lg p-2 transition-colors group"
+                      >
+                        <div className="w-8 h-8 bg-[var(--primary)]/10 group-hover:bg-[var(--primary)]/20 rounded-lg flex items-center justify-center transition-colors">
+                          <TrendingUp className="w-4 h-4 text-[var(--primary)]"/>
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-[var(--text)]">Performance</p>
+                          <p className="text-xs font-medium text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">Performance</p>
                           <p className="text-xs text-[var(--text-light)]">View detailed metrics</p>
                         </div>
                       </Link>
