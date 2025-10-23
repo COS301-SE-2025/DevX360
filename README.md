@@ -1,11 +1,12 @@
-# DORA Metrics Repository Analyzer
+# DevX360 - DORA Metrics & Repository Analytics Platform
 
-This project provides a GitHub repository analysis tool that evaluates a codebase for DevOps performance using **DORA Metrics**. It scans the structure and metadata of the repository to identify process strengths and weaknesses, and then generates detailed, actionable recommendations using a local LLM.
+This project provides a comprehensive GitHub repository analysis platform that evaluates codebases for DevOps performance using **DORA Metrics**. It includes a backend API, MCP (Model Context Protocol) server for Claude Desktop integration, and AI-powered insights generation.
 
 ---
 
 ## Features
 
+### Core Analytics
 - **DORA Metric Detection**: Evaluates repositories for the four DORA metrics:
   - Deployment Frequency
   - Lead Time for Changes
@@ -13,8 +14,15 @@ This project provides a GitHub repository analysis tool that evaluates a codebas
   - Change Failure Rate (CFR)
 - **Parallel Processing**: Uses `concurrentMap` to concurrently fetch and analyze files/directories while respecting API limits.
 - **Token Management**: Leverages `tokenManager.js` to cycle GitHub tokens for rate limit handling.
-- **AI-Powered Insight Generation**: Prompts a local LLM to generate suggestions and improvement opportunities for each DORA metric.
+- **AI-Powered Insight Generation**: Generates actionable recommendations and improvement opportunities.
 - **Critical File Detection**: Identifies files relevant to CI/CD, testing, monitoring, security, and more.
+
+### MCP Server (Claude Desktop Integration)
+- **Real-time Analysis**: Analyze any GitHub repository directly from Claude Desktop
+- **Private Repository Support**: Multiple authentication methods for private repos
+- **Team Analytics**: AI-generated insights for development teams
+- **Secure Configuration**: Environment-based token management (no hardcoded credentials)
+- **Self-Service Tokens**: Users generate their own MCP tokens via web UI
 
 ---
 
@@ -30,33 +38,81 @@ This project provides a GitHub repository analysis tool that evaluates a codebas
 
 ## Requirements
 
-- Node.js (v16+)
+- Node.js (v18+)
 - GitHub Personal Access Tokens (PATs)
-- Local LLM API via Ollama running at `http://localhost:11434/api/generate`
+- AWS Account (for Lambda deployment) or local server
+- Claude Desktop (optional, for MCP integration)
 
 ---
 
 ## Installation
 
-1. Clone this repository:
+### Backend API Setup
 
+1. Clone this repository:
    ```bash
-   git clone https://github.com/your-org/repo-analyzer.git
-   cd repo-analyzer
+   git clone https://github.com/your-org/DevX360.git
+   cd DevX360
    ```
 
 2. Install dependencies:
-
    ```bash
    npm install
    ```
 
-3. Set up your `tokenManager.js` to provide GitHub access tokens.
-
-4. Ensure Ollama is running locally:
+3. Configure environment variables:
    ```bash
-   ollama run mistral:instruct
+   # Backend API tokens
+   export GITHUB_TOKEN_1="your-github-token-1"
+   export GITHUB_TOKEN_2="your-github-token-2"  # Optional
    ```
+
+4. Run the backend:
+   ```bash
+   npm start
+   # Or for development
+   npm run dev
+   ```
+
+### MCP Server Setup (Claude Desktop Integration)
+
+**🔐 Important: The MCP server now requires environment variable configuration.**
+
+See detailed setup instructions in:
+- **Quick Start**: `CLAUDE_DESKTOP_SETUP.md`
+- **Token Configuration**: `MCP_TOKEN_SETUP.md`
+- **Example Config**: `claude-config.example.json`
+
+**Quick Setup:**
+```json
+// ~/.config/Claude/config.json (or equivalent)
+{
+  "mcpServers": {
+    "devx360-dora-analytics": {
+      "command": "npx",
+      "args": ["-y", "@devx360/mcp-server"],
+      "env": {
+        "DEVX360_MCP_API_TOKEN": "your-personal-mcp-token"
+      }
+    }
+  }
+}
+```
+
+**Note**: The server automatically connects to the DevX360 production API. No additional configuration needed!
+
+**Get Your Token:**
+
+**Option 1 - Self-Service (Recommended):**
+1. Log into DevX360 web interface
+2. Go to Settings → MCP Tokens
+3. Click "Generate New Token"
+4. Copy token and add to config.json
+
+**Option 2 - Request from Admin:**
+Contact your DevX360 administrator for your personal `DEVX360_MCP_API_TOKEN`.
+
+See `MCP_TOKEN_API.md` for API documentation.
 
 ---
 
@@ -99,6 +155,22 @@ console.log(result.insights);
 ```
 
 ---
+
+## Documentation
+
+### For End Users
+- **`QUICK_START_MCP.md`** - 5-minute setup guide for Claude Desktop
+- **`MCP_TOKEN_SETUP.md`** - Complete token configuration guide
+- **`CLAUDE_DESKTOP_SETUP.md`** - Full Claude Desktop integration guide
+
+### For Developers
+- **`MCP_TOKEN_API.md`** - REST API reference for token management
+- **`PRIVATE_REPO_SECURITY.md`** - Security model and best practices
+- **`test-mcp-tokens.js`** - Test suite for token management
+
+### For Administrators
+- **`MCP_ADMIN_GUIDE.md`** - Deployment and token management
+- **`CHANGES.md`** - Change log and migration guide
 
 ## Metrics and Analysis
 

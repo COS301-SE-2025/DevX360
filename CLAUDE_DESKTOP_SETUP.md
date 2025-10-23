@@ -1,18 +1,71 @@
 # Claude Desktop + DevX360 MCP Server Setup
 
-## ✅ Configuration Complete!
+## 🔐 IMPORTANT: Configuration Required (Updated)
 
-Your DevX360 MCP server has been successfully configured to work with Claude Desktop.
+**The MCP server now requires environment variables to be configured!** Hardcoded tokens have been removed for security.
 
-## 🔧 What Was Configured
+## 📋 Quick Setup Guide
 
-### 1. Claude Desktop Configuration
-- **File**: `~/Library/Application Support/Claude/config.json`
-- **Added**: MCP server configuration for `devx360-dora-analytics`
+### Step 1: Get Your MCP API Token
+Contact your DevX360 administrator to get your personal `DEVX360_MCP_API_TOKEN`.
 
-### 2. MCP Server Location
-- **Path**: `/Users/sbudx/Documents/GitHub/DevX360/mcp-server.js`
-- **Status**: ✅ Working and tested
+### Step 2: Configure Claude Desktop
+
+**Configuration File Location:**
+- **macOS**: `~/Library/Application Support/Claude/config.json`
+- **Linux**: `~/.config/Claude/config.json`  
+- **Windows**: `%APPDATA%\Claude\config.json`
+
+**Configuration Template:**
+See `claude-config.example.json` in this directory for a template.
+
+**Example Configuration:**
+```json
+{
+  "mcpServers": {
+    "devx360-dora-analytics": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@devx360/mcp-server"
+      ],
+      "env": {
+        "DEVX360_MCP_API_TOKEN": "your-token-here"
+      }
+    }
+  }
+}
+```
+
+**Environment Variables:**
+- `DEVX360_MCP_API_TOKEN` - **Required**. Your personal MCP API token
+- `DEVX360_API_BASE_URL` - **Optional**. Only needed for:
+  - Local development (e.g., `http://localhost:5500`)
+  - Self-hosted instances
+  - Testing against staging environments
+  - **Default**: Production API (automatically configured)
+
+**Alternative: Local Development Setup**
+For developers working on the MCP server itself:
+```json
+{
+  "mcpServers": {
+    "devx360-dora-analytics": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/DevX360/mcp-server.js"
+      ],
+      "env": {
+        "DEVX360_MCP_API_TOKEN": "your-token-here",
+        "DEVX360_API_BASE_URL": "http://localhost:5500"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Restart Claude Desktop
+After updating the config.json, completely quit and restart Claude Desktop.
 
 ## 🚀 Available MCP Tools
 
@@ -142,6 +195,16 @@ Try analyzing a private repository (if system tokens have access):
 
 ## 🔍 Troubleshooting
 
+### If MCP Server Fails to Start:
+
+**Error: "DEVX360_MCP_API_TOKEN environment variable is not set"**
+- You haven't configured the token in Claude Desktop's config.json
+- Solution: Add the `env` section to your config.json (see Step 2 above)
+
+**Error: "API 401 Unauthorized"**
+- Your MCP API token is invalid or expired
+- Solution: Contact your administrator for a new token
+
 ### If MCP Tools Don't Appear:
 1. **Check Claude Desktop Logs**:
    - Look for MCP-related errors in Claude Desktop
@@ -149,13 +212,18 @@ Try analyzing a private repository (if system tokens have access):
 
 2. **Manual Server Test**:
    ```bash
-   cd /Users/sbudx/Documents/GitHub/DevX360
-   npm run mcp
+   cd /path/to/DevX360
+   export DEVX360_MCP_API_TOKEN="your-token-here"
+   node mcp-server.js
    ```
+   You should see: "MCP Server starting..." and "MCP_API_TOKEN: SET"
 
 3. **Check Configuration**:
    ```bash
+   # macOS/Linux
    cat ~/Library/Application\ Support/Claude/config.json
+   # Or
+   cat ~/.config/Claude/config.json
    ```
 
 ### If Tools Timeout:
@@ -194,17 +262,18 @@ The tools will provide structured analysis including:
 
 ## 🔧 Advanced Configuration
 
-### Custom Environment Variables
-If you need to modify the MCP server environment, update the config.json:
+### Custom API Endpoint
+If you're running a local or custom deployment:
 
 ```json
 {
   "mcpServers": {
     "devx360-dora-analytics": {
       "command": "node",
-      "args": ["/Users/sbudx/Documents/GitHub/DevX360/mcp-server.js"],
+      "args": ["/path/to/DevX360/mcp-server.js"],
       "env": {
-        "CUSTOM_VAR": "value"
+        "DEVX360_MCP_API_TOKEN": "your-token",
+        "DEVX360_API_BASE_URL": "http://localhost:3000/dev"
       }
     }
   }
@@ -213,6 +282,31 @@ If you need to modify the MCP server environment, update the config.json:
 
 ### Multiple MCP Servers
 You can add additional MCP servers to the same configuration file.
+
+### Deployment Checklist for Administrators
+
+**When deploying DevX360 MCP for your organization:**
+
+1. **Generate MCP API Tokens**
+   - Create secure, unique tokens for each user/team
+   - Store tokens securely (never commit to git)
+   - Implement token rotation policy
+
+2. **Backend Configuration**
+   - Ensure `authenticateMCP` middleware validates tokens correctly
+   - Set up proper CORS if needed
+   - Configure GitHub tokens (GITHUB_TOKEN_1, GITHUB_TOKEN_2) in backend
+
+3. **User Setup**
+   - Provide users with their MCP API token
+   - Share the configuration template
+   - Document the API_BASE_URL for your deployment
+
+4. **Security Best Practices**
+   - Rotate tokens periodically
+   - Monitor for suspicious API usage
+   - Use HTTPS for all API communications
+   - Implement rate limiting on MCP endpoints
 
 ---
 

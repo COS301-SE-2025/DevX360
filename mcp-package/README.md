@@ -45,7 +45,7 @@ Only set these if you're a developer or using a self-hosted instance:
       "args": ["-y", "@devx360/mcp-server"],
       "env": {
         "DEVX360_MCP_API_TOKEN": "your_token_here",
-        "DEVX360_API_BASE_URL": "http://localhost:5500"  // For local development
+        "DEVX360_API_BASE_URL": "http://localhost:5500" 
       }
     }
   }
