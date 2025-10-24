@@ -1,193 +1,216 @@
-# DevX360 User Manual
+# DevX360 - DORA Metrics & Repository Analytics Platform
 
-## 0. How the System Works 
-
-
-<p align="center">
-  <img src="Assets/DevX360 Graphical Model.png" alt="DevX360 Logo" height="600" width="600"/>
-</p>
-
-
-When you log into DevX360, you begin on the dashboard in your web browser. This dashboard is your main control panel, where you can view metrics, manage your team, and request AI feedback. Every action you take is sent to the DevX360 service running in the cloud.
-
-The cloud service acts like a messenger. If your request is about team details or stored information, it retrieves the data from the secure database. If it’s about repositories and commits, it connects to GitHub to fetch the latest activity. Alongside this, DevX360 has an AI assistant that analyses the data coming from GitHub and your stored metrics, then provides recommendations on how your team can improve.
-
-From the user’s perspective, this all happens seamlessly: you press a button, and the results appear on your screen. Behind the scenes, however, several parts are working together—the dashboard, the cloud service, the database, GitHub, and the AI—to make sure you always have accurate and useful insights.
-
-
-When you log into DevX360, you begin on the dashboard in your web browser. This dashboard is your main control panel, where you can view metrics, manage your team, and request AI feedback. Every action you take is sent to the DevX360 service running in the cloud.
-
-The cloud service acts like a messenger. If your request is about team details or stored information, it retrieves the data from the secure database. If it’s about repositories and commits, it connects to GitHub to fetch the latest activity. Alongside this, DevX360 has an AI assistant that analyses the data coming from GitHub and your stored metrics, then provides recommendations on how your team can improve.
-
-From the user’s perspective, this all happens seamlessly: you press a button, and the results appear on your screen. Behind the scenes, however, several parts are working together—the dashboard, the cloud service, the database, GitHub, and the AI—to make sure you always have accurate and useful insights.
-
-## 1. Getting Started
-
-### 1.1 Prerequisites Before Running the App
-
-Before launching the DevX360 app:
-
-1. **Start the API**  
-   - Follow the setup instructions in the official README:
-     👉 [API Setup Guide](https://github.com/COS301-SE-2025/DevX360/blob/feature/ai-analysis/README.md#installation) Found in the "Installation" section of the README
-
-2. **Run the Frontend App**
-   - Navigate to the `devx360-react/src` folder:
-     ```bash
-     cd devx360-react/src
-     ```
-   - Install dependencies:
-     ```bash
-     npm install
-     ```
-   - Start the development server:
-     ```bash
-     npm start
-     ```
-### 1.2 Landing Page
-<img width="1876" height="888" alt="Screenshot 2025-08-20 002547" src="https://github.com/user-attachments/assets/35d34e70-7a0e-4504-8a9d-827167e403d7" />
-1. Click "Register" if don't have an account
-2. Enter your details (name, email, role etc..)
-3. It is HIGHLY recommended you sign up using your github
-4. If you do have a an account Click "Sign In"
-
-
-### 1.3 Registration
-![Screenshot 2025-06-26 215029](https://github.com/user-attachments/assets/979c9f9a-d589-4052-b447-f07ca794d3cd)
-
-1. Click "Sign Up" on the login page or If you clicked "Register" on the Landing Page
-2. Enter your details (name, email, role)
-3. Verify your email address
-4. Log in with your credentials
-
-### 1.3 Login
-![Screenshot 2025-06-26 215002](https://github.com/user-attachments/assets/6762dffc-99dc-417a-8376-6258740005da)
-
-1. Enter email and password
-2. Press Sign in
-
+This project provides a comprehensive GitHub repository analysis platform that evaluates codebases for DevOps performance using **DORA Metrics**. It includes a backend API, MCP (Model Context Protocol) server for Claude Desktop integration, and AI-powered insights generation.
 
 ---
 
-## 2. Overview
-<img width="1891" height="890" alt="image" src="https://github.com/user-attachments/assets/851f5717-a88b-4371-b00a-302b1521ec02" />
+## Features
 
-### 2.1 Navigation
-1. **Sidebar Menu**: Access different sections
-2. **User Profile**: View/update your details
-3. **Theme Toggle**: Switch between light/dark mode
-4. **Dashboard**: Showing your teams Metrics
+### Core Analytics
+- **DORA Metric Detection**: Evaluates repositories for the four DORA metrics:
+  - Deployment Frequency
+  - Lead Time for Changes
+  - Mean Time to Recovery (MTTR)
+  - Change Failure Rate (CFR)
+- **Parallel Processing**: Uses `concurrentMap` to concurrently fetch and analyze files/directories while respecting API limits.
+- **Token Management**: Leverages `tokenManager.js` to cycle GitHub tokens for rate limit handling.
+- **AI-Powered Insight Generation**: Generates actionable recommendations and improvement opportunities.
+- **Critical File Detection**: Identifies files relevant to CI/CD, testing, monitoring, security, and more.
 
-### 2.2 Key Metrics
-- Deployment Frequency
-- Lead Time for Changes
-- Change Failure Rate
-- Mean Time to Recovery
-
----
-## 3. Profile
-<img width="1892" height="890" alt="image" src="https://github.com/user-attachments/assets/0ec2daa6-6b37-4522-bbb9-490d5f6e4469" />
-
-### 3.1 Edit Profile
-<img width="1125" height="491" alt="image" src="https://github.com/user-attachments/assets/b84faf5b-abc6-4681-9560-fb897f033b88" />
-1. Click "Edit Profile"
-2. Edit your name or email
-3. Click "save changes"
-
-### 3.1 Edit Profile Picture
-1. Click "Edit" by profile picture
-2. Choose the picture you want to upload
-
----
-## 4. Team Management
-<img width="1911" height="887" alt="image" src="https://github.com/user-attachments/assets/9c36f1b2-afb9-4637-88ef-49a98eda818c" />
-
-### 4.1 Creating a Team
-
-1. Navigate to Team section
-2. Click "Create New Team"
-<img width="1687" height="797" alt="image" src="https://github.com/user-attachments/assets/d89b80de-c9d4-4899-9d58-e47224e641f6" />
-
-3. Enter team name, password and GitHub repo URL
-4. Click "Create Team"
-
-### 4.2 Joining a Team
-Click "Join team"
-<img width="1521" height="622" alt="image" src="https://github.com/user-attachments/assets/b1af19dc-f252-466a-b233-c9518f6caeec" />
-
-
-1. Get team name and password from your manager
-2. Search for the team
-3. Enter password when prompted
+### MCP Server (Claude Desktop Integration)
+- **Real-time Analysis**: Analyze any GitHub repository directly from Claude Desktop
+- **Private Repository Support**: Multiple authentication methods for private repos
+- **Team Analytics**: AI-generated insights for development teams
+- **Secure Configuration**: Environment-based token management (no hardcoded credentials)
+- **Self-Service Tokens**: Users generate their own MCP tokens via web UI
 
 ---
 
-## 4. Metrics Dashboard
-<img width="1875" height="887" alt="image" src="https://github.com/user-attachments/assets/898d9421-2a1d-4ebb-87f4-4aedd28fd9ab" />
+---
 
-### 4.0 Deployment trend and top contributors
-<img width="1633" height="365" alt="image" src="https://github.com/user-attachments/assets/7ba402b5-df4c-4a0b-852a-421dc14808b2" />
+## File Structure
 
-### 4.1 Understanding DORA Metrics
-- **Deployment Frequency**: How often your team deploys code
-- **Lead Time**: Time from commit to production
-- **Change Failure Rate**: Percentage of failed deployments
-- **MTTR**: How quickly you recover from failures
-
-
-
-### 4.2 RBAC(Role Based Access Control
-#### 4.2 Team Creator
-if you create the team that means you have higher access than other members of a team, you are technically the "Team Manager"
-<img width="1612" height="545" alt="image" src="https://github.com/user-attachments/assets/4b97c376-8608-4062-9930-7a08f047a0ef" />
-
-You may Veiw the statistics of memebrs in the team because you have "Creator Access"
-<img width="829" height="774" alt="image" src="https://github.com/user-attachments/assets/c9d18dd6-e743-440d-b555-81ea2c9f2a47" />
-
-#### if you are not the "Creator" of a team then you have "Member access"
-<img width="1636" height="256" alt="image" src="https://github.com/user-attachments/assets/a8136461-bb30-47e7-84a5-ac548a75cc7f" />
-
-
+- `codeInterpretor.js`: Main orchestrator module that runs the full analysis.
+- `tokenManager.js`: Manages and rotates GitHub API tokens.
+- `../api/utils/concurrentMap.js`: Processes tasks concurrently with a configurable concurrency limit.
 
 ---
 
-## 5. AI Analysis
-<img width="1632" height="805" alt="image" src="https://github.com/user-attachments/assets/bd234151-ed6f-49ad-b4f7-ba117cef7b66" />
+## Requirements
 
-
-### 5.1 Requesting Analysis
-1. Navigate to Metrics dashboard
-2. Wait for processing (typically 0-30 seconds)
-3. View results in the AI Feedback section
-
-### 5.2 Understanding Suggestions
-AI provides recommendations on:
-- Code quality improvements
-- Process optimizations
-- Team workflow suggestions
-
----
-## 6. Help Menu
-Click on the Question mark on right botton corner
-<img width="77" height="80" alt="image" src="https://github.com/user-attachments/assets/beb845ea-e596-442d-9b3b-eeed4fe237e0" />
-
-### Shows you a variety of Help Navigations that may help you
-<img width="1898" height="892" alt="image" src="https://github.com/user-attachments/assets/711c3d80-f25d-4264-b2e0-9c50c035ac63" />
-
+- Node.js (v18+)
+- GitHub Personal Access Tokens (PATs)
+- AWS Account (for Lambda deployment) or local server
+- Claude Desktop (optional, for MCP integration)
 
 ---
 
-## 7. Troubleshooting
+## Installation
 
-### Common Issues
-**Problem**: Can't see team metrics  
-**Solution**: Ensure you're added to the team and have correct permissions
+### Backend API Setup
 
-**Problem**: GitHub repo not connecting  
-**Solution**: Check repository URL and ensure proper access rights
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/your-org/DevX360.git
+   cd DevX360
+   ```
 
-**Problem**: AI analysis taking too long  
-**Solution**: Larger repos may take more time. Check back in 10 minutes.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-**Problem**: Can not see member stats 
-**Solution**: Memeber did not sign in using Github
+3. Configure environment variables:
+   ```bash
+   # Backend API tokens
+   export GITHUB_TOKEN_1="your-github-token-1"
+   export GITHUB_TOKEN_2="your-github-token-2"  # Optional
+   ```
+
+4. Run the backend:
+   ```bash
+   npm start
+   # Or for development
+   npm run dev
+   ```
+
+### MCP Server Setup (Claude Desktop Integration)
+
+**🔐 Important: The MCP server now requires environment variable configuration.**
+
+See detailed setup instructions in:
+- **Quick Start**: `CLAUDE_DESKTOP_SETUP.md`
+- **Token Configuration**: `MCP_TOKEN_SETUP.md`
+- **Example Config**: `claude-config.example.json`
+
+**Quick Setup:**
+```json
+// ~/.config/Claude/config.json (or equivalent)
+{
+  "mcpServers": {
+    "devx360-dora-analytics": {
+      "command": "npx",
+      "args": ["-y", "@devx360/mcp-server"],
+      "env": {
+        "DEVX360_MCP_API_TOKEN": "your-personal-mcp-token"
+      }
+    }
+  }
+}
+```
+
+**Note**: The server automatically connects to the DevX360 production API. No additional configuration needed!
+
+**Get Your Token:**
+
+**Option 1 - Self-Service (Recommended):**
+1. Log into DevX360 web interface
+2. Go to Settings → MCP Tokens
+3. Click "Generate New Token"
+4. Copy token and add to config.json
+
+**Option 2 - Request from Admin:**
+Contact your DevX360 administrator for your personal `DEVX360_MCP_API_TOKEN`.
+
+See `MCP_TOKEN_API.md` for API documentation.
+
+---
+
+## Example Usage
+
+```js
+import { performDORAAnalysis } from "./codeInterpretor.js";
+
+const result = await performDORAAnalysis("facebook", "react", {
+  deployment_frequency: {},
+  lead_time: {},
+  mttr: {},
+  change_failure_rate: {},
+});
+
+console.log(result.insights);
+```
+
+---
+
+## Output Structure
+
+```json
+{
+  "insights": "## DEPLOYMENT FREQUENCY\n**Opportunity:** ...",
+  "repositoryAnalysis": {
+    "repository": { "name": "...", "language": "...", ... },
+    "structure": {...},
+    "doraIndicators": {...},
+    "fileStats": {...},
+    "patterns": {...},
+    "allFiles": [...]
+  },
+  "performance": {
+    "totalTimeMs": 9435,
+    "filesAnalyzed": 88,
+    "doraIndicatorsFound": 23
+  }
+}
+```
+
+---
+
+## Documentation
+
+### For End Users
+- **`QUICK_START_MCP.md`** - 5-minute setup guide for Claude Desktop
+- **`MCP_TOKEN_SETUP.md`** - Complete token configuration guide
+- **`CLAUDE_DESKTOP_SETUP.md`** - Full Claude Desktop integration guide
+
+### For Developers
+- **`MCP_TOKEN_API.md`** - REST API reference for token management
+- **`PRIVATE_REPO_SECURITY.md`** - Security model and best practices
+- **`test-mcp-tokens.js`** - Test suite for token management
+
+### For Administrators
+- **`MCP_ADMIN_GUIDE.md`** - Deployment and token management
+- **`CHANGES.md`** - Change log and migration guide
+
+## Metrics and Analysis
+
+### Deployment Frequency
+
+- Detected from workflows, release patterns, and deploy-related commits.
+
+### Lead Time for Changes
+
+- Derived from pull request open-to-merge durations and test/review files.
+
+### MTTR
+
+- Inferred via log, monitoring, alert, and rollback-related files.
+
+### Change Failure Rate
+
+- Estimated using fix-to-feature commit ratios and PR merge rates.
+
+---
+
+## Additional Notes
+
+- The `concurrentMap` utility is essential for efficient processing of large repositories without overloading the GitHub API.
+- `tokenManager.js` must supply rotating Octokit clients with valid GitHub PATs.
+- The AI prompt used is dynamically constructed based on detected repo patterns.
+
+---
+
+## LLM Prompt
+
+A custom prompt is sent to a local LLM like so:
+
+```
+POST http://localhost:11434/api/generate
+Content-Type: application/json
+
+{
+  "model": "mistral:instruct",
+  "prompt": "You are a senior DevOps engineer analyzing ...",
+  ...
+}
+```
