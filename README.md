@@ -17,11 +17,10 @@
 
 ## 🚀 Project Description
 
-**DevX360** is an AI-powered DevOps analytics platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates tracking, analysis, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance.
+**DevX360** is a multi-agent orchestration platform that transforms DORA metrics (Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate) into actionable insights for engineering teams. Designed to address the rapid growth of the South African software industry (projected to reach USD 3.4 billion by 2030), this tool automates DevOps analytics, and visualization of critical performance indicators, enabling teams to achieve elite DevOps performance and experiment tracking via autonomous agents and LLM/AI integrations. Built with Node.js, React, and MongoDB; ships real-time metrics, dashboards, and predictive insights at production scale. 
+ 
 
 ---
-
-
 
 
 
